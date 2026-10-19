@@ -15,7 +15,7 @@ jobs:
           POSTGRES_HOST_AUTH_METHOD: trust
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U postgres -d dkman_test'
+          --health-cmd "pg_isready -U postgres -d dkman_test"
           --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       DKMAN_TEST_DATABASE_URL: postgresql+psycopg://postgres@127.0.0.1:5432/dkman_test
@@ -66,9 +66,9 @@ jobs:
       - run: docker compose --env-file .env -f infrastructure/compose/compose.yaml up -d --build --wait --wait-timeout 300
       - run: docker compose --env-file .env -f infrastructure/compose/compose.yaml run --rm --no-deps core python -m dkman.seed
       - run: bash scripts/linux/doctor.sh
-      - name: Show core logs on failure (no token or credential output)
+      - name: Show service startup logs on failure
         if: failure()
-        run: docker compose --env-file .env -f infrastructure/compose/compose.yaml logs --tail=80 core migrate
+        run: docker compose --env-file .env -f infrastructure/compose/compose.yaml logs --tail=100 core migrate keycloak hub
       - name: Stop disposable CI stack
         if: always()
         run: docker compose --env-file .env -f infrastructure/compose/compose.yaml down
