@@ -57,7 +57,7 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 3. GitHub-Actions-Ergebnisse prüfen; frühere lokale Prüfergebnisse sind keine CI-Abnahme.
 4. P0-007 am freigegebenen Testhost durchführen: Dockerstart und echten OIDC-Flow
    prüfen, eventuelle Integrationsfehler zuerst schließen.
-5. P1-004 Haushalts-/Benutzer-/Grant-Verwaltung ergänzen.
+5. P1-004 mit zwei echten OIDC-Nutzern abnehmen; API und Hub-Verwaltung sind implementiert.
 6. P2-001 persistente Jobs/Events/Approvals mit Idempotenz und Crash-Recovery.
 7. Einen separaten Compose-Adapter umsetzen, kuratierte Notes-App bauen, Digest
    erfassen und erst nach Planfreigabe über dieselbe Deploymentgrenze starten.
@@ -91,3 +91,26 @@ mitgelieferte Git-Bundle enthält den vollständigen lokalen Verlauf.
   OIDC-Discovery und 401 ohne Token. Keine Beispiel-App installiert.
 - Der Browsercheck verwendet weiterhin Testantworten; echter Login/Passwortwechsel,
   Refresh/Logout, Windows/VM-Neustart und Restore bleiben offen.
+
+## Haushalte und App-Freigaben · 19.10.2026
+
+- P1-004: Profilabgleich ausschließlich aus geprüftem OIDC-Principal; nur Admins
+  dürfen Benutzerverzeichnis, Mitgliedschaften und Installationsfreigaben verwalten.
+- Haushaltslisten normaler Benutzer enthalten ausschließlich eigene Haushalte.
+  Mitgliedschaft allein erteilt keinen App-Zugriff. Freigaben setzen Mitgliedschaft
+  im Installationshaushalt voraus. Entfernen eines Mitglieds entzieht sämtliche
+  App-Freigaben dieses Haushalts; erneutes Hinzufügen stellt sie nicht wieder her.
+- PostgreSQL-Zeilensperre am Haushalt serialisiert Mitgliedschafts- und Grantänderungen.
+  Idempotente PUT/DELETE und Audit-Einträge in derselben Transaktion.
+- Hub: Profilabgleich beim Login, Haushaltsanlage, Mitgliederverwaltung mit
+  Löschbestätigung und App-Freigaben; Fehler werden angezeigt. Konten/Rollen bleiben
+  in Keycloak. Keine Beispielinstallation vorgetäuscht, kein Hostzugriff hinzugefügt.
+- Bestehende Tabellen genügen; keine Migration erforderlich. OpenAPI und TS-Typen
+  regeneriert. Neue Backendtests prüfen Rollen, Isolation, Idempotenz, Widerruf,
+  Audit und fehlende Ressourcen; UI-Test prüft Anlage und Mitgliederänderungen.
+- Lokal: Ruff, Format, mypy erfolgreich; pytest 45 bestanden / 1 PostgreSQL-Test
+  mangels lokaler Testdatenbank übersprungen. npm ci, lint, build und 5 UI-Tests
+  erfolgreich. Lokaler Playwright-Start durch fehlende Browserbinary blockiert;
+  Browserdownload liefert beschädigtes Archiv. GitHub-CI-Nachweis folgt separat.
+- Offen: echte OIDC-Mehrbenutzerabnahme und Windows-/Persistenz-/Restoretests.
+  Nächster Entwicklungsschritt P2-001, ohne vorgezogenen Zielhost-Deploymentlauf.

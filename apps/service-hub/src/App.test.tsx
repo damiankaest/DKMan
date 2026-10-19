@@ -18,7 +18,7 @@ function responses(roles: string[] = ['member']) {
       status: 'healthy', database: 'ready', schema: 'current', checked_at: '2026-10-19T10:00:00Z',
     } : path === '/api/v1/me' ? {
       subject: 'alice', display_name: 'Alice', roles,
-    } : path === '/api/v1/catalog' ? [] : [{
+    } : ['/api/v1/catalog', '/api/v1/users', '/api/v1/households'].includes(path) ? [] : [{
       id: 'notes-one', definition_id: 'notes', name: 'Notes', version: '0.1.0',
       description: 'Gemeinsame Notizen', status: 'unknown', checked_at: null, route: null,
     }];
@@ -65,3 +65,4 @@ describe('ServiceHub', () => {
     expect(screen.queryByText('Core bereit')).toBeNull();
   });
 });
+

@@ -3,6 +3,7 @@ import { ApiClient, checkReadiness } from './api';
 import type { AppItem, Definition, Readiness, User } from './api';
 import type { AuthSession } from './auth';
 import './styles.css';
+import { AccessAdmin } from './AccessAdmin';
 
 const labels: Record<AppItem['status'], string> = {
   healthy: 'Bereit', starting: 'Startet', degraded: 'Eingeschränkt',
@@ -42,6 +43,7 @@ export function App({ auth }: { auth: AuthSession }) {
     const signal = controller.signal;
     async function load() {
       try {
+        await api.syncProfile(signal);
         const [profile, installations] = await Promise.all([api.me(signal), api.apps(signal)]);
         if (signal.aborted) return;
         setUser(profile);
@@ -123,6 +125,7 @@ export function App({ auth }: { auth: AuthSession }) {
           </section>
         ) : (
           <section>
+            <AccessAdmin api={api} installations={apps} />
             <span className="section-number">02 / VERWALTUNG</span><h2>Registrierte App-Definitionen</h2>
             <p className="muted">Die Registry enthält Metadaten. Installationen und Deployment-Freigaben folgen in Phase 2.</p>
             {catalog.length === 0 ? <div className="empty"><h3>Registry ist bereit</h3><p>Manifeste können über die geschützte Registry-API registriert werden. Eine Beispielregistrierung steht in der Startanleitung.</p></div> :
@@ -136,3 +139,4 @@ export function App({ auth }: { auth: AuthSession }) {
     </div>
   );
 }
+

@@ -15,7 +15,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P1-001 | P0 / 1 | 003,005 | OIDC Code/PKCE, RS256-/Issuer-/Audienceprüfung, Rollen 401/403; implementiert, Live-Flow offen |
 | P1-002 | P0 / 1 | 003 | Manifest-Schema, zwei Beispiele, kaputte/gefährliche Manifeste ablehnen; implementiert |
 | P1-003 | P0 / 1 | 001,002 | Registry-Registrierung, Katalogliste, App-/Service-/Capabilitysichtbarkeit und Audit; implementiert; revisionssicheres Update/Unregister offen |
-| P1-004 | P0 / 1 | P1-003 | Haushalts-/Mitglieder-/Grant-Verwaltung: zwei echte Nutzer und getrennte Freigaben; offen |
+| P1-004 | P0 / 1 | P1-003 | Haushalts-/Mitglieder-/Grant-Verwaltung: API, Hub-UI und Isolationstests implementiert; Abnahme mit zwei echten OIDC-Nutzern offen |
 | P1-005 | P0 / 1 | P1-003,P2-003 | tatsächliches Healthpolling mit Historie, Zeitstempel, Fehlerursache; DB-Readiness vorhanden, App-Polling offen |
 | P2-001 | P0 / 2 | P0-007,P1-003 | persistente Job-/Event-/Approvaltabellen, Idempotency-Key, Neustart-Recovery; Tests für Duplikat/Crash/Fehler |
 | P2-002 | P0 / 2 | P2-001 | DeploymentProvider und isolierter Compose-Adapter; keine freien Befehle/Mounts/Ports; Negativtests |
@@ -36,5 +36,6 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächste Sitzung: P0-007 und offener Live-OIDC-Test zuerst; anschließend P1-004
-und P2-001. Phase 2 nicht auf eine ungeprüfte Docker-/Identitykonfiguration aufbauen.
+Nächste Entwicklung: P2-001 persistente Jobs/Events/Approvals. Windows-Abnahme
+P0-007 und echter OIDC-Flow bleiben eigene Gates vor Zielhost-Deployments; sie
+blockieren die isolierte Implementierung und automatisierte Tests nicht.

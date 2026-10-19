@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from dkman.access import router as access_router
 from dkman.api import router
 from dkman.auth import TokenVerifier
 from dkman.config import Settings
@@ -97,4 +98,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         return result
 
     app.include_router(router)
+    app.include_router(access_router)
     return app

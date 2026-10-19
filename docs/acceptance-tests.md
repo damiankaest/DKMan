@@ -83,3 +83,14 @@ Doctor prüfte über den Proxy Live/Ready, OIDC-Discovery sowie HTTP 401 ohne To
 Der Seed registrierte zwei Manifestverträge und installierte keine Images.
 Die CI lief auf einem wegwerfbaren Ubuntu-Runner. Das ersetzt weder die
 Windows-Zielhost-Abnahme noch den interaktiven OIDC-Login.
+
+## P1-004: Haushalte und Freigaben
+
+Automatisiert: `uv run pytest tests/test_access.py -q` und im Hub `npm test`.
+API-Tests verwenden ausschließlich Test-Dependency-Overrides, keine echten OIDC-Logins.
+Manuelle Abnahme (offen): zwei Benutzer in Keycloak erstellen und einmal im Hub
+anmelden; als Admin Haushalt anlegen, nur Benutzer A hinzufügen. Beide sehen keine
+Apps ohne Grant. Nach einer echten Installation A freigeben; B darf sie weder listen
+noch direkt lesen. A aus Haushalt entfernen und wieder hinzufügen: App bleibt
+unsichtbar, bis eine neue explizite Freigabe erfolgt. Andere Haushalte bleiben
+unberührt. Rollenänderung und Tokenrefresh zusätzlich im echten Loginflow prüfen.
