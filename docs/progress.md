@@ -111,6 +111,17 @@ mitgelieferte Git-Bundle enthält den vollständigen lokalen Verlauf.
 - Lokal: Ruff, Format, mypy erfolgreich; pytest 45 bestanden / 1 PostgreSQL-Test
   mangels lokaler Testdatenbank übersprungen. npm ci, lint, build und 5 UI-Tests
   erfolgreich. Lokaler Playwright-Start durch fehlende Browserbinary blockiert;
-  Browserdownload liefert beschädigtes Archiv. GitHub-CI-Nachweis folgt separat.
+  Browserdownload liefert beschädigtes Archiv. GitHub-CI-Nachweis siehe unten.
 - Offen: echte OIDC-Mehrbenutzerabnahme und Windows-/Persistenz-/Restoretests.
   Nächster Entwicklungsschritt P2-001, ohne vorgezogenen Zielhost-Deploymentlauf.
+
+## CI-Abnahme P1-004 · 19.10.2026
+
+Commit `5c8e112`: [Actions-Lauf 39298429354](https://github.com/damiankaest/DKMan/actions/runs/39298429354)
+vollständig erfolgreich: Backend 46 Tests einschließlich PostgreSQL-Migrationsprobe,
+Ruff/Format/mypy, ASGI-Smoke, PowerShell-Syntax, Manifest- und Vertragsprüfung;
+Frontend Produktionsbuild, 5 UI-Tests, 2 Browserchecks und Dependency-Audit.
+Container-Smoke baut Images, führt Migration mit Exit 0 aus und meldet PostgreSQL,
+Core, Keycloak und Hub healthy. Seed registriert zwei Manifestverträge; Doctor prüft
+Schema, Proxy und OIDC-Discovery. Browsertests verwenden weiterhin Testantworten;
+echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.

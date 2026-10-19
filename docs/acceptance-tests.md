@@ -94,3 +94,14 @@ Apps ohne Grant. Nach einer echten Installation A freigeben; B darf sie weder li
 noch direkt lesen. A aus Haushalt entfernen und wieder hinzufügen: App bleibt
 unsichtbar, bis eine neue explizite Freigabe erfolgt. Andere Haushalte bleiben
 unberührt. Rollenänderung und Tokenrefresh zusätzlich im echten Loginflow prüfen.
+
+## CI-Abnahme P1-004 · 19.10.2026
+
+Commit `5c8e112`: [Actions-Lauf 39298429354](https://github.com/damiankaest/DKMan/actions/runs/39298429354)
+vollständig erfolgreich: Backend 46 Tests einschließlich PostgreSQL-Migrationsprobe,
+Ruff/Format/mypy, ASGI-Smoke, PowerShell-Syntax, Manifest- und Vertragsprüfung;
+Frontend Produktionsbuild, 5 UI-Tests, 2 Browserchecks und Dependency-Audit.
+Container-Smoke baut Images, führt Migration mit Exit 0 aus und meldet PostgreSQL,
+Core, Keycloak und Hub healthy. Seed registriert zwei Manifestverträge; Doctor prüft
+Schema, Proxy und OIDC-Discovery. Browsertests verwenden weiterhin Testantworten;
+echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.
