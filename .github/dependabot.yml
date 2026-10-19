@@ -6,6 +6,10 @@ updates:
   - package-ecosystem: npm
     directory: /apps/service-hub
     schedule: {interval: weekly}
+    # Compiler upgrades require coordinated ESLint/OpenAPI compatibility testing.
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=6']
   - package-ecosystem: docker
     directory: /backend
     schedule: {interval: weekly}
