@@ -1,6 +1,7 @@
 # Ausgeführte Prüfungen · 19.10.2026
 
-Ausgeführt im isolierten Work-Workspace, **nicht auf Damians Windows-Rechner**.
+Die ursprünglichen lokalen Prüfungen wurden im isolierten Work-Workspace ausgeführt,
+**nicht auf Damians Windows-Rechner**. Ergänzende GitHub-CI-Prüfungen stehen unten.
 Python 3.12.14, Node 24.19.0. Kein Docker-Daemon, kein Windows-Hostzugriff.
 
 ## Bestanden
@@ -46,16 +47,13 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
 
 ## Noch nicht ausgeführt / nicht abgenommen
 
-- Docker-Image-Builds und vollständiger Compose-Start; kein erreichbarer Docker-Daemon.
-- PostgreSQL 17 über psycopg: Online-Migration/Idempotenz/Downgrade und Datenbankrollen.
-  Der Workflow `CI/backend` stellt die erforderliche wegwerfbare DB bereit.
-- Keycloak-Container, echter Login/Passwortwechsel/Logout/Refresh/JWKS-Abruf,
-  CSP-/Proxy-Integration und zwei echte Benutzer.
+- Separate Negativtests zur Datenbankrollen-Isolation und Volume-Persistenz.
+- Echter Login/Passwortwechsel/Logout/Refresh/JWKS-Abruf,
+  CSP-Integration im echten Login und zwei echte Benutzer.
 - Windows-10-Preflight auf echter Hardware, Featureaktivierung, Ubuntu-VM/WSL2,
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- GitHub-Actions-Ausführung: kein entferntes Repository erstellt oder gepusht.
 - Journey B: Notes-App/DeploymentService/Approval-Jobs/Proxyroute sind noch nicht
   implementiert. Entsprechend keine behauptete Installations-E2E-Abnahme.
 
@@ -70,3 +68,18 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
 6. Zweiten Nutzer ohne Adminrolle anlegen: Registry-POST und Katalog bleiben 403.
 7. Stack/VM/Host gezielt neu starten; Daten/Identity und Doctor erneut prüfen.
 8. Erst danach die Runtime-Abnahme für Notes und DeploymentService aufbauen.
+
+## GitHub Actions · ergänzende Abnahme
+
+[CI-Lauf 39296486987](https://github.com/damiankaest/DKMan/actions/runs/39296486987), Commit `b78c7e506189ee942e1f583d5ba7f4138ca90b95`:
+
+| Job | Ergebnis |
+| --- | --- |
+| backend | Erfolgreich: 40 Tests ohne Skip, PostgreSQL 17 über psycopg, Lint/Format/mypy, HTTP-Smoke, PowerShell-Parser, Manifest- und Vertragsprüfung |
+| frontend | Erfolgreich: npm ci, generierte Typen ohne Drift, Lint/Build, vier Vitest- und zwei Playwright-Tests, Produktions-Audit |
+| container-smoke | Erfolgreich: Core-/Hub-/Keycloak-Images gebaut, Compose-Start, Migration Exit 0, PostgreSQL/Core/Keycloak/Hub healthy, Seed und Doctor |
+
+Doctor prüfte über den Proxy Live/Ready, OIDC-Discovery sowie HTTP 401 ohne Token.
+Der Seed registrierte zwei Manifestverträge und installierte keine Images.
+Die CI lief auf einem wegwerfbaren Ubuntu-Runner. Das ersetzt weder die
+Windows-Zielhost-Abnahme noch den interaktiven OIDC-Login.

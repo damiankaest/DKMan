@@ -9,8 +9,8 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P0-002 | P0 / 0 | 001 | Windows-Preflight liest Edition/Virtualisierung/RAM/Disk/Ports/Dienste/Netz; Setup nur nach Bestätigung; implementiert, Hosttest offen |
 | P0-003 | P0 / 0 | 001 | FastAPI-Live/Ready, echte Alembic-Migration, keine Auto-DDL im Start; implementiert |
 | P0-004 | P0 / 0 | 001 | React-Shell, responsiv, Tests/Lint/Build, generierte API-Typen; implementiert |
-| P0-005 | P0 / 0 | 002–004 | Compose, idempotenter Bootstrap, zufällige Secrets, Loopback, Doctor; implementiert, Stackabnahme offen |
-| P0-006 | P0 / 0 | 003–005 | CI mit PostgreSQL, Backend/Frontendprüfungen, Vertragsdrift und Container-Smoke; Workflow implementiert, GitHub-Ausführung offen |
+| P0-005 | P0 / 0 | 002–004 | Compose, idempotenter Bootstrap, zufällige Secrets, Loopback, Doctor; implementiert, Compose-Smoke in GitHub CI bestanden; Zielhost offen |
+| P0-006 | P0 / 0 | 003–005 | CI mit PostgreSQL, Backend/Frontendprüfungen, Vertragsdrift und Container-Smoke; GitHub-CI vollständig bestanden (Lauf 39296486987) |
 | P0-007 | P0 / 0 | 005 | Frischer Windows-/VM-Checkout: Bootstrap, Neustart, Doctor, Login; noch am Zielhost auszuführen |
 | P1-001 | P0 / 1 | 003,005 | OIDC Code/PKCE, RS256-/Issuer-/Audienceprüfung, Rollen 401/403; implementiert, Live-Flow offen |
 | P1-002 | P0 / 1 | 003 | Manifest-Schema, zwei Beispiele, kaputte/gefährliche Manifeste ablehnen; implementiert |
