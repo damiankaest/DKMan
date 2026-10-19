@@ -1,0 +1,8 @@
+{
+  "name": "@dkman/migration-check",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {"test": "node check.mjs"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.10"}
+}

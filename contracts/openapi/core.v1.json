@@ -1,0 +1,911 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DKMan Core",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "summary": "Live",
+        "operationId": "getLiveness",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Getliveness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "summary": "Me",
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/apps": {
+      "get": {
+        "summary": "Apps",
+        "operationId": "listApps",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AppView"
+                  },
+                  "type": "array",
+                  "title": "Response Listapps"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/apps/{app_id}": {
+      "get": {
+        "summary": "App Detail",
+        "operationId": "getApp",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "summary": "Services",
+        "operationId": "listServices",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceView"
+                  },
+                  "type": "array",
+                  "title": "Response Listservices"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/services/{service_id}": {
+      "get": {
+        "summary": "Service Detail",
+        "operationId": "getService",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog": {
+      "get": {
+        "summary": "Catalog",
+        "operationId": "listCatalog",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DefinitionView"
+                  },
+                  "type": "array",
+                  "title": "Response Listcatalog"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "summary": "Capabilities",
+        "operationId": "listCapabilities",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CapabilityView"
+                  },
+                  "type": "array",
+                  "title": "Response Listcapabilities"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/registry/manifests": {
+      "post": {
+        "summary": "Register",
+        "operationId": "registerManifest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Manifest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform": {
+      "get": {
+        "summary": "Platform",
+        "operationId": "getPlatform",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Getplatform"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AppView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "definition_id": {
+            "type": "string",
+            "title": "Definition Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "starting",
+              "degraded",
+              "unhealthy",
+              "stopped",
+              "unknown"
+            ],
+            "title": "Status"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "definition_id",
+          "name",
+          "version",
+          "description",
+          "status",
+          "checked_at",
+          "route"
+        ],
+        "title": "AppView"
+      },
+      "CapabilityView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "definition_id": {
+            "type": "string",
+            "title": "Definition Id"
+          },
+          "permission": {
+            "type": "string",
+            "title": "Permission"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "definition_id",
+          "permission",
+          "method",
+          "path"
+        ],
+        "title": "CapabilityView"
+      },
+      "DefinitionView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "source"
+        ],
+        "title": "DefinitionView"
+      },
+      "Dependency": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "database",
+              "service"
+            ],
+            "title": "Type"
+          },
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,62}$",
+            "title": "Capability"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "capability"
+        ],
+        "title": "Dependency"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "livePath": {
+            "type": "string",
+            "pattern": "^/[a-zA-Z0-9/_-]*$",
+            "title": "Livepath"
+          },
+          "readyPath": {
+            "type": "string",
+            "pattern": "^/[a-zA-Z0-9/_-]*$",
+            "title": "Readypath"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "livePath",
+          "readyPath"
+        ],
+        "title": "Health"
+      },
+      "HealthView": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unhealthy"
+            ],
+            "title": "Status"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable"
+            ],
+            "title": "Database"
+          },
+          "schema": {
+            "type": "string",
+            "enum": [
+              "current",
+              "unavailable"
+            ],
+            "title": "Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "checked_at",
+          "database",
+          "schema"
+        ],
+        "title": "HealthView"
+      },
+      "Manifest": {
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "const": "dkman.io/v1alpha1",
+            "title": "Schemaversion"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,62}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "title": "Version"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "web-app",
+              "api"
+            ],
+            "title": "Type"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Description",
+            "default": ""
+          },
+          "ui": {
+            "$ref": "#/components/schemas/UI"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/Runtime"
+          },
+          "health": {
+            "$ref": "#/components/schemas/Health"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestCapability"
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "Capabilities"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/Dependency"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Dependencies"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "id",
+          "name",
+          "version",
+          "type",
+          "ui",
+          "runtime",
+          "health"
+        ],
+        "title": "Manifest"
+      },
+      "ManifestCapability": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
+            "title": "Id"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "title": "Method"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/[a-zA-Z0-9/_-]*$",
+            "title": "Path"
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "member",
+              "developer",
+              "operator",
+              "admin"
+            ],
+            "title": "Permission"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "method",
+          "path",
+          "permission"
+        ],
+        "title": "ManifestCapability"
+      },
+      "MeView": {
+        "properties": {
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject",
+          "display_name",
+          "roles"
+        ],
+        "title": "MeView"
+      },
+      "Runtime": {
+        "properties": {
+          "deploymentProvider": {
+            "type": "string",
+            "const": "docker-compose",
+            "title": "Deploymentprovider"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\\.[0-9]+\\.[0-9]+)$",
+            "title": "Image"
+          },
+          "internalPort": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Internalport"
+          },
+          "memoryMb": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 32.0,
+            "title": "Memorymb",
+            "default": 128
+          },
+          "cpus": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.1,
+            "title": "Cpus",
+            "default": 0.5
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deploymentProvider",
+          "image",
+          "internalPort"
+        ],
+        "title": "Runtime"
+      },
+      "ServiceView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "installation_id": {
+            "type": "string",
+            "title": "Installation Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "starting",
+              "degraded",
+              "unhealthy",
+              "stopped",
+              "unknown"
+            ],
+            "title": "Status"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "installation_id",
+          "provider",
+          "status",
+          "checked_at",
+          "reason"
+        ],
+        "title": "ServiceView"
+      },
+      "UI": {
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Displayname"
+          },
+          "icon": {
+            "type": "string",
+            "enum": [
+              "notebook",
+              "activity",
+              "grid"
+            ],
+            "title": "Icon",
+            "default": "grid"
+          },
+          "route": {
+            "type": "string",
+            "pattern": "^/[a-zA-Z0-9/_-]*$",
+            "title": "Route"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "displayName",
+          "route"
+        ],
+        "title": "UI"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

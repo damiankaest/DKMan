@@ -1,0 +1,247 @@
+{
+  "$defs": {
+    "Dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "database",
+            "service"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "capability": {
+          "pattern": "^[a-z][a-z0-9-]{1,62}$",
+          "title": "Capability",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "capability"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "livePath": {
+          "pattern": "^/[a-zA-Z0-9/_-]*$",
+          "title": "Livepath",
+          "type": "string"
+        },
+        "readyPath": {
+          "pattern": "^/[a-zA-Z0-9/_-]*$",
+          "title": "Readypath",
+          "type": "string"
+        }
+      },
+      "required": [
+        "livePath",
+        "readyPath"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "ManifestCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^/[a-zA-Z0-9/_-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "permission": {
+          "enum": [
+            "member",
+            "developer",
+            "operator",
+            "admin"
+          ],
+          "title": "Permission",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "path",
+        "permission"
+      ],
+      "title": "ManifestCapability",
+      "type": "object"
+    },
+    "Runtime": {
+      "additionalProperties": false,
+      "properties": {
+        "deploymentProvider": {
+          "const": "docker-compose",
+          "title": "Deploymentprovider",
+          "type": "string"
+        },
+        "image": {
+          "pattern": "^[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\\.[0-9]+\\.[0-9]+)$",
+          "title": "Image",
+          "type": "string"
+        },
+        "internalPort": {
+          "maximum": 65535,
+          "minimum": 1024,
+          "title": "Internalport",
+          "type": "integer"
+        },
+        "memoryMb": {
+          "default": 128,
+          "maximum": 1024,
+          "minimum": 32,
+          "title": "Memorymb",
+          "type": "integer"
+        },
+        "cpus": {
+          "default": 0.5,
+          "maximum": 2,
+          "minimum": 0.1,
+          "title": "Cpus",
+          "type": "number"
+        }
+      },
+      "required": [
+        "deploymentProvider",
+        "image",
+        "internalPort"
+      ],
+      "title": "Runtime",
+      "type": "object"
+    },
+    "UI": {
+      "additionalProperties": false,
+      "properties": {
+        "displayName": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        },
+        "icon": {
+          "default": "grid",
+          "enum": [
+            "notebook",
+            "activity",
+            "grid"
+          ],
+          "title": "Icon",
+          "type": "string"
+        },
+        "route": {
+          "pattern": "^/[a-zA-Z0-9/_-]*$",
+          "title": "Route",
+          "type": "string"
+        }
+      },
+      "required": [
+        "displayName",
+        "route"
+      ],
+      "title": "UI",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "dkman.io/v1alpha1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9-]{1,62}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Version",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "web-app",
+        "api"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Description",
+      "type": "string"
+    },
+    "ui": {
+      "$ref": "#/$defs/UI"
+    },
+    "runtime": {
+      "$ref": "#/$defs/Runtime"
+    },
+    "health": {
+      "$ref": "#/$defs/Health"
+    },
+    "capabilities": {
+      "items": {
+        "$ref": "#/$defs/ManifestCapability"
+      },
+      "maxItems": 40,
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      },
+      "maxItems": 20,
+      "title": "Dependencies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "type",
+    "ui",
+    "runtime",
+    "health"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

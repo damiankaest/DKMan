@@ -1,0 +1,23 @@
+schemaVersion: dkman.io/v1alpha1
+id: status-api
+name: Status API
+version: 0.1.0
+type: api
+description: Manifest-Vertragsbeispiel. Nicht gebaut oder installiert.
+ui:
+  displayName: Status
+  icon: activity
+  route: /run/status-api/
+runtime:
+  deploymentProvider: docker-compose
+  image: dkman/status-api:0.1.0
+  internalPort: 8080
+health:
+  livePath: /health/live
+  readyPath: /health/ready
+capabilities:
+  - id: status.read
+    method: GET
+    path: /api/status
+    permission: member
+dependencies: []

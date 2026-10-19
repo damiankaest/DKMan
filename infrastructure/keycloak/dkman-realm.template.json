@@ -1,0 +1,41 @@
+{
+  "realm": "dkman",
+  "enabled": true,
+  "displayName": "DKMan",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "roles": {"realm": [{"name": "member"}, {"name": "developer"}, {"name": "operator"}, {"name": "admin"}]},
+  "clients": [{
+    "clientId": "service-hub",
+    "name": "DKMan ServiceHub",
+    "enabled": true,
+    "protocol": "openid-connect",
+    "publicClient": true,
+    "standardFlowEnabled": true,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": false,
+    "fullScopeAllowed": true,
+    "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins"],
+    "rootUrl": "http://localhost:8080",
+    "redirectUris": ["http://localhost:8080/"],
+    "webOrigins": ["http://localhost:8080"],
+    "attributes": {
+      "pkce.code.challenge.method": "S256",
+      "post.logout.redirect.uris": "http://localhost:8080/"
+    },
+    "protocolMappers": [{
+      "name": "dkman-api-audience",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "config": {"included.custom.audience": "dkman-api", "access.token.claim": "true", "id.token.claim": "false"}
+    }]
+  }]
+}

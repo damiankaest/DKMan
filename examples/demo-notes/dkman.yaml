@@ -1,0 +1,32 @@
+schemaVersion: dkman.io/v1alpha1
+id: demo-notes
+name: Notes Demo
+version: 0.1.0
+type: web-app
+description: Gemeinsame Notizen. Manifest-Vertragsbeispiel; App und Build-Artefakt folgen in Phase 2.
+ui:
+  displayName: Notes
+  icon: notebook
+  route: /run/demo-notes/
+runtime:
+  deploymentProvider: docker-compose
+  image: dkman/demo-notes:0.1.0
+  internalPort: 8080
+  memoryMb: 128
+  cpus: 0.5
+health:
+  livePath: /health/live
+  readyPath: /health/ready
+capabilities:
+  - id: notes.read
+    method: GET
+    path: /api/notes
+    permission: member
+  - id: notes.create
+    method: POST
+    path: /api/notes
+    permission: member
+dependencies:
+  - type: database
+    capability: postgres
+    required: true
