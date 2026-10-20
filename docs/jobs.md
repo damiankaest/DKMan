@@ -3,7 +3,8 @@
 `registry.validate` prüft eine registrierte Manifestrevision erneut; ihr Erfolg
 bedeutet **Manifest gültig**. Seit P2-004 existiert zusätzlich `deployment.install`
 mit eigenem typisierten Planner, isoliertem Adapter und Hub-Oberfläche. Die folgenden
-Grundregeln gelten für beide Aktionen; Installationsbesonderheiten stehen unten.
+Grundregeln gelten auch für die Runtimeaktionen aus P2-005; deren genaue Rechte und
+Envelopebindung sowie die Installationsbesonderheiten stehen unten.
 
 ## API und Rechte
 
@@ -14,9 +15,9 @@ Grundregeln gelten für beide Aktionen; Installationsbesonderheiten stehen unten
 | `GET /jobs/{id}` | eigenes Subject oder Admin; fremd/unbekannt 404 |
 | `GET /jobs/{id}/events` | gleiche Sichtbarkeit; `after` ab 0, `limit` 1–200; aufsteigende Sequenz |
 | `GET /jobs/{id}/approval` | gleiche Sichtbarkeit; 404 bei Job ohne Approval |
-| `POST /approvals/{id}/decision` | Admin; vollständige erwartete Bindung plus `approve`/`reject` |
-| `POST /jobs/{id}/run` | aktueller Admin und anforderndes Subject; Executor passend zum gespeicherten Plan |
-| `POST /jobs/{id}/cancel` | Admin; nur vor Claim; wiederholter Abbruch idempotent |
+| `POST /approvals/{id}/decision` | Admin; Operator nur eigene aktuell berechtigte Runtimejobs; vollständige erwartete Bindung plus `approve`/`reject` |
+| `POST /jobs/{id}/run` | aktuell aktions-/ressourcenberechtigtes anforderndes Subject; Executor passend zum gespeicherten Plan |
+| `POST /jobs/{id}/cancel` | Admin oder Operator für eigene aktuell berechtigte Runtimejobs; nur vor Claim; wiederholter Abbruch idempotent |
 
 Anlagebeispiel (JSON-Body):
 

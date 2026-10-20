@@ -352,3 +352,12 @@ Mutationen und maximal zwei Sekunden Wartezeit allein für den Sperrerwerb. Kein
 Wiederholung von Docker-/Provideraufrufen. Zwei deterministische Regressionstests
 prüfen parallele Leser, ausgeschlossene Schreiber, erfolgreichen späteren Erwerb
 und Wartezeitgrenze. Die echte Journey bleibt unverändert streng.
+
+
+Folgelauf `39429546677`: 184 Backendtests, 11 UI-Tests, 2 Browserchecks und beide
+Smoke-Jobs erfolgreich. Die echte Journey belegt nun Stop **und** Logzugriff trotz
+parallelem Healthpolling. Danach wurde ein Frontendrennen sichtbar: die Checkbox
+konnte während des noch laufenden Planladens angehakt und anschließend wieder
+zurückgesetzt werden. Checkboxen bleiben jetzt bis zum Ladeabschluss gesperrt;
+verspätete alte Detailantworten verdrängen keine neuere Auswahl. Ein Test mit bewusst
+verzögerter Statusantwort reproduziert diese Grenze ohne echte Auth zu ersetzen.

@@ -29,10 +29,12 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
   const generation = useRef(0);
   const busyRef = useRef(false);
   const displayedJob = useRef('');
+  const detailSequence = useRef(0);
   const details = useCallback(async (next: Job) => {
     const current = generation.current;
+    const sequence = ++detailSequence.current;
     const [binding, history] = await Promise.all([api.get<Approval>(`/api/v1/jobs/${next.id}/approval`),api.get<Event[]>(`/api/v1/jobs/${next.id}/events`)]);
-    if (current !== generation.current) return;
+    if (current !== generation.current || sequence !== detailSequence.current) return;
     if (displayedJob.current !== next.id) {setConfirmed(false); displayedJob.current = next.id;}
     setJob(next); setApproval(binding); setEvents(history);
   }, [api]);
@@ -126,7 +128,7 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
         <h3>{states[job.state]} · {actions[planView.action]}</h3>
         <dl><dt>Installation</dt><dd>{planView.resource_id}</dd><dt>Aktion</dt><dd>{job.action}</dd><dt>Identität</dt><dd>{planView.subject}</dd><dt>App-Image</dt><dd><code>{planView.runtime.image}</code></dd><dt>Datenbank-Image</dt><dd><code>{planView.runtime.database_image}</code></dd><dt>Plan-Hash</dt><dd><code>{job.plan_hash}</code></dd><dt>Freigabe gültig bis</dt><dd>{approval && new Date(approval.expires_at).toLocaleString('de-DE')}</dd></dl>
         <details><summary>Vollständiger Plan</summary><pre className="runtime-logs">{JSON.stringify(planView,null,2)}</pre></details>
-        {own && job.state === 'waiting_approval' && <><label className="approval-check"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Ich gebe diese Runtimeaktion für diese Installation frei.</label><button disabled={busy || !confirmed || !approval} onClick={decide}>Runtimeplan freigeben</button></>}
+        {own && job.state === 'waiting_approval' && <><label className="approval-check"><input type="checkbox" disabled={busy} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Ich gebe diese Runtimeaktion für diese Installation frei.</label><button disabled={busy || !confirmed || !approval} onClick={decide}>Runtimeplan freigeben</button></>}
         {own && job.state === 'queued' && <button className="primary" disabled={busy} onClick={() => execute('run')}>Runtimeaktion ausführen</button>}
         {own && ['waiting_approval','queued'].includes(job.state) && <button disabled={busy} onClick={() => execute('cancel')}>Runtimeplan abbrechen</button>}
         {own && job.state === 'reconciliation_required' && <><p>Der Ausgang bleibt unklar. Ein gesunder Container allein belegt keinen erfolgreichen Restart. Es wird keine Mutation wiederholt.</p><button disabled={busy} onClick={() => execute('reconcile')}>Runtimeergebnis abgleichen</button></>}
