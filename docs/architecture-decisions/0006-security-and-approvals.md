@@ -9,4 +9,6 @@ Externe Manifeste sind untrusted Daten. Registrierung validiert und auditiert, g
 aber kein Image frei. Image-Allowlist und sichere Compose-Pläne sind Voraussetzung
 für jede spätere Installation. Secrets bleiben außerhalb Git/Browser/Logs.
 Hostskripte haben Dry-run als Default und explizite Bestätigung vor Apply.
-Aktuell gibt es keine Runtime-Mutationen über die API.
+Fortschreibung: P2-004 ergänzt genehmigte Installation, P2-005 den autorisierten
+Runtime-Lifecycle. Beide verwenden dieselbe persistente Freigabe-/Jobgrenze;
+Details in ADR 0007–0010 und [Jobs](../jobs.md).

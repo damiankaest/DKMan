@@ -56,9 +56,10 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- Journey B am Zielhost und kompletter Runtime-Lifecycle über Core/Hub bleiben offen.
-  Notes-Build/Kuration, UI-Plan/Freigabe, echte Installation/SSO und Mehrbenutzerrechte
-  sind seit P2-003/P2-004 in einer separaten echten CI-Journey geprüft.
+- Journey B am Zielhost bleibt offen. Notes-Build/Kuration, UI-Plan/Freigabe,
+  echte Installation/SSO und Mehrbenutzerrechte sind seit P2-003/P2-004 in einer
+  separaten echten CI-Journey geprüft; P2-005 ergänzt den kompletten autorisierten
+  Runtime-Lifecycle über Core/Hub mit realem Daten-/Containeridentitätsnachweis.
 
 ## Zielhost-Abnahme P0-007
 
@@ -266,3 +267,84 @@ Die vollständigen tatsächlichen Image-IDs/Quellhash/Artefaktchecksumme stehen 
 in [build-evidence.json](../examples/demo-notes/build-evidence.json). Das Artefakt ist
 zeitlich befristet; der versionierte Nachweis bleibt erhalten. Der folgende reine
 Dokumentations-/Buildnachweiscommit verändert keine Runtime und überspringt CI.
+
+
+## P2-005 · Lokale Prüfung und CI-Vertrag
+
+Ausgang: `ebd606c`; vorhandene Main-CI `39409720195` selbst geprüft. Lokal tatsächlich:
+`uv sync --frozen`, Ruff Check/Format, Mypy (34 Quelldateien), `uv run pytest -q`
+(171 bestanden; 11 PostgreSQLfälle und 1 Docker-Guard ohne lokale Dienste übersprungen),
+`uv build`, `scripts/smoke_core.py` (Live 200 / Ready bei fehlender DB 503 / anonym 401),
+Manifestprüfung und Vertrags-/Typgenerierung erfolgreich. Hub: npm ci, Lint, TypeScript-
+und Produktionsbuild, 11 UI-Tests, Produktionsaudit ohne Befund. PostgreSQL/WASM:
+Revision 0003, 16 Tabellen, FK-Abweisung, Downgrade und Reupgrade erfolgreich.
+Der lokale Playwrightstart scheiterte an fehlender Chromium-Binary; die zwei
+bestehenden Browserchecks laufen zusätzlich in GitHub CI, weiterhin mit Testantworten.
+
+Neue Tests prüfen autorisierte Stop-/Start-/Restartübergänge, unveränderte Installationszahl,
+Operator + getrenntes `app.operate`, verweigerte App-use-Eskalation, fremde Ressourcen/Jobs,
+Rollen-/Grant-/Mitgliedschaftsentzug vor Ausführung, alle sechs Approvalbindungen,
+Ablauf, geänderte Ressource, Key-Konflikte und Reservierung über unterschiedliche Keys,
+Redaction/UTF-8-/Zeilengrenzen, maskierte Fehler, read-only Status/Logs, fehlende oder
+unpassende Operationsnachweise, verlorene erfolgreiche Antwort und Recovery in neuer
+DB-Session. Eine verspätete gesunde Messung kann den neueren Stopstatus nicht überschreiben.
+Alte generische Plan-/Journalreplays bleiben durch bestehende Regressionstests geprüft.
+
+Zwei neue echte PostgreSQL-Tests prüfen konkurrierende Lifecycleplanung über unabhängige
+Sessions: gleiche Keys konvergieren, andere Keys werden bis zum Abschluss blockiert;
+auch ein abgelaufener `running`-Marker bleibt nach Recovery reserviert. Sie ersetzen
+keine Windows-/Hostneustartprobe. Die echte Notes-Journey verwendet weiterhin echte
+Keycloak-Code/PKCE-/SSO-Sitzungen, nun mit expliziter Operatorrolle und separater
+Betriebsfreigabe für den zweiten Nutzer. Sie steuert ausschließlich über Core/Hub
+Stop/Start/Restart und vergleicht vollständige Notes-Datensätze einschließlich IDs,
+Autoren und Zeitstempeln. Eine gesonderte lesende Engineprobe belegt identische
+Container, Images und Volumes, beide gestoppten Container und tatsächlich erhöhte
+Startzeitpunkte nach Start/Restart. Keine simulierten Antworten als Runtimeabnahme.
+
+Die Freigabe wird nach Browserreload aus der persistenten Historie fortgesetzt.
+Runtimegrantentzug sperrt den Operatorbetrieb, während getrennte Appnutzung bestehen
+bleibt; danach wird auch die Mitgliedschaft entzogen. Build- und Lifecyclemetadaten
+werden als CI-Artefakt aufbewahrt. Finaler PR-/Mainnachweis folgt nach Abschluss.
+
+Offen bleiben Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix,
+koordinierter Backup/Restore und der umfassende Nachweisworkflow für unsichere
+Operationen in P2-006. Bestehende Backups decken den Runtimestack nicht vollständig ab.
+
+
+Nach dem ersten erfolgreichen Lifecyclelauf wurde ein konkurrierender lesender
+Log-/Healthzugriff als Fehler erkannt und korrigiert. Zusätzliche Sperrentests prüfen
+geteilte Leser, exklusive Mutationen und begrenzten Sperrerwerb; es gibt weiterhin
+keine automatische Wiederholung einer Mutation. Die abschließenden Zahlen/Nachweise
+unten ersetzen die Zwischenstände.
+
+
+## P2-005 · Abschließender PR-Nachweis
+
+[CI 39430552396](https://github.com/damiankaest/DKMan/actions/runs/39430552396)
+für `f408059`, [PR #11](https://github.com/damiankaest/DKMan/pull/11): alle fünf Jobs
+vollständig erfolgreich und ihre Logs eigenständig gelesen. 184 Backendtests mit
+PostgreSQL 17 (1 Docker-Guard im separaten echten Adapterjob ausgeführt), 11 UI-Tests,
+2 bestehende Browserchecks, tatsächlicher Adaptertest in 92,13 s, echte OIDC-/Notes-
+Journey in 58,7 s und anschließende echte Persistenz-/Least-Privilege-Probe bestanden.
+Keine 429-/503-Antwort im abschließenden Journeylog; erwartete unberechtigte Appdaten-
+anfragen liefern 404.
+
+Geprüft: drei getrennte echte Keycloak-Konten; zweiter Nutzer mit globaler Operatorrolle,
+`app.use` allein ohne Runtimevollmacht, separate Betriebsfreigabe, gespeicherter Plan
+nach Reload, passende Zustimmung, Stop beider vorhandenen Container, Start und Restart
+über Core/Hub, sicher dargestellte echte Logs und identische vollständige Notizdatensätze.
+Die zusätzliche Engineprobe belegt dieselben Container/Images/Volumes und tatsächliche
+neue Startzeitpunkte. Betriebsgrantentzug erhält getrennte Appnutzung; anschließender
+Mitgliedschaftsentzug sperrt auch direkte Notes-Datenanfragen.
+
+Dauerhafter Nachweis: [p2-005-runtime.json](evidence/p2-005-runtime.json), einschließlich
+Enginebeobachtungen, Core-Job-/Operations-IDs und Planhashes. Das verknüpfte Artefakt
+wurde mit SHA-256 `d8a059da62cd81ae13333421924c18e3cebbd90af9ded1d36bdcd915410aeb2c`
+verifiziert. Die enthaltenen Image-IDs sind Engine-lokale Testartefakte.
+Lokaler Endstand nach Sperrregression: 173 bestanden / 12 explizite Dienst-/Docker-Skips.
+Keine neue Migration; bestehende Core-/Adaptermigrationen und Lockfiles unverändert.
+
+Nur P2-005 ist damit abgeschlossen. P2-006-Fehlermatrix/gesicherter Abschluss unsicherer
+Operationen, Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und
+koordinierter Backup/Restore bleiben offen. Vorhandene Backup-/Restore-Skripte decken
+den erweiterten Runtimestack weiterhin nicht vollständig ab.

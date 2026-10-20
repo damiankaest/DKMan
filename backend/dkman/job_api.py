@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from dkman.auth import Principal, current_principal, require_admin
 from dkman.database import get_session
+from dkman.deployments.contracts import LIFECYCLE_ACTIONS
 from dkman.job_schemas import (
     ApprovalDecision,
     ApprovalView,
@@ -31,11 +32,13 @@ from dkman.jobs import (
 )
 from dkman.manifest import Manifest
 from dkman.models import ApprovalRequest, Job, JobEvent, ServiceManifest
+from dkman.runtime_access import authorize_job, runtime_principal, runtime_role
 
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
 Db = Annotated[Session, Depends(get_session)]
 User = Annotated[Principal, Depends(current_principal)]
 Admin = Annotated[Principal, Depends(require_admin)]
+Runtime = Annotated[Principal, Depends(runtime_principal)]
 
 
 def visible_job(db: Session, job_id: str, actor: Principal) -> Job:
@@ -45,6 +48,8 @@ def visible_job(db: Session, job_id: str, actor: Principal) -> Job:
     job = db.scalar(query)
     if job is None:
         raise HTTPException(404, "Job not found")
+    if job.action in LIFECYCLE_ACTIONS:
+        authorize_job(db, job, actor)
     return job
 
 
@@ -109,13 +114,13 @@ def get_approval(job_id: str, db: Db, actor: User) -> ApprovalRequest:
     "/approvals/{approval_id}/decision", response_model=ApprovalView, operation_id="decideApproval"
 )
 def decide_approval(
-    approval_id: str, body: ApprovalDecision, db: Db, actor: Admin
+    approval_id: str, body: ApprovalDecision, db: Db, actor: Runtime
 ) -> ApprovalRequest:
     return decide(db, approval_id, body, actor)
 
 
 @router.post("/jobs/{job_id}/cancel", response_model=JobView, operation_id="cancelJob")
-def cancel_job(job_id: str, db: Db, actor: Admin) -> Job:
+def cancel_job(job_id: str, db: Db, actor: Runtime) -> Job:
     return cancel(db, job_id, actor)
 
 
@@ -140,9 +145,15 @@ def validate_registered_manifest(db: Session, job: Job) -> dict[str, str | bool]
 
 
 @router.post("/jobs/{job_id}/run", response_model=JobView, operation_id="runJob")
-def run_validation(job_id: str, db: Db, actor: Admin, request: Request) -> Job:
+def run_validation(job_id: str, db: Db, actor: Runtime, request: Request) -> Job:
     # Both executors use typed server plans and the same durable approval boundary.
+    runtime_role(actor)
     job = visible_job(db, job_id, actor)
+    authorize_job(db, job, actor)
+    if job.action in LIFECYCLE_ACTIONS:
+        from dkman.runtime_api import run_lifecycle
+
+        return run_lifecycle(job_id, db, actor, request)
     if job.action == "deployment.install":
         from dkman.deployment_api import run_installation
 

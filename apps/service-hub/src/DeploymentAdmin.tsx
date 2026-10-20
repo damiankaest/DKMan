@@ -101,7 +101,7 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
         <dt>Plan-Hash</dt><dd><code>{job.plan_hash}</code></dd>
         <dt>Freigabe gültig bis</dt><dd>{approval ? new Date(approval.expires_at).toLocaleString('de-DE') : 'Wird geladen …'}</dd>
       </dl>
-      {job.state === 'waiting_approval' && <><label className="approval-check"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Ich gebe diese Installation und ihre Ressourcen frei.</label><button className="primary" disabled={busy || !confirmed || !approval} onClick={approve}>Diesen Plan freigeben</button></>}
+      {job.state === 'waiting_approval' && <><label className="approval-check"><input type="checkbox" disabled={busy} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Ich gebe diese Installation und ihre Ressourcen frei.</label><button className="primary" disabled={busy || !confirmed || !approval} onClick={approve}>Diesen Plan freigeben</button></>}
       {job.state === 'queued' && <button className="primary" disabled={busy} onClick={run}>Jetzt installieren</button>}
       {busy && <p role="status">Aktion wird verarbeitet. Der Job bleibt bei einem Verbindungsabbruch gespeichert.</p>}
       {['waiting_approval','queued'].includes(job.state) && <button className="quiet" disabled={busy} onClick={() => {void action(async () => {await details(await api.request<Job>(`/api/v1/jobs/${job.id}/cancel`,'POST')); key.current = null;});}}>Plan abbrechen</button>}

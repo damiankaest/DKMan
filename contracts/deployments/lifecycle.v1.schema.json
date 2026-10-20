@@ -1,0 +1,215 @@
+{
+  "$defs": {
+    "DeploymentPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "definition_id": {
+          "pattern": "^[a-z][a-z0-9-]{1,62}$",
+          "title": "Definition Id",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "image": {
+          "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+          "title": "Image",
+          "type": "string"
+        },
+        "internal_port": {
+          "maximum": 65535,
+          "minimum": 1024,
+          "title": "Internal Port",
+          "type": "integer"
+        },
+        "data_path": {
+          "anyOf": [
+            {
+              "pattern": "^/(data|app/data|var/lib/[a-z][a-z0-9-]*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Path"
+        },
+        "user": {
+          "const": "10001:10001",
+          "default": "10001:10001",
+          "title": "User",
+          "type": "string"
+        },
+        "memory_mb": {
+          "default": 128,
+          "maximum": 1024,
+          "minimum": 32,
+          "title": "Memory Mb",
+          "type": "integer"
+        },
+        "cpus": {
+          "default": 0.5,
+          "maximum": 2,
+          "minimum": 0.1,
+          "title": "Cpus",
+          "type": "number"
+        },
+        "profile": {
+          "default": "web-v1",
+          "enum": [
+            "web-v1",
+            "notes-postgres-v1"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "database_image": {
+          "anyOf": [
+            {
+              "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Database Image"
+        },
+        "source_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Hash"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "provider": {
+          "const": "docker-compose",
+          "default": "docker-compose",
+          "title": "Provider",
+          "type": "string"
+        },
+        "installation_id": {
+          "format": "uuid",
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "context": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstallationContext"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "definition_id",
+        "version",
+        "image",
+        "internal_port",
+        "installation_id"
+      ],
+      "title": "DeploymentPlan",
+      "type": "object"
+    },
+    "InstallationContext": {
+      "additionalProperties": false,
+      "properties": {
+        "household_id": {
+          "format": "uuid",
+          "title": "Household Id",
+          "type": "string"
+        },
+        "subject": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "manifest_id": {
+          "format": "uuid",
+          "title": "Manifest Id",
+          "type": "string"
+        },
+        "manifest_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Manifest Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "household_id",
+        "subject",
+        "manifest_id",
+        "manifest_hash"
+      ],
+      "title": "InstallationContext",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "action": {
+      "enum": [
+        "start",
+        "stop",
+        "restart"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "resource_type": {
+      "const": "app_installation",
+      "default": "app_installation",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "resource_id": {
+      "format": "uuid",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "subject": {
+      "maxLength": 255,
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "runtime": {
+      "$ref": "#/$defs/DeploymentPlan"
+    }
+  },
+  "required": [
+    "action",
+    "resource_id",
+    "subject",
+    "runtime"
+  ],
+  "title": "LifecyclePlan",
+  "type": "object"
+}

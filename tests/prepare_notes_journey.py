@@ -17,7 +17,7 @@ def prepare(root: Path) -> None:
     credentials = {}
     for name, roles in [
         ("ci-admin", ["admin", "member"]),
-        ("ci-member", ["member"]),
+        ("ci-member", ["member", "operator"]),
         ("ci-outsider", ["member"]),
     ]:
         password = secrets.token_urlsafe(36)

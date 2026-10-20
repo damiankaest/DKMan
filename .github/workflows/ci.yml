@@ -122,6 +122,8 @@ jobs:
           path: |
             .local/adapter/notes-build.json
             .local/adapter/catalog.json
+            .local/notes-lifecycle.json
+            .local/notes-lifecycle-jobs.json
       - name: Show sanitized startup state on failure
         if: failure()
         run: |

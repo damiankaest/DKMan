@@ -171,7 +171,9 @@ def create_app(
     def execute(
         operation_id: UUID, body: DeploymentCommand, value: Annotated[Delegation, Depends(grant)]
     ) -> OperationView:
-        bind(value, body.action, operation_id, body.plan.installation_id, body.plan.plan_hash)
+        bind(value, body.action, operation_id, body.plan.installation_id, body.plan_hash)
+        if body.lifecycle and body.lifecycle.subject != value.sub:
+            raise HTTPException(403, "Lifecycle identity mismatch")
         try:
             validate_plan(app.state.catalog, body.plan)
         except ValueError as error:
@@ -181,11 +183,15 @@ def create_app(
         if previous:
             return previous
         mutating = body.action not in READ_ACTIONS
-        with journal.lock(body.plan.installation_id):
+        # Reads may overlap reads, never a mutation. Briefly wait for an active
+        # observation before rejecting a mutation; this retries only lock acquisition.
+        with journal.lock(body.plan.installation_id, shared=not mutating, wait_seconds=2):
             previous = journal.replay(body, value)
             if previous:
                 return previous
             current = journal.current_plan(body.plan.installation_id)
+            if body.lifecycle and current is None:
+                raise HTTPException(409, "Lifecycle requires a known installation")
             if current is not None:
                 if (
                     current.definition_id != body.plan.definition_id

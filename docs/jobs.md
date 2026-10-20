@@ -3,7 +3,8 @@
 `registry.validate` prüft eine registrierte Manifestrevision erneut; ihr Erfolg
 bedeutet **Manifest gültig**. Seit P2-004 existiert zusätzlich `deployment.install`
 mit eigenem typisierten Planner, isoliertem Adapter und Hub-Oberfläche. Die folgenden
-Grundregeln gelten für beide Aktionen; Installationsbesonderheiten stehen unten.
+Grundregeln gelten auch für die Runtimeaktionen aus P2-005; deren genaue Rechte und
+Envelopebindung sowie die Installationsbesonderheiten stehen unten.
 
 ## API und Rechte
 
@@ -14,9 +15,9 @@ Grundregeln gelten für beide Aktionen; Installationsbesonderheiten stehen unten
 | `GET /jobs/{id}` | eigenes Subject oder Admin; fremd/unbekannt 404 |
 | `GET /jobs/{id}/events` | gleiche Sichtbarkeit; `after` ab 0, `limit` 1–200; aufsteigende Sequenz |
 | `GET /jobs/{id}/approval` | gleiche Sichtbarkeit; 404 bei Job ohne Approval |
-| `POST /approvals/{id}/decision` | Admin; vollständige erwartete Bindung plus `approve`/`reject` |
-| `POST /jobs/{id}/run` | aktueller Admin und anforderndes Subject; Executor passend zum gespeicherten Plan |
-| `POST /jobs/{id}/cancel` | Admin; nur vor Claim; wiederholter Abbruch idempotent |
+| `POST /approvals/{id}/decision` | Admin; Operator nur eigene aktuell berechtigte Runtimejobs; vollständige erwartete Bindung plus `approve`/`reject` |
+| `POST /jobs/{id}/run` | aktuell aktions-/ressourcenberechtigtes anforderndes Subject; Executor passend zum gespeicherten Plan |
+| `POST /jobs/{id}/cancel` | Admin oder Operator für eigene aktuell berechtigte Runtimejobs; nur vor Claim; wiederholter Abbruch idempotent |
 
 Anlagebeispiel (JSON-Body):
 
@@ -141,3 +142,66 @@ Testidentitäten bleiben ausschließlich in Tests.
 Offen: Windows/VM-Neustart, echte OIDC-Mehrbenutzerrollen, Volume-Persistenz und
 Backup/Restore. Automatisierte Crash-Grenztests und ein neues App-Lifespan auf
 derselben Testdatenbank ersetzen diese Zielhostabnahmen nicht.
+
+## Runtimeaktionen · P2-005
+
+`POST /installations/{id}/start`, `/stop`, `/restart` planen ausschließlich eine
+bestehende, belegbar installierte App. Body `{}`, `Idempotency-Key` Pflicht, Antwort
+202 mit Job/Location. Kein Installieren, Remove oder Datenlöschen über diese Routen.
+`GET /runtime/installations` listet nur die zum Runtimebetrieb berechtigten Instanzen;
+`GET /installations/{id}/jobs` liefert bis zu 100 gespeicherte Aufträge (Operatoren
+nur eigene). Bestehende Job-/Event-/Approvalrouten bleiben der Ausführungsweg.
+
+| Person | Planung, Status, Logs | Freigabe / Abbruch / Run / Reconcile |
+| --- | --- | --- |
+| Admin | alle tatsächlich installierten Apps | Admin; Run/Reconcile nur anforderndes Subject |
+| Operator | Haushaltsmitglied **und** explizites `app.operate` für diese Installation | eigene Runtimejobs; gleiche aktuelle Ressourcenrechte; Run/Reconcile nur anforderndes Subject |
+| Member / Developer | keine Runtimevollmacht | keine Runtimevollmacht |
+
+`app.use` erteilt ausschließlich Appnutzung. Admins verwalten `app.operate` separat
+mit `PUT/DELETE /installations/{id}/runtime-grants/{user_id}`. Wie bei Appnutzung
+muss die Person dem Haushalt angehören. Globale Rollen kommen weiterhin ausschließlich
+aus Keycloak. Haushaltsentfernung löscht beide Freigaben; Rejoin stellt sie nicht wieder her.
+Ein Operator kann sich keine Betriebsfreigabe erteilen oder Installationsjobs ausführen.
+
+Jeder neue Lifecycleplan enthält Aktion, Installations-ID, anforderndes Subject und
+den **gesamten unveränderten installierten Deploymentplan**. Dieser vollständige neue
+Hash bindet Job, Approval, Delegation und Adapterresultat. Das optionale `lifecycle`-
+Commandfeld wird bei alten Commands weggelassen; bestehende v1-Planhashes und
+Journalfingerprints bleiben unverändert. Keine neue DB-/Journalmigration erforderlich;
+Core bleibt auf 0003, Adapter auf Journalrevision 2.
+
+Mutation: Risiko `reversible`, zwingende einmalige Freigabe, 15 Minuten ab Planung.
+Die vorhandenen sechs Bindungsfelder müssen exakt zurückgegeben werden. Admins dürfen
+auch den Plan eines Operators freigeben; ausführen darf nur dessen ursprüngliches Subject.
+Rechte, installierter Snapshot, Manifest, Kuration, Ablauf und Hash werden erneut geprüft.
+Joblock vor Haushaltlock; Planung sperrt Haushalt und Installation bis zum Commit.
+Es ist höchstens ein offener Lifecycleauftrag pro Installation zulässig, einschließlich
+wartender Pläne und `reconciliation_required`. Andere Keys/Subjects umgehen ihn nicht.
+Terminaler Abbruch/Ablauf oder belegter Fehler vor Dispatch erlaubt einen neuen Plan.
+Alte Keys liefern weiterhin den alten Auftrag; anderer Inhalt mit gleichem Key: 409.
+
+Claim hat 180 Sekunden Lease; `running`/verbrauchte Freigabe werden **vor** HTTP
+committet. Job-ID bleibt Operation-ID. Unbekannte Ausgänge/fehlende Antworten werden
+nie erneut gesendet. Reconcile liest nur das gespeicherte Resultat derselben Operation.
+Erfolg erfordert passende Aktion, ID, Ressource, vollständigen Hash, abgeschlossenen
+Adapterstatus und eine Messung nach Ausführungsbeginn. Stop erwartet `stopped`, Start
+und Restart `running` mit Container-ID. Der aktuelle gesunde Zustand allein ist kein
+Restartnachweis. Ein unsicherer Adaptermarker oder fehlendes Resultat bleibt gesperrt.
+P2-006 ergänzt den umfassenden belegten Abschluss unsicherer Operationen.
+
+`GET /installations/{id}/status` misst read-only mit Beobachtungszeit, festem `reason`
+und gegebenenfalls `blocked_job_id`. Engine-/Transportfehler ergeben `unknown` und
+`runtime_observation_unavailable`; ungefilterte Providerfehler werden nicht ausgegeben.
+Verspätete ältere Beobachtungen überschreiben keine neuere Messung im Core.
+`GET /installations/{id}/logs` liefert ausschließlich Text, Abrufzeit und feste Limits:
+maximal 100 Zeilen / 8192 UTF-8-Bytes, erneut im Core redigiert. Lesende Aufrufe erzeugen
+keine Core-Mutationsjobs, verbrauchen keine Freigabe und ändern keine Container.
+
+
+Lesende Adapteroperationen teilen sich eine Prozesssperre; Mutationen bleiben
+exklusiv. Beim Sperrerwerb wird höchstens zwei Sekunden auf kurze Beobachtungen
+gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließlich
+der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
+Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
+weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.

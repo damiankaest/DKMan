@@ -12,7 +12,9 @@ liegen im Backend. `jobs.py` und `job_api.py` implementieren persistente Jobs un
 Freigaben; `job_recovery.py` führt ausschließlich Metadaten-Recovery aus.
 Core hat keinen Dockerzugriff. Der separate optionale Deployment-Adapter führt seit
 P2-002 begrenzte Runtimeaktionen aus. P2-003/P2-004 ergänzen die eigene Notes-App
-und den genehmigten Installationsfluss über Core und Hub; Details in [Notes](notes.md).
+und den genehmigten Installationsfluss über Core und Hub. P2-005 ergänzt in
+`runtime_api.py` den autorisierten Lifecycle; `runtime_access.py` trennt Runtime-
+und Apprechte. Details in [Notes](notes.md) und [Jobs](jobs.md).
 
 ## Daten und Rechte
 
@@ -22,6 +24,9 @@ und den genehmigten Installationsfluss über Core und Hub; Details in [Notes](no
 erteilt einem verifizierten OIDC-Subject Zugriff auf genau eine Installation.
 Haushaltsmitgliedschaft allein gewährt noch keinen Appzugriff. Admins sehen die
 Plattform zur Verwaltung. Nichtberechtigte Detailabfragen liefern 404.
+Operatoren benötigen zusätzlich Haushaltsmitgliedschaft und ein explizites
+`app.operate` pro Installation. Dieses Recht erteilt keine Appnutzung; `app.use`
+erteilt keine Runtimevollmacht. Globale Rollen kommen ausschließlich aus OIDC.
 
 Das Schema umfasst außerdem Nutzer, Haushalte, Mitgliedschaften, Healthbeobachtungen
 und Auditereignisse. Registrierung und Audit werden zusammen committed. Keine
@@ -43,12 +48,16 @@ mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architectur
 | `POST /api/v1/registry/manifests` | Admin | strenge JSON-Validierung, Registrierung, Audit; kein Start |
 | `GET /api/v1/deployments/catalog` | Admin | tatsächlich gebaute, separat kuratierte Notes-Revisionen |
 | `POST /api/v1/deployments/installations` | Admin | Idempotency-Key; Haushalt reservieren, unveränderlichen Plan und Approval als Job anlegen |
-| `POST /api/v1/jobs/{id}/reconcile` | anforderndes Admin-Subject | ausschließlich gespeichertes Adapterergebnis lesen; keine erneute Installation |
+| `POST /api/v1/jobs/{id}/reconcile` | anforderndes Subject mit aktuellen aktionsbezogenen Rechten | ausschließlich gespeicherten Operationsnachweis lesen; keine Mutation wiederholen |
+| `GET /api/v1/runtime/installations` | Admin oder explizit berechtigter Operator | zum Betrieb autorisierte Installationen |
+| `POST /api/v1/installations/{id}/start`, `/stop`, `/restart` | Admin oder explizit berechtigter Operator | Idempotency-Key; bestehende Ressource reservieren, vollständigen Lifecycleplan/Approval als Job anlegen |
+| `GET /api/v1/installations/{id}/status`, `/logs`, `/jobs` | gleiche Ressourcenrechte | Messung mit Zeit/Fehlercode, maskierte Textlogs und gespeicherte Historie |
+| `PUT/DELETE /api/v1/installations/{id}/runtime-grants/{user}` | Admin | separate installationsgebundene Betriebsfreigabe |
 | `GET /api/v1/apps/{id}/access` | angemeldet, App-Freigabe und Member/Admin | aktuelle OIDC-/App-Autorisierung für Notes-Datenanfragen |
 | `POST /api/v1/apps/{id}/refresh` | Admin | tatsächliche Read-only-Runtimemessung |
 | `GET /api/v1/platform` | angemeldet | Versions-/Ausbaustand |
 | `GET/POST /api/v1/jobs` und Jobdetails/Events | Admin für Anlage, eigene Sichtbarkeit beim Lesen | persistierte Aufträge und sequenzierte Historie; siehe `jobs.md` |
-| Approvalentscheidung, Jobabbruch und Validierung | Admin; Ausführung zusätzlich anforderndes Subject | hashgebundene Freigabe, klare Zustandsgrenzen, tatsächliche Manifestvalidierung |
+| Approvalentscheidung, Jobabbruch und Ausführung | Admin; Operator nur eigene berechtigte Runtimejobs; Run zusätzlich anforderndes Subject | hashgebundene Freigabe und aktionsspezifische Zustandsgrenzen; siehe `jobs.md` |
 
 OpenAPI ist in `contracts/openapi/core.v1.json` versioniert. Der Hub verwendet daraus
 generierte TypeScript-Typen. Mutationserweiterungen erhalten typisierte Requests,
@@ -96,5 +105,7 @@ Empfehlung für erste Ubuntu-VM: 4 vCPU, 6 GB RAM, 40 GB Disk; Kapazität am Hos
 prüfen. Compose begrenzt Core, DB, Identity und Proxy; Logs rotieren. DB- und
 Keycloak-Readiness steuern den Start. Liveness des Core behauptet keine OIDC- oder
 Appverfügbarkeit. Die Core-Readiness misst DB und Schema, der Doctor zusätzlich
-OIDC-Discovery und die anonyme Zugriffssperre. App-Health-Polling folgt mit dem
-Deployment-Adapter; nicht gemessene Runtimezustände bleiben `unknown`.
+OIDC-Discovery und die anonyme Zugriffssperre. Read-only App-Health-Polling verwendet
+den Deployment-Adapter. Ohne frische Messung innerhalb 45 Sekunden bleiben Runtime-
+zustände `unknown` und Öffnen-Links verborgen; offene oder unklare Runtimejobs sperren
+den Öffnen-Link ebenfalls. Ältere verspätete Beobachtungen überschreiben keine neueren.

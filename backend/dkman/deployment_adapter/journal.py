@@ -74,14 +74,22 @@ class Journal:
             db.close()
 
     @contextmanager
-    def lock(self, installation_id: UUID) -> Iterator[None]:
+    def lock(
+        self, installation_id: UUID, *, shared: bool = False, wait_seconds: float = 0
+    ) -> Iterator[None]:
         path = self.root / "locks" / str(installation_id)
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
         try:
-            try:
-                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as exc:
-                raise AdapterError("resource_busy") from exc
+            deadline = time.monotonic() + wait_seconds
+            mode = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+            while True:
+                try:
+                    fcntl.flock(descriptor, mode | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError as exc:
+                    if time.monotonic() >= deadline:
+                        raise AdapterError("resource_busy") from exc
+                    time.sleep(0.01)
             yield
         finally:
             os.close(descriptor)
@@ -145,7 +153,7 @@ class Journal:
             operation_id=grant.jti,
             installation_id=command.plan.installation_id,
             action=command.action,
-            plan_hash=command.plan.plan_hash,
+            plan_hash=command.plan_hash,
             state="running",
             created_at=datetime.now(UTC),
         )

@@ -68,9 +68,15 @@ def test_job_routes_require_auth_and_admin(client, as_user):
     for roles in [["member"], ["developer"], ["operator"]]:
         as_user("bob", roles)
         assert create(client).status_code == 403
-        assert client.post("/api/v1/jobs/missing/run").status_code == 403
-        assert client.post("/api/v1/jobs/missing/cancel").status_code == 403
-        assert client.post("/api/v1/approvals/missing/decision", json={}).status_code == 403
+        assert client.post("/api/v1/jobs/missing/run").status_code == (
+            404 if "operator" in roles else 403
+        )
+        assert client.post("/api/v1/jobs/missing/cancel").status_code == (
+            404 if "operator" in roles else 403
+        )
+        assert client.post("/api/v1/approvals/missing/decision", json={}).status_code == (
+            422 if "operator" in roles else 403
+        )
 
 
 def test_real_validation_approval_audit_and_cursor(client, registered, engine):

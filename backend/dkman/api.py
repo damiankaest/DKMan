@@ -12,6 +12,7 @@ from dkman.jobs import utc
 from dkman.manifest import Manifest
 from dkman.models import AppDefinition, Capability, DeploymentTarget, ServiceInstance, utcnow
 from dkman.registry import register_manifest, visible_installations
+from dkman.runtime_access import active_runtime_job
 from dkman.schemas import AppView, CapabilityView, DefinitionView, MeView, ServiceView
 
 router = APIRouter(prefix="/api/v1")
@@ -42,6 +43,7 @@ def apps(db: Db, principal: User) -> list[AppView]:
             .order_by(ServiceInstance.created_at.desc())
             .limit(1)
         )
+        blocked = active_runtime_job(db, installation.id)
         result.append(
             AppView(
                 id=installation.id,
@@ -60,6 +62,7 @@ def apps(db: Db, principal: User) -> list[AppView]:
                 and service.status == "healthy"
                 and service.checked_at
                 and utc(service.checked_at) > utcnow() - timedelta(seconds=45)
+                and blocked is None
                 and db.get(DeploymentTarget, installation.id) is not None
                 else None,
             )

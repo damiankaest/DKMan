@@ -21,6 +21,7 @@ from dkman.deployments.client import HttpDeploymentClient
 from dkman.health import readiness
 from dkman.job_api import router as job_router
 from dkman.job_recovery import recover_once, recovery_loop
+from dkman.runtime_api import router as runtime_router
 from dkman.schemas import HealthView
 
 logger = logging.getLogger("dkman.http")
@@ -121,4 +122,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(access_router)
     app.include_router(job_router)
     app.include_router(deployment_router)
+    app.include_router(runtime_router)
     return app

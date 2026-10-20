@@ -7,6 +7,7 @@ import os
 import re
 import signal
 import subprocess
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -15,6 +16,7 @@ from uuid import UUID
 
 from dkman.deployment_adapter.journal import AdapterError
 from dkman.deployments.contracts import DeploymentPlan, RuntimeView
+from dkman.deployments.redaction import redact_logs
 
 
 class CommandError(Exception):
@@ -92,23 +94,6 @@ def render_compose(plan: DeploymentPlan, credential_key: bytes | None = None) ->
         config["networks"]["gateway"] = {"external": True, "name": "dkman-app-gateway"}
         config["volumes"] = {"data": {"name": f"{plan.project}-data", "labels": labels}}
     return config
-
-
-def redact_logs(value: str) -> str:
-    value = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", value)
-    value = "".join(c for c in value if c in "\n\t" or ord(c) >= 32)
-    value = re.sub(r"(?i)(authorization\s*[:=]\s*(?:bearer\s+)?)[^\s]+", r"\1[REDACTED]", value)
-    value = re.sub(
-        r"(?i)((?:password|secret|token|api[_-]?key)\s*[:=]\s*)"
-        r"(\"[^\"]*\"|'[^']*'|[^\s]+)",
-        r"\1[REDACTED]",
-        value,
-    )
-    value = re.sub(r"([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^@\s/]+@", r"\1[REDACTED]@", value)
-    value = re.sub(
-        r"[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}", "[REDACTED]", value
-    )
-    return value[:8192]
 
 
 class ComposeProvider:
@@ -303,35 +288,40 @@ class ComposeProvider:
         )
         return self.status(plan)
 
+    def require_workload(self, plan: DeploymentPlan) -> None:
+        expected = 2 if plan.profile == "notes-postgres-v1" else 1
+        if len(self.containers(plan)) != expected:
+            raise AdapterError("installation_incomplete")
+
+    def wait_running(self, plan: DeploymentPlan) -> RuntimeView:
+        deadline = time.monotonic() + 30
+        while True:
+            result = self.status(plan)
+            if result.state == "running":
+                return result
+            if time.monotonic() >= deadline:
+                raise CommandError("Runtime did not become healthy")
+            time.sleep(0.5)
+
     def start(self, plan: DeploymentPlan) -> RuntimeView:
-        if not self.containers(plan):
-            raise AdapterError("installation_absent")
+        self.require_workload(plan)
         self.verify_image(plan)
-        self.compose(
-            plan,
-            [
-                "up",
-                "--detach",
-                "--no-build",
-                "--no-recreate",
-                "--pull",
-                "never",
-                "--wait",
-                "--wait-timeout",
-                "30",
-            ],
-        )
-        return self.status(plan)
+        # Start existing containers only; never create/recreate a missing sidecar.
+        self.compose(plan, ["start", "--wait", "--wait-timeout", "30"])
+        return self.wait_running(plan)
 
     def stop(self, plan: DeploymentPlan) -> RuntimeView:
+        self.require_workload(plan)
         self.compose(plan, ["stop", "--timeout", "10"])
-        return self.status(plan)
+        result = self.status(plan)
+        if result.state != "stopped":
+            raise CommandError("Runtime did not stop")
+        return result
 
     def restart(self, plan: DeploymentPlan) -> RuntimeView:
-        if not self.containers(plan):
-            raise AdapterError("installation_absent")
+        self.require_workload(plan)
         self.compose(plan, ["restart", "--timeout", "10"])
-        return self.status(plan)
+        return self.wait_running(plan)
 
     def status(self, plan: DeploymentPlan) -> RuntimeView:
         containers = self.containers(plan)
@@ -351,6 +341,13 @@ class ComposeProvider:
                 }.get(runtime.get("Health", {}).get("Status"), "unknown")
             else:
                 state = "unknown"
+            if state == "stopped" and plan.profile == "notes-postgres-v1":
+                if len(containers) != 2 or containers[1].get("State", {}).get("Status") not in {
+                    "exited",
+                    "dead",
+                    "created",
+                }:
+                    state = "unknown"
             if state == "running" and plan.profile == "notes-postgres-v1":
                 if len(containers) != 2:
                     state = "unhealthy"

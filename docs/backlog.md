@@ -21,8 +21,8 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P2-002 | P0 / 2 | P2-001 | abgeschlossen und geprüft: PR #9 in main; isolierter Compose-Provider, kuratierte Pläne, gebundene/einmalige Freigaben, Operationsjournal und Ressourcensperren; CI 39388427751: 123 Backendtests, 1 echter Docker-Integrationstest, 5 UI-/2 Browserchecks und Stack-Smoke erfolgreich; kein Zielhoststart |
 | P2-003 | P0 / 2 | P2-002 | abgeschlossen und geprüft: PR #10 in main (`ef888e7`), PR-CI 39409123565 und Main-CI 39409720195 mit Notes-Quellbuild, eigener PostgreSQL-Instanz/Migration, tatsächlichen Image-IDs/Quellhash, echter Daten-/Rollen-/Neustartprobe bestanden |
 | P2-004 | P0 / 2 | P2-003 | abgeschlossen und geprüft: PR #10 in main, Main-CI 39409720195: UI-Plan → gebundene Freigabe → dauerhafter Job → echte Installation/Proxy/SSO; drei echte OIDC-Nutzer, gemeinsame Daten und Widerruf. 151 Backend-/7 UI-Tests; Zielhost bleibt offen |
-| P2-005 | P0 / 2 | P2-004 | Start/Stop/Restart/Status/Logs autorisiert, Redaction; Daten nach Stop/Start identisch |
-| P2-006 | P0 / 2 | P2-005,P1-004 | Journey B mit zwei Nutzern und echten Containern E2E, verbotene Images/Permissions/DB-Ausfall testen; belegter Abschluss unsicherer Runtimeoperationen vor Wiederanlauf |
+| P2-005 | P0 / 2 | P2-004 | abgeschlossen und geprüft: PR #11; CI 39430552396 für f408059 vollständig erfolgreich: 184 Backendtests, 11 UI-Tests, 2 Browserchecks, echter Adaptertest und echte OIDC-/Notes-Lifecycle-Journey mit identischen Daten/Containern/Volumes; Mainintegration und -nachweis siehe progress.md |
+| P2-006 | P0 / 2 | P2-005,P1-004 | positive Journey B mit echten Nutzern/Containern ist durch P2-005 belegt; verbleibende Fehlermatrix für verbotene Images/Permissions/DB-Ausfall und belegter Abschluss unsicherer Runtimeoperationen vor Wiederanlauf |
 | P3-001 | P1 / 3 | P2-006 | AppRequest/Planrevisionen persistieren; Workflow/Jobvertrag wiederverwenden |
 | P3-002 | P1 / 3 | P3-001 | Intent-/Tool-Dispatcher + austauschbarer Modellprovider; regelbasierter Modus offen gekennzeichnet |
 | P3-003 | P1 / 3 | P3-002 | Garten-Wizard sammelt Requirements und schlägt berechtigte vorhandene Dienste vor; genehmigbarer Plan |
@@ -36,8 +36,8 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächste Entwicklung: P2-005, autorisierte Start-/Stop-/Restart-/Logs-Jobs und
-Hubaktionen ergänzen. Die Adapteroperationen sind vorhanden; dieselbe gebundene
-Approval-/Jobgrenze verwenden. Windows-Abnahme
-P0-007 und echter OIDC-Flow bleiben eigene Gates vor Zielhost-Deployments; sie
-blockieren die isolierte Implementierung und automatisierte Tests nicht.
+Nächste Entwicklung: P2-006, verbleibende Fehler-/Ausfallmatrix und belegten Abschluss
+unsicherer Operationen vor Wiederanlauf ergänzen. P2-005 führt keine blinde Wiederholung,
+keine pauschale Entsperrung und keinen erzwungenen Erfolg ein. Windows-/VM-/Zielhost-
+abnahme P0-007, vollständige OIDC-Betriebsmatrix und koordinierter Backup/Restore bleiben
+eigene offene Gates. Bestehende Backups decken den Runtimestack nicht vollständig ab.

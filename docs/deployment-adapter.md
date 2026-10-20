@@ -109,7 +109,30 @@ und Details in `acceptance-tests.md`; PR #9 in `main` integriert.
 
 P2-003/P2-004 ergänzen Notes-Quellbuild, Kuration und die echte Installationsjourney;
 deren eigener Nachweis steht in `acceptance-tests.md`. Offen: erweiterte
-Runtimebedienung P2-005, belegbarer Workflow zum Abschluss unsicherer
-Mutationen, Live-OIDC, Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme.
+belegbarer Workflow zum Abschluss unsicherer Mutationen (P2-006), Zielhost-OIDC,
+Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme. Die Runtimebedienung
+P2-005 ist implementiert; echte OIDC-/Containerabnahme siehe `acceptance-tests.md`.
 Logredaktion entfernt bekannte Muster, kann frei formulierte oder unbekannte Secrets
 in beliebigen App-Logs nicht vollständig erkennen; Apps müssen sichere Logs erzeugen.
+
+
+## Fortschreibung P2-005
+
+Core und Hub verwenden nun Start/Stop/Restart sowie lesenden Status/Logzugriff.
+Der optionale Lifecycle-Command bindet Aktion/Identität und den vollständigen bereits
+installierten Plan; der neue Envelopehash steht auch im Operationsresultat. Ohne
+Envelope bleiben alle bisherigen v1-Hashes/Fingerprints stabil. Keine Journalmigration.
+Nur bekannte, vollständige Workloads können verändert werden. Start verwendet `start`
+statt `up`; Restart wartet bis zu 30 Sekunden auf tatsächliche Health. Stop prüft beide
+Notes-Container. Die bestehenden Aufruflimits und dauerhaften Unklarheitssperren gelten
+weiter. Vollständiger Ressourcen-/Freigabevertrag: [Jobs](jobs.md), ADR 0010.
+Logs sind auf 100 Zeilen/8 KiB UTF-8 beschränkt, auf beiden HTTP-Grenzen maskiert und
+im Hub als Text gerendert. Dies kann unbekannte freie Secrets weiterhin nicht erkennen.
+
+
+Lesende Adapteroperationen teilen sich eine Prozesssperre; Mutationen bleiben
+exklusiv. Beim Sperrerwerb wird höchstens zwei Sekunden auf kurze Beobachtungen
+gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließlich
+der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
+Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
+weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.

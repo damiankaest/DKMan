@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "ticket": "P2-005",
+  "scope": "Disposable GitHub Actions runner; image IDs are local to its Docker Engine, not registry pull references.",
+  "pr": 11,
+  "source_commit": "f408059d3b0163c94864f78e90826b33034c282e",
+  "workflow_run_id": 39430552396,
+  "workflow_url": "https://github.com/damiankaest/DKMan/actions/runs/39430552396",
+  "artifact": {
+    "id": 12268236404,
+    "sha256": "d8a059da62cd81ae13333421924c18e3cebbd90af9ded1d36bdcd915410aeb2c"
+  },
+  "checks": {
+    "backend_passed": 184,
+    "backend_docker_guard_skipped": 1,
+    "ui_passed": 11,
+    "legacy_mocked_browser_checks_passed": 2,
+    "actual_adapter_test_passed": 1,
+    "actual_oidc_notes_journey_passed": 1,
+    "full_note_records_identical_after_start_and_restart": true,
+    "no_rate_limit_or_read_failure_in_final_journey": true
+  },
+  "curated_runtime": {
+    "definition_id": "demo-notes",
+    "version": "0.1.0",
+    "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+    "image": "sha256:9d94c9bf484e8036653bc9d5eb545c825e8f6c91e1b1bf00df19988bdb4658c2",
+    "database_image": "sha256:914f149ba4375e82e928842fb5586e764451d4aa32daf123626afa1754c23294"
+  },
+  "engine_observations": {
+    "installation_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+    "before": {
+      "app": {
+        "id": "a3957fa83775909d0bbb561a56d17cbcf1a36716e083c96a04238b41880f2273",
+        "image": "sha256:9d94c9bf484e8036653bc9d5eb545c825e8f6c91e1b1bf00df19988bdb4658c2",
+        "status": "running",
+        "started_at": "2026-10-20T13:31:01.713079742Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "d4340203665d87b1dd9398da3e2bfcc55314391b19a855b72ea4d6390bdaeb10",
+        "image": "sha256:914f149ba4375e82e928842fb5586e764451d4aa32daf123626afa1754c23294",
+        "status": "running",
+        "started_at": "2026-10-20T13:30:58.04676914Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-20aa7b39-b1f0-485c-8b48-c8173d75b5d6-data"
+        ]
+      }
+    },
+    "stop": {
+      "app": {
+        "id": "a3957fa83775909d0bbb561a56d17cbcf1a36716e083c96a04238b41880f2273",
+        "image": "sha256:9d94c9bf484e8036653bc9d5eb545c825e8f6c91e1b1bf00df19988bdb4658c2",
+        "status": "exited",
+        "started_at": "2026-10-20T13:31:01.713079742Z",
+        "health": "unhealthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "d4340203665d87b1dd9398da3e2bfcc55314391b19a855b72ea4d6390bdaeb10",
+        "image": "sha256:914f149ba4375e82e928842fb5586e764451d4aa32daf123626afa1754c23294",
+        "status": "exited",
+        "started_at": "2026-10-20T13:30:58.04676914Z",
+        "health": "unhealthy",
+        "volumes": [
+          "dkman-app-20aa7b39-b1f0-485c-8b48-c8173d75b5d6-data"
+        ]
+      }
+    },
+    "start": {
+      "app": {
+        "id": "a3957fa83775909d0bbb561a56d17cbcf1a36716e083c96a04238b41880f2273",
+        "image": "sha256:9d94c9bf484e8036653bc9d5eb545c825e8f6c91e1b1bf00df19988bdb4658c2",
+        "status": "running",
+        "started_at": "2026-10-20T13:31:26.130872546Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "d4340203665d87b1dd9398da3e2bfcc55314391b19a855b72ea4d6390bdaeb10",
+        "image": "sha256:914f149ba4375e82e928842fb5586e764451d4aa32daf123626afa1754c23294",
+        "status": "running",
+        "started_at": "2026-10-20T13:31:22.472069712Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-20aa7b39-b1f0-485c-8b48-c8173d75b5d6-data"
+        ]
+      }
+    },
+    "restart": {
+      "app": {
+        "id": "a3957fa83775909d0bbb561a56d17cbcf1a36716e083c96a04238b41880f2273",
+        "image": "sha256:9d94c9bf484e8036653bc9d5eb545c825e8f6c91e1b1bf00df19988bdb4658c2",
+        "status": "running",
+        "started_at": "2026-10-20T13:31:38.036274911Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "d4340203665d87b1dd9398da3e2bfcc55314391b19a855b72ea4d6390bdaeb10",
+        "image": "sha256:914f149ba4375e82e928842fb5586e764451d4aa32daf123626afa1754c23294",
+        "status": "running",
+        "started_at": "2026-10-20T13:31:37.521657933Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-20aa7b39-b1f0-485c-8b48-c8173d75b5d6-data"
+        ]
+      }
+    }
+  },
+  "core_jobs": [
+    {
+      "id": "f8cd6415-8669-484f-a6f9-5c852365916c",
+      "action": "deployment.stop",
+      "resource_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+      "plan_hash": "c5d1db4e627c41e3e0e1b09cbed99a588b98ae4c360d10c42fe179325cb90c56",
+      "state": "succeeded",
+      "execution_started_at": "2026-10-20T13:31:15.471882Z",
+      "finished_at": "2026-10-20T13:31:16.902871Z",
+      "result": {
+        "installation_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+        "operation_id": "f8cd6415-8669-484f-a6f9-5c852365916c",
+        "state": "stopped"
+      }
+    },
+    {
+      "id": "ae7f5ff2-3dbb-4d74-b6ff-e115f5161712",
+      "action": "deployment.start",
+      "resource_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+      "plan_hash": "faead4295a0798ca92d9131129a789e91a7acaf4b19a753e9a2f2294c704f1e3",
+      "state": "succeeded",
+      "execution_started_at": "2026-10-20T13:31:21.765136Z",
+      "finished_at": "2026-10-20T13:31:32.494387Z",
+      "result": {
+        "installation_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+        "operation_id": "ae7f5ff2-3dbb-4d74-b6ff-e115f5161712",
+        "state": "running"
+      }
+    },
+    {
+      "id": "bcd85dc2-6535-471a-a301-ad68ff6b110b",
+      "action": "deployment.restart",
+      "resource_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+      "plan_hash": "57eff67067a1b05a33aa2146c2faf342ea6353bbd23d27671f9954a675d56e0c",
+      "state": "succeeded",
+      "execution_started_at": "2026-10-20T13:31:37.091717Z",
+      "finished_at": "2026-10-20T13:31:44.228478Z",
+      "result": {
+        "installation_id": "20aa7b39-b1f0-485c-8b48-c8173d75b5d6",
+        "operation_id": "bcd85dc2-6535-471a-a301-ad68ff6b110b",
+        "state": "running"
+      }
+    }
+  ]
+}

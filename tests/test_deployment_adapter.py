@@ -681,3 +681,92 @@ def test_approval_cannot_authorize_a_second_operation_even_with_a_new_valid_dele
     assert denied.json()["detail"] == "approval_already_consumed"
     assert len(engine.calls) == 1
     assert app.state.journal.get(operation_id) is None
+
+
+def test_lifecycle_envelope_binds_full_action_subject_hash_and_preserves_runtime(adapter, plan):
+    from dkman.deployments.contracts import LifecyclePlan
+
+    client, app, engine, _, _ = adapter
+    assert submit(client, plan)[0].json()["state"] == "succeeded"
+    lifecycle = LifecyclePlan(
+        action="stop", resource_id=plan.installation_id, subject="alice", runtime=plan
+    )
+    operation_id = uuid4()
+    body = DeploymentCommand(action="stop", plan=plan, lifecycle=lifecycle).model_dump(mode="json")
+    url = f"/v1/operations/{operation_id}"
+    wrong = token(plan, operation_id, "stop", roles=["operator"])
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + wrong}, json=body).status_code == 403
+    )
+    wrong = token(plan, operation_id, "stop", subject="bob", plan_hash=lifecycle.plan_hash)
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + wrong}, json=body).status_code == 403
+    )
+    correct = token(plan, operation_id, "stop", roles=["operator"], plan_hash=lifecycle.plan_hash)
+    result = client.post(url, headers={"Authorization": "Bearer " + correct}, json=body)
+    assert result.status_code == 200 and result.json()["runtime"]["state"] == "stopped"
+    assert result.json()["plan_hash"] == lifecycle.plan_hash
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + correct}, json=body).json()
+        == result.json()
+    )
+    assert [action for action, _ in engine.calls] == ["install", "stop"]
+    assert app.state.journal.current_plan(plan.installation_id) == plan
+
+
+def test_lifecycle_cannot_create_an_installation(adapter, plan):
+    from dkman.deployments.contracts import LifecyclePlan
+
+    client, _, engine, _, _ = adapter
+    lifecycle = LifecyclePlan(
+        action="stop", resource_id=plan.installation_id, subject="alice", runtime=plan
+    )
+    operation_id = uuid4()
+    grant = token(plan, operation_id, "stop", plan_hash=lifecycle.plan_hash)
+    result = client.post(
+        f"/v1/operations/{operation_id}",
+        headers={"Authorization": "Bearer " + grant},
+        json=DeploymentCommand(action="stop", plan=plan, lifecycle=lifecycle).model_dump(
+            mode="json"
+        ),
+    )
+    assert result.status_code == 409 and engine.calls == []
+
+
+def test_read_operations_share_locks_but_exclude_mutations(adapter, plan, monkeypatch):
+    client, app, engine, _, _ = adapter
+    assert submit(client, plan)[0].json()["state"] == "succeeded"
+    monkeypatch.setattr(TestProvider, "logs", lambda self, plan: "safe text")
+    with app.state.journal.lock(plan.installation_id, shared=True):
+        assert submit(client, plan, "status")[0].json()["state"] == "succeeded"
+        assert submit(client, plan, "logs")[0].json()["logs"] == "safe text"
+        other = Journal(app.state.journal.root)
+        with pytest.raises(AdapterError, match="resource_busy"):
+            with other.lock(plan.installation_id):
+                pytest.fail("A mutation acquired a live read lock")
+    assert [action for action, _ in engine.calls] == ["install"]
+
+
+def test_exclusive_lock_waits_for_brief_observation_and_remains_bounded(adapter, plan):
+    from threading import Event
+
+    _, app, _, _, _ = adapter
+    waiting = Event()
+    acquired = Event()
+    other = Journal(app.state.journal.root)
+
+    def contender():
+        waiting.set()
+        with other.lock(plan.installation_id, wait_seconds=2):
+            acquired.set()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with app.state.journal.lock(plan.installation_id, shared=True):
+            future = pool.submit(contender)
+            assert waiting.wait(timeout=1)
+            assert not acquired.wait(timeout=0.05)
+            with pytest.raises(AdapterError, match="resource_busy"):
+                with other.lock(plan.installation_id, wait_seconds=0.02):
+                    pytest.fail("Lock wait exceeded its bound")
+        future.result(timeout=3)
+    assert acquired.is_set()
