@@ -11,6 +11,11 @@ Audit und die entsprechende ServiceHub-Oberfläche. Phase 1 insgesamt ist noch
 nicht abgeschlossen. DeploymentService/Notes-Installation gehören zum nächsten
 großen Durchstich, nicht zum behaupteten aktuellen Funktionsumfang.
 
+P2-001 ist abgeschlossen: persistente Jobs/Events/Approvals mit Idempotenz,
+gebundenen Freigaben und Recovery, in `main` über PR #8 integriert. Der erste
+Executor validiert tatsächlich registrierte Manifeste. Nachweis und Grenzen unten;
+nächste Entwicklung P2-002 (isolierter Deployment-Adapter).
+
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
 lokale Verlauf bleibt verlustfrei in `docs/archive/DKMan-history.bundle` erhalten.
@@ -146,9 +151,34 @@ echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.
   Revision und FK-Negativtest erfolgreich. Hub: npm ci, Lint, Build, 5 UI-Tests.
 - OpenAPI und Frontendtypen regeneriert. Sechs zusätzliche PostgreSQLtests prüfen
   echte parallele Requests, Claims, Gegenentscheidungen, Abbruch und Recovery.
-  GitHub-CI-Nachweis wird nach dem Lauf ergänzt; lokale Ergebnisse sind kein Ersatz.
+  PR-CI `39382031613` vollständig erfolgreich: 74 Backendtests ohne Skip,
+  5 UI- und 2 Browserchecks sowie Container-Smoke; Nachweis unten.
 - Grenzen und Verträge: `jobs.md`, ADR 0007, `acceptance-tests.md`. Windows-Host,
   echte OIDC-Mehrbenutzer-, Volume-Persistenz- und Restoreabnahmen bleiben offen.
 - Nächster Einstieg P2-002: isolierter Compose-Adapter, typisierter Runtimeplan,
   verbindliche Risikopolicy, Ressourcenserialisierung und dauerhafte Operation-ID
   mit Abgleich unbekannter Ergebnisse. Danach P2-003: echte kuratierte Notes-App.
+
+## CI-Abnahme und Integration P2-001 · 20.10.2026
+
+[PR #8](https://github.com/damiankaest/DKMan/pull/8) wurde nach eigenständiger
+Prüfung aller drei CI-Jobs integriert. Featurecommit `4d06567`, Maincommit `f2f4b70`.
+[PR-Lauf 39382031613](https://github.com/damiankaest/DKMan/actions/runs/39382031613)
+und [Branch-Lauf 39382018865](https://github.com/damiankaest/DKMan/actions/runs/39382018865)
+sind vollständig erfolgreich. Main enthält denselben geprüften Tree.
+
+Auch [Main-Lauf 39382343544](https://github.com/damiankaest/DKMan/actions/runs/39382343544)
+für `f2f4b70` wurde anschließend vollständig erfolgreich kontrolliert. Der
+abschließende reine Dokumentationscommit ergänzt diese Nachweise mit `[skip ci]`.
+
+74 Backendtests ohne Skip, einschließlich echter PostgreSQL-17-Konkurrenztests und
+Migration/Drift/Downgrade. Ruff/Format/mypy, HTTP-Smoke, PowerShell-Parser,
+Manifestprüfung und generierte Verträge erfolgreich. Hub: Produktionsbuild,
+5 UI-Tests, 2 Browserchecks und Dependency-Audit erfolgreich. Container-Smoke:
+Migration Exit 0, PostgreSQL/Core/Keycloak/Hub healthy, Seed registriert nur
+Manifestverträge; Doctor bestätigt neues Schema, Proxy, OIDC-Discovery und 401.
+
+Lokal blieb Playwright wegen fehlender Binary und beschädigtem Downloadarchiv
+blockiert. Die Browserchecks wurden in CI erfolgreich ausgeführt und verwenden
+weiterhin Testantworten. Echte OIDC-/Windows-/Volume-/Restoreabnahmen bleiben offen.
+Kein DeploymentService, kein Beispiel-App-Image installiert, keine Zielhostdienste geändert.

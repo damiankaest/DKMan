@@ -40,6 +40,8 @@ mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architectur
 | `GET /api/v1/catalog` | Admin | registrierte Definitionen; noch keine installierbaren Artefakte |
 | `POST /api/v1/registry/manifests` | Admin | strenge JSON-Validierung, Registrierung, Audit; kein Start |
 | `GET /api/v1/platform` | angemeldet | Versions-/Ausbaustand |
+| `GET/POST /api/v1/jobs` und Jobdetails/Events | Admin für Anlage, eigene Sichtbarkeit beim Lesen | persistierte Aufträge und sequenzierte Historie; siehe `jobs.md` |
+| Approvalentscheidung, Jobabbruch und Validierung | Admin; Ausführung zusätzlich anforderndes Subject | hashgebundene Freigabe, klare Zustandsgrenzen, tatsächliche Manifestvalidierung |
 
 OpenAPI ist in `contracts/openapi/core.v1.json` versioniert. Der Hub verwendet daraus
 generierte TypeScript-Typen. Mutationserweiterungen erhalten typisierte Requests,

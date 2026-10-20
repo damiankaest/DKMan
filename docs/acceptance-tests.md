@@ -117,6 +117,7 @@ echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.
 | HTTP-Prozess | `uv run python scripts/smoke_core.py`: Live 200, Ready bei DB-Ausfall 503, anonymes Me 401; Start/Stop erfolgreich |
 | Migration PostgreSQL/WASM | `cd tests/postgres-wasm && npm ci --ignore-scripts --no-audit --no-fund && npm test`: Revision 0002, 15 Tabellen, FK-Abweisung, Downgrade und erneutes Upgrade erfolgreich |
 | Hub | `npm run lint`, `npm run build`, `npm test`: erfolgreich; 5 UI-Tests |
+| Lokaler Browserstart | `npm run test:e2e` mangels Binary blockiert; `npx playwright install chromium` liefert beschädigtes ZIP; Browserchecks anschließend in GitHub CI bestanden |
 | Verträge | `uv run python scripts/export_contracts.py`, Hub `npm run generate:api`; OpenAPI und TypeScript eingecheckt |
 
 Neue Tests: serverseitige Rollen und Jobisolation, Requestreplay/409 bei Konflikt,
@@ -127,8 +128,28 @@ Leases, alter Worker und Recovery im neuen App-Lifespan auf derselben Testdatei.
 
 `tests/test_jobs_postgres.py` ergänzt sechs Tests mit echten konkurrierenden
 PostgreSQL-Sessions; lokal ausdrücklich übersprungen. Zusammen mit dem Migrationstest
-werden sie in GitHub Actions auf PostgreSQL 17 ausgeführt. CI-Nachweis folgt nach
-eigenständiger Kontrolle des neuen Laufs.
+wurden sie in GitHub Actions auf PostgreSQL 17 erfolgreich ausgeführt. Nachweis unten.
 
 Keine echte OIDC- oder Windows-Abnahme. Keine Runtime-App installiert. Tests von
 Crashgrenzen/Lifespan belegen die Metadatenzustände, keinen Host-/Volume-Restore.
+
+## P2-001 · GitHub-CI-Abnahme und Mainintegration
+
+[PR-Lauf 39382031613](https://github.com/damiankaest/DKMan/actions/runs/39382031613),
+Featurecommit `4d06567`; über [PR #8](https://github.com/damiankaest/DKMan/pull/8)
+als `f2f4b70` in `main` integriert. Branch-Lauf `39382018865` ebenfalls grün.
+Alle Schritte und die relevanten Backend-/Frontend-/Containerlogs selbst geprüft.
+
+Nach Integration zusätzlich [Main-Lauf 39382343544](https://github.com/damiankaest/DKMan/actions/runs/39382343544)
+für `f2f4b70`: alle drei Jobs vollständig erfolgreich. Der folgende reine
+Dokumentationscommit verändert weder Code noch Verträge und überspringt CI ausdrücklich.
+
+| Job | Ergebnis |
+| --- | --- |
+| backend | 74 Tests ohne Skip; PostgreSQL 17 mit psycopg; vier konkurrierende Duplikate konvergieren, widersprüchliche Requests/Entscheidungen und doppelte Claims abgewehrt, Abbruch serialisiert, Recovery überspringt fremde Locks und wiederholt laufende Aktionen nicht; Migration Upgrade/Drift/Downgrade/erneutes Upgrade; Lint/Format/mypy, HTTP-Smoke, PowerShell, Manifest-/Vertragsdrift erfolgreich |
+| frontend | npm ci, generierte Typen ohne Drift, Lint, TypeScript-/Produktionsbuild, 5 UI-Tests, 2 Browserchecks und Produktions-Dependency-Audit erfolgreich |
+| container-smoke | Images gebaut; Migration Exit 0; PostgreSQL/Core/Keycloak/Hub healthy; Seed: zwei Manifestverträge, keine Images installiert; Doctor: neues Schema current, Proxy, OIDC-Discovery, anonymes Me 401 |
+
+Abgeschlossen ist die isolierte Implementierung P2-001. Echte OIDC-Mehrbenutzer-,
+Windows-/VM-Neustart-, Volume-Persistenz- und Restoreabnahmen bleiben separat offen.
+Die reale Manifestvalidierung ist keine Deployment- oder Appinstallationsabnahme.

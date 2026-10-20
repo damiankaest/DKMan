@@ -17,7 +17,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P1-003 | P0 / 1 | 001,002 | Registry-Registrierung, Katalogliste, App-/Service-/Capabilitysichtbarkeit und Audit; implementiert; revisionssicheres Update/Unregister offen |
 | P1-004 | P0 / 1 | P1-003 | Haushalts-/Mitglieder-/Grant-Verwaltung: API, Hub-UI und Isolationstests implementiert; Abnahme mit zwei echten OIDC-Nutzern offen |
 | P1-005 | P0 / 1 | P1-003,P2-003 | tatsächliches Healthpolling mit Historie, Zeitstempel, Fehlerursache; DB-Readiness vorhanden, App-Polling offen |
-| P2-001 | P0 / 2 | P0-007,P1-003 | implementiert: Migration 0002, Job/Event/Approval, Idempotenz, gebundene Freigabe, Lease/Recovery, autorisierte APIs und echte Manifestvalidierung; lokal geprüft; PostgreSQL-Konkurrenztests/Container-CI vor Abschluss prüfen; siehe `jobs.md` und `acceptance-tests.md` |
+| P2-001 | P0 / 2 | P0-007,P1-003 | abgeschlossen und geprüft: Migration 0002, Job/Event/Approval, Idempotenz, gebundene Freigabe, Lease/Recovery, autorisierte APIs und echte Manifestvalidierung; PR #8 in main integriert; CI 39382031613: 74 Backendtests inkl. PostgreSQL-Konkurrenz/Migration, 5 UI-, 2 Browserchecks, Container-Smoke erfolgreich; Hostabnahmen bleiben offen |
 | P2-002 | P0 / 2 | P2-001 | DeploymentProvider und isolierter Compose-Adapter; keine freien Befehle/Mounts/Ports; Negativtests |
 | P2-003 | P0 / 2 | P2-002 | Notes-Quellapp bauen/testen, tatsächlichen Digest erfassen und kuratieren; keine Platzhalterimages |
 | P2-004 | P0 / 2 | P2-003 | UI-Plan → hashgebundene Freigabe → Job → echte Installation mit Proxyroute/SSO |
