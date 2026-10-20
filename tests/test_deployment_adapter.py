@@ -681,3 +681,53 @@ def test_approval_cannot_authorize_a_second_operation_even_with_a_new_valid_dele
     assert denied.json()["detail"] == "approval_already_consumed"
     assert len(engine.calls) == 1
     assert app.state.journal.get(operation_id) is None
+
+
+def test_lifecycle_envelope_binds_full_action_subject_hash_and_preserves_runtime(adapter, plan):
+    from dkman.deployments.contracts import LifecyclePlan
+
+    client, app, engine, _, _ = adapter
+    assert submit(client, plan)[0].json()["state"] == "succeeded"
+    lifecycle = LifecyclePlan(
+        action="stop", resource_id=plan.installation_id, subject="alice", runtime=plan
+    )
+    operation_id = uuid4()
+    body = DeploymentCommand(action="stop", plan=plan, lifecycle=lifecycle).model_dump(mode="json")
+    url = f"/v1/operations/{operation_id}"
+    wrong = token(plan, operation_id, "stop", roles=["operator"])
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + wrong}, json=body).status_code == 403
+    )
+    wrong = token(plan, operation_id, "stop", subject="bob", plan_hash=lifecycle.plan_hash)
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + wrong}, json=body).status_code == 403
+    )
+    correct = token(plan, operation_id, "stop", roles=["operator"], plan_hash=lifecycle.plan_hash)
+    result = client.post(url, headers={"Authorization": "Bearer " + correct}, json=body)
+    assert result.status_code == 200 and result.json()["runtime"]["state"] == "stopped"
+    assert result.json()["plan_hash"] == lifecycle.plan_hash
+    assert (
+        client.post(url, headers={"Authorization": "Bearer " + correct}, json=body).json()
+        == result.json()
+    )
+    assert [action for action, _ in engine.calls] == ["install", "stop"]
+    assert app.state.journal.current_plan(plan.installation_id) == plan
+
+
+def test_lifecycle_cannot_create_an_installation(adapter, plan):
+    from dkman.deployments.contracts import LifecyclePlan
+
+    client, _, engine, _, _ = adapter
+    lifecycle = LifecyclePlan(
+        action="stop", resource_id=plan.installation_id, subject="alice", runtime=plan
+    )
+    operation_id = uuid4()
+    grant = token(plan, operation_id, "stop", plan_hash=lifecycle.plan_hash)
+    result = client.post(
+        f"/v1/operations/{operation_id}",
+        headers={"Authorization": "Bearer " + grant},
+        json=DeploymentCommand(action="stop", plan=plan, lifecycle=lifecycle).model_dump(
+            mode="json"
+        ),
+    )
+    assert result.status_code == 409 and engine.calls == []

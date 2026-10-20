@@ -60,15 +60,18 @@ export function AccessAdmin({ api, installations }: { api: ApiClient; installati
       }}>{member ? 'Mitglied entfernen' : 'Mitglied hinzufügen'}</button></li>;
     })}</ul>}
     <h3>App-Zugriff</h3>
-    <p>Eine Mitgliedschaft allein gibt keine App frei. Freigaben gelten nur für Mitglieder des Installationshaushalts.</p>
+    <p>Appnutzung und Runtimebetrieb sind getrennte Freigaben. Runtimebetrieb benötigt zusätzlich die globale Rolle Operator. Beide Freigaben gelten nur für Mitglieder des Installationshaushalts.</p>
     {!installations.length ? <p>Noch keine installierten Apps vorhanden.</p> : <><label htmlFor="access-installation">Installation</label><select id="access-installation" value={app} onChange={event => { setApp(event.target.value); setGrants([]); }}>
       <option value="">Bitte wählen</option>{installations.map(item => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}
     </select></>}
     {app && <ul>{users.map(person => {
       const allowed = grants.some(item => item.subject === person.subject && item.permission === 'app.use');
+      const operates = grants.some(item => item.subject === person.subject && item.permission === 'app.operate');
       return <li key={person.id}>{person.display_name} <button disabled={disabled} onClick={() => {
         void change(`/api/v1/installations/${encodeURIComponent(app)}/grants/${encodeURIComponent(person.id)}`, allowed ? 'DELETE' : 'PUT');
-      }}>{allowed ? 'Freigabe entziehen' : 'App freigeben'}</button></li>;
+      }}>{allowed ? 'Freigabe entziehen' : 'App freigeben'}</button> <button disabled={disabled} onClick={() => {
+        void change(`/api/v1/installations/${encodeURIComponent(app)}/runtime-grants/${encodeURIComponent(person.id)}`, operates ? 'DELETE' : 'PUT');
+      }}>{operates ? 'Betriebsfreigabe entziehen' : 'Runtimebetrieb freigeben'}</button></li>;
     })}</ul>}
   </section>;
 }

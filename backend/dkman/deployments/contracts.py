@@ -155,9 +155,45 @@ def validate_plan(catalog: Catalog, plan: DeploymentPlan) -> None:
         raise ValueError("Plan does not match the curated image policy")
 
 
+LifecycleAction = Literal["start", "stop", "restart"]
+LIFECYCLE_ACTIONS = {"deployment.start", "deployment.stop", "deployment.restart"}
+
+
+class LifecyclePlan(StrictModel):
+    schema_version: Literal[1] = 1
+    action: LifecycleAction
+    resource_type: Literal["app_installation"] = "app_installation"
+    resource_id: UUID
+    subject: str = Field(min_length=1, max_length=255)
+    runtime: DeploymentPlan
+
+    @model_validator(mode="after")
+    def same_resource(self) -> "LifecyclePlan":
+        if self.resource_id != self.runtime.installation_id:
+            raise ValueError("Lifecycle resource differs from runtime")
+        return self
+
+    @property
+    def plan_hash(self) -> str:
+        return canonical_hash(self.model_dump(mode="json"))
+
+
 class DeploymentCommand(StrictModel):
     action: Action
     plan: DeploymentPlan
+    lifecycle: LifecyclePlan | None = Field(default=None, exclude_if=lambda value: value is None)
+
+    @model_validator(mode="after")
+    def bound_lifecycle(self) -> "DeploymentCommand":
+        if self.lifecycle and (
+            self.lifecycle.action != self.action or self.lifecycle.runtime != self.plan
+        ):
+            raise ValueError("Lifecycle command mismatch")
+        return self
+
+    @property
+    def plan_hash(self) -> str:
+        return self.lifecycle.plan_hash if self.lifecycle else self.plan.plan_hash
 
 
 class RuntimeView(StrictModel):

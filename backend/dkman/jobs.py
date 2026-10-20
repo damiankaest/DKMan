@@ -27,6 +27,7 @@ from dkman.models import (
     new_id,
     utcnow,
 )
+from dkman.runtime_access import authorize_job, runtime_role
 
 LEASE_SECONDS = 60
 TERMINAL = {"succeeded", "failed", "cancelled", "expired"}
@@ -197,11 +198,12 @@ def submit(db: Session, body: JobSubmission, key: str, actor: Principal, correla
 def decide(
     db: Session, approval_id: str, body: ApprovalDecision, actor: Principal
 ) -> ApprovalRequest:
-    admin(actor)
+    runtime_role(actor)
     job_id = db.scalar(select(ApprovalRequest.job_id).where(ApprovalRequest.id == approval_id))
     if job_id is None:
         raise HTTPException(404, "Approval not found")
     job = locked_job(db, job_id)
+    authorize_job(db, job, actor)
     approval = approval_for(db, job)
     assert approval is not None
     expected = ApprovalBinding.model_validate(approval).model_dump()
@@ -230,8 +232,9 @@ def decide(
 
 
 def cancel(db: Session, job_id: str, actor: Principal) -> Job:
-    admin(actor)
+    runtime_role(actor)
     job = locked_job(db, job_id)
+    authorize_job(db, job, actor)
     if job.state == "cancelled":
         return job
     if job.state not in {"waiting_approval", "queued"}:
@@ -247,8 +250,8 @@ def cancel(db: Session, job_id: str, actor: Principal) -> Job:
 
 
 def claim(db: Session, job_id: str, actor: Principal, *, lease_seconds: int = LEASE_SECONDS) -> str:
-    admin(actor)
     job = locked_job(db, job_id)
+    authorize_job(db, job, actor)
     if job.requested_by != actor.subject:
         raise HTTPException(403, "Only the requesting identity may execute this job")
     approval = approval_for(db, job)
@@ -279,8 +282,8 @@ def owned_lease(db: Session, job_id: str, token: str, state: str) -> Job:
 
 
 def begin_execution(db: Session, job_id: str, token: str, actor: Principal) -> Job:
-    admin(actor)
     job = owned_lease(db, job_id, token, "claimed")
+    authorize_job(db, job, actor)
     if actor.subject != job.requested_by:
         raise HTTPException(403, "Requesting identity mismatch")
     approval = approval_for(db, job)

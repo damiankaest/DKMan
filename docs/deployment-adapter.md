@@ -113,3 +113,17 @@ Runtimebedienung P2-005, belegbarer Workflow zum Abschluss unsicherer
 Mutationen, Live-OIDC, Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme.
 Logredaktion entfernt bekannte Muster, kann frei formulierte oder unbekannte Secrets
 in beliebigen App-Logs nicht vollständig erkennen; Apps müssen sichere Logs erzeugen.
+
+
+## Fortschreibung P2-005
+
+Core und Hub verwenden nun Start/Stop/Restart sowie lesenden Status/Logzugriff.
+Der optionale Lifecycle-Command bindet Aktion/Identität und den vollständigen bereits
+installierten Plan; der neue Envelopehash steht auch im Operationsresultat. Ohne
+Envelope bleiben alle bisherigen v1-Hashes/Fingerprints stabil. Keine Journalmigration.
+Nur bekannte, vollständige Workloads können verändert werden. Start verwendet `start`
+statt `up`; Restart wartet bis zu 30 Sekunden auf tatsächliche Health. Stop prüft beide
+Notes-Container. Die bestehenden Aufruflimits und dauerhaften Unklarheitssperren gelten
+weiter. Vollständiger Ressourcen-/Freigabevertrag: [Jobs](jobs.md), ADR 0010.
+Logs sind auf 100 Zeilen/8 KiB UTF-8 beschränkt, auf beiden HTTP-Grenzen maskiert und
+im Hub als Text gerendert. Dies kann unbekannte freie Secrets weiterhin nicht erkennen.

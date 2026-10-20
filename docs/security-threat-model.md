@@ -45,3 +45,12 @@ verifiziert OIDC und die aktuelle App-Freigabe über Core. Die öffentliche leer
 enthält keine Daten; ein bekannter Direktlink ersetzt keine Berechtigung. Apptext wird
 als Text gerendert. Der App-Datenschlüssel liegt nur beim Adapter und ist getrennt
 vom Core-Delegationsschlüssel; Passwörter stehen nicht in Job-/Plan-/Browserantworten.
+
+
+P2-005: Runtimezugriff erfordert Admin oder Operator + aktuelle Haushaltsmitgliedschaft
++ installationsgebundenes `app.operate`. Appnutzung bleibt separat. Erneute Prüfung
+vor Approval und Dispatch; Job-/Operations-ID und vollständiger Lifecyclehash sind
+gebunden. Konkurrierende Keys/Subjects umgehen keine offene Ressourcenreservierung.
+Keine neue Dockergrenze in Core/Hub. Logs werden erneut im Core begrenzt/maskiert und
+in React als Text angezeigt. Unklare Ausgänge werden weder durch Healthpolling noch
+durch einen neuen Auftrag entsperrt. P2-006 erweitert den belegbaren Abschluss.

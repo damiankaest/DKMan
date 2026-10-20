@@ -97,3 +97,31 @@ Das private Repository besteht unter [damiankaest/DKMan](https://github.com/dami
 PR #8 und #9 integriert; P2-003/P2-004 über PR #10. Der vollständige
 Main-CI-Lauf 39409720195 ist erfolgreich; Nachweise siehe `acceptance-tests.md`. Der archivierte ursprüngliche Git-Bundle ist historischer
 Quellnachweis und kein Ersatz für den aktuellen Repository-Stand.
+
+
+## Runtimebedienung P2-005
+
+Im Hub unter Verwaltung → Containerbetrieb die bestehende Installation wählen.
+Admin: alle Installationen. Operator: Haushaltsmitgliedschaft plus separate Betriebsfreigabe
+`app.operate`; Appfreigabe `app.use` reicht nicht. Globale Rollen werden in Keycloak verwaltet.
+Der Adminbereich „Haushalte und Freigaben“ erteilt oder entzieht Betriebsfreigaben separat.
+
+„Container starten/stoppen/neu starten“ erzeugt zunächst einen konkreten gespeicherten
+Plan. Hash, Aktion, Installation, Identität, Images und Ablauf prüfen, zustimmen, erst
+danach „Runtimeaktion ausführen“. Pro Installation nur ein offener Auftrag. Nach
+Browserreload dieselbe Installation auswählen; gespeicherte Jobs und Verlauf wieder laden.
+Status/Logs können ohne Freigabe lesend abgerufen werden. Logs vor Weitergabe trotzdem
+prüfen; Muster erkennen nicht jedes Secret. Keine ungefilterten Enginefehler ausgeben.
+
+Bei Transportverlust/Timeout `reconciliation_required` erhalten. „Runtimeergebnis
+abgleichen“ liest ausschließlich die bereits gespeicherte Adapteroperation. Aktuell
+gesunde Container belegen keinen erfolgreichen Restart. Fehlende/unsichere Resultate
+sperren weitere Mutationen und den Öffnen-Link. Weder Journal löschen noch neue Keys,
+Force-Retry oder pauschales Entsperren verwenden. Belegter weiterer Abschluss folgt
+P2-006. Laufende Jobs nicht per DB-Update auf Erfolg setzen.
+
+Stop/Start verändert keine Containerdefinition und löscht keine Daten. Lifecycle setzt
+vollständig vorhandene Container voraus. Fehlende Container sind ein Diagnosefall,
+kein automatischer Neuinstallationsauftrag. Die Zielhost-/Windows-/VM-Abnahme, vollständige
+OIDC-Betriebsmatrix und koordinierter Backup/Restore bleiben offen. Vorhandene Backups
+und Upgrades sind weiterhin nur für den Basisstack ausgelegt.

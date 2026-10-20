@@ -235,6 +235,18 @@ def grants(installation_id: str, db: Db, actor: Admin) -> list[PermissionGrant]:
     "/installations/{installation_id}/grants/{user_id}", status_code=204, operation_id="grantAppUse"
 )
 def grant(installation_id: str, user_id: str, db: Db, actor: Admin, request: Request) -> Response:
+    return change_grant(installation_id, user_id, db, actor, request, "app.use", False)
+
+
+def change_grant(
+    installation_id: str,
+    user_id: str,
+    db: Session,
+    actor: Principal,
+    request: Request,
+    permission: str,
+    remove: bool,
+) -> Response:
     app = installation(db, installation_id)
     person = profile(db, user_id)
     member = db.scalar(
@@ -249,15 +261,19 @@ def grant(installation_id: str, user_id: str, db: Db, actor: Admin, request: Req
         select(PermissionGrant).where(
             PermissionGrant.installation_id == installation_id,
             PermissionGrant.subject == person.subject,
-            PermissionGrant.permission == "app.use",
+            PermissionGrant.permission == permission,
         )
     )
-    if existing is None:
+    if remove and existing is not None:
+        audit(db, actor, request, "grant.remove", existing.id)
+        db.delete(existing)
+        commit(db)
+    elif not remove and existing is None:
         item = PermissionGrant(
             id=str(uuid4()),
             installation_id=installation_id,
             subject=person.subject,
-            permission="app.use",
+            permission=permission,
         )
         db.add(item)
         audit(db, actor, request, "grant.add", item.id)
@@ -285,3 +301,25 @@ def revoke(installation_id: str, user_id: str, db: Db, actor: Admin, request: Re
         db.delete(item)
         commit(db)
     return Response(status_code=204)
+
+
+@router.put(
+    "/installations/{installation_id}/runtime-grants/{user_id}",
+    status_code=204,
+    operation_id="grantAppOperate",
+)
+def grant_runtime(
+    installation_id: str, user_id: str, db: Db, actor: Admin, request: Request
+) -> Response:
+    return change_grant(installation_id, user_id, db, actor, request, "app.operate", False)
+
+
+@router.delete(
+    "/installations/{installation_id}/runtime-grants/{user_id}",
+    status_code=204,
+    operation_id="revokeAppOperate",
+)
+def revoke_runtime(
+    installation_id: str, user_id: str, db: Db, actor: Admin, request: Request
+) -> Response:
+    return change_grant(installation_id, user_id, db, actor, request, "app.operate", True)

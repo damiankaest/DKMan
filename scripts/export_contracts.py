@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 
 from dkman.config import Settings
 from dkman.deployment_adapter.main import create_app as create_adapter_app
-from dkman.deployments.contracts import DeploymentPlan
+from dkman.deployments.contracts import DeploymentPlan, LifecyclePlan
 from dkman.main import create_app
 from dkman.manifest import Manifest
 from notes_demo.main import create_app as create_notes_app
@@ -22,6 +22,7 @@ for path, content in [
         create_notes_app(create_engine("sqlite://")).openapi(),
     ),
     (root / "contracts/deployments/plan.v1.schema.json", DeploymentPlan.model_json_schema()),
+    (root / "contracts/deployments/lifecycle.v1.schema.json", LifecyclePlan.model_json_schema()),
     (
         root / "contracts/manifests/dkman.v1alpha1.schema.json",
         Manifest.model_json_schema(by_alias=True),

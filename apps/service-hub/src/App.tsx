@@ -5,6 +5,7 @@ import type { AuthSession } from './auth';
 import './styles.css';
 import { AccessAdmin } from './AccessAdmin';
 import { DeploymentAdmin } from './DeploymentAdmin';
+import { RuntimeManager } from './RuntimeManager';
 
 const labels: Record<AppItem['status'], string> = {
   healthy: 'Bereit', starting: 'Startet', degraded: 'Eingeschränkt',
@@ -84,7 +85,7 @@ export function App({ auth }: { auth: AuthSession }) {
         <a className="brand" href="/" aria-label="DKMan Startseite"><span className="logo">DK</span> DKMan<span className="brand-label">SERVICEHUB</span></a>
         <nav aria-label="Hauptnavigation">
           <button className={tab === 'apps' ? 'active' : ''} onClick={() => setTab('apps')}>Meine Apps</button>
-          {user?.roles.includes('admin') && <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>Verwaltung</button>}
+          {user?.roles.some(role => ['admin','operator'].includes(role)) && <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>Verwaltung</button>}
         </nav>
         {auth.authenticated ? <button className="quiet" onClick={logout}>Abmelden</button> : <button className="primary" onClick={login}>Anmelden</button>}
       </header>
@@ -132,12 +133,15 @@ export function App({ auth }: { auth: AuthSession }) {
           </section>
         ) : (
           <section>
+            {user && <RuntimeManager api={api} subject={user.subject} onChanged={() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app,status:'unknown',route:null}))));}} />}
+            {user?.roles.includes('admin') && <>
             {user && <DeploymentAdmin api={api} subject={user.subject} onInstalled={() => {void api.apps().then(setApps).catch(() => setError('Apps konnten nicht aktualisiert werden.'));}} />}
             <AccessAdmin api={api} installations={apps} />
             <span className="section-number">02 / VERWALTUNG</span><h2>Registrierte App-Definitionen</h2>
             <p className="muted">Die Registry beschreibt Apps. Nur separat kuratierte Quellbuilds können installiert werden.</p>
             {catalog.length === 0 ? <div className="empty"><h3>Registry ist bereit</h3><p>Manifeste können über die geschützte Registry-API registriert werden. Eine Beispielregistrierung steht in der Startanleitung.</p></div> :
               <div className="grid">{catalog.map(item => <article className="catalog-card" key={item.id}><span className="muted">{item.version} · {item.source}</span><h3>{item.name}</h3><p>{item.description}</p></article>)}</div>}
+            </>}
           </section>
         )}
 

@@ -11,12 +11,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from dkman.access import household
-from dkman.auth import Principal, require_admin
+from dkman.auth import Principal, current_principal, require_admin
 from dkman.config import Settings
 from dkman.database import get_session
 from dkman.deployments.auth import sign_delegation
 from dkman.deployments.client import AdapterUnavailable
 from dkman.deployments.contracts import (
+    LIFECYCLE_ACTIONS,
     Catalog,
     CuratedImage,
     DeploymentCommand,
@@ -289,7 +290,18 @@ def uncertain(db: Session, job: Job, actor: Principal) -> Job:
 
 
 def record_runtime(db: Session, installation_id: str, runtime: RuntimeView) -> ServiceInstance:
-    service = db.get(ServiceInstance, installation_id)
+    service = db.scalar(
+        select(ServiceInstance)
+        .where(ServiceInstance.id == installation_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        service is not None
+        and service.checked_at is not None
+        and utc(service.checked_at) >= utc(runtime.observed_at)
+    ):
+        return service  # A delayed read must not overwrite newer stop/start evidence.
     if service is None:
         service = ServiceInstance(
             id=installation_id, installation_id=installation_id, provider="docker-compose"
@@ -298,11 +310,22 @@ def record_runtime(db: Session, installation_id: str, runtime: RuntimeView) -> S
     service.status = {"running": "healthy", "absent": "stopped"}.get(runtime.state, runtime.state)
     service.runtime_id = runtime.container_id
     service.checked_at = runtime.observed_at
-    service.status_reason = None if service.status == "healthy" else "runtime_observation"
+    service.status_reason = (
+        None
+        if service.status == "healthy"
+        else (
+            "runtime_observation_unavailable"
+            if service.status == "unknown"
+            else "runtime_observation"
+        )
+    )
     db.flush()
     db.add(
         HealthObservation(
-            service_id=service.id, status=service.status, reason=service.status_reason
+            service_id=service.id,
+            status=service.status,
+            reason=service.status_reason,
+            created_at=runtime.observed_at,
         )
     )
     return service
@@ -387,11 +410,19 @@ def run_installation(job_id: str, db: Session, actor: Principal, request: Reques
 @router.post(
     "/jobs/{job_id}/reconcile", response_model=JobView, operation_id="reconcileInstallationJob"
 )
-def reconcile_job(job_id: UUID, request: Request, db: Db, actor: Admin) -> Job:
+def reconcile_job(
+    job_id: UUID, request: Request, db: Db, actor: Annotated[Principal, Depends(current_principal)]
+) -> Job:
+    from dkman.runtime_access import authorize_job
+
+    authorize_job(db, locked_job(db, str(job_id)), actor)
     job = locked_job(db, str(job_id))
     if job.requested_by != actor.subject:
         raise HTTPException(403, "Requesting identity required")
-    if job.action != "deployment.install" or job.state != "reconciliation_required":
+    if (
+        job.action not in LIFECYCLE_ACTIONS | {"deployment.install"}
+        or job.state != "reconciliation_required"
+    ):
         raise HTTPException(409, "Job does not require installation reconciliation")
     # Do not resend a mutation, even when the adapter returns 404.
     token = credential(request.app.state.settings, actor, job, "operation.read")
@@ -405,6 +436,11 @@ def reconcile_job(job_id: UUID, request: Request, db: Db, actor: Admin) -> Job:
         return job
     if job.state != "reconciliation_required":
         raise HTTPException(409, "Job state changed")
+    authorize_job(db, job, actor)
+    if job.action in LIFECYCLE_ACTIONS:
+        from dkman.runtime_api import accept_lifecycle
+
+        return accept_lifecycle(db, job, outcome, actor)
     return accept_outcome(db, job, outcome, actor)
 
 

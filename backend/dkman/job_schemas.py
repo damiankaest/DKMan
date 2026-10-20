@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from dkman.deployments.contracts import DeploymentPlan
+from dkman.deployments.contracts import DeploymentPlan, LifecyclePlan
 
 JobState = Literal[
     "waiting_approval",
@@ -73,7 +73,7 @@ class JobView(BaseModel):
     resource_id: str
     risk: Literal["read_only", "reversible", "sensitive", "destructive"]
     state: JobState
-    plan: ValidationPlan | DeploymentPlan
+    plan: ValidationPlan | DeploymentPlan | LifecyclePlan
     plan_hash: Hash
     requires_approval: bool
     attempt: int

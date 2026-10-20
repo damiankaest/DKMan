@@ -259,6 +259,16 @@
           },
           "plan": {
             "$ref": "#/components/schemas/DeploymentPlan"
+          },
+          "lifecycle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LifecyclePlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -442,6 +452,54 @@
           "manifest_hash"
         ],
         "title": "InstallationContext"
+      },
+      "LifecyclePlan": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "stop",
+              "restart"
+            ],
+            "title": "Action"
+          },
+          "resource_type": {
+            "type": "string",
+            "const": "app_installation",
+            "title": "Resource Type",
+            "default": "app_installation"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resource Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/DeploymentPlan"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action",
+          "resource_id",
+          "subject",
+          "runtime"
+        ],
+        "title": "LifecyclePlan"
       },
       "OperationView": {
         "properties": {

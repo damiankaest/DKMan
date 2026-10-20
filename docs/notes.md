@@ -74,8 +74,12 @@ abschließen. Fehlender Datensatz oder unsicherer Adaptermarker bleiben ungeklä
 es gibt keinen Force-Retry. Vor erneutem Betrieb ist ein belegter Abschluss nötig
 (weiterer Workflow in P2-006).
 
-Runtime-Lifecycle über Core/Hub ist P2-005. Das Adapterinterface ist bereits vorhanden;
-die Notes-Datenpersistenz wird zusätzlich mit echten CI-Containern geprüft.
+Runtime-Lifecycle ist über die Hubverwaltung verfügbar: Installation wählen, konkrete
+Start-/Stop-/Restart-Aktion planen, Plan einschließlich Hash prüfen, explizit freigeben
+und ausführen. Runtimebetrieb und „App öffnen“ sind getrennt. Status/Logs sind lesend;
+Stop/Start/Restart erhalten App, Datenbank, Container und Datenvolume. Gespeicherte
+Aufträge bleiben nach Reload sichtbar. Bei unklarem Ausgang nur das vorhandene Ergebnis
+abgleichen, keine zweite Mutation. Rechte und technische Details: [Jobs](jobs.md).
 
 ## Betrieb und verbleibende Grenzen
 
@@ -88,7 +92,7 @@ Kein automatischer Austausch verlorener Secrets. Keine blinden Installationswied
 Ein Haushalt bekommt in diesem MVP eine Notes-Installation. Bekannte Fehler vor
 dem Ausführungsmarker bzw. Abbruch/Ablauf erlauben einen neuen Plan; installierte
 oder ungeklärte Ressourcen blockieren andere Keys. Es gibt noch keinen Update-,
-Rollback-, Mehrinstanz- oder UI-Lifecycle-Workflow.
+Rollback- oder Mehrinstanzworkflow.
 
 Die automatisierte echte CI-Journey ersetzt nicht die Abnahme mit Damians echten
 Benutzern und Windows-/VM-/Netzwerkumgebung. Diese bleibt gesondert dokumentiert offen.

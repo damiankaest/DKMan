@@ -145,7 +145,7 @@ class Journal:
             operation_id=grant.jti,
             installation_id=command.plan.installation_id,
             action=command.action,
-            plan_hash=command.plan.plan_hash,
+            plan_hash=command.plan_hash,
             state="running",
             created_at=datetime.now(UTC),
         )

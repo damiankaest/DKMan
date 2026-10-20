@@ -314,3 +314,18 @@ enthält den tatsächlich kuratierten Katalog und Buildbericht. Die IDs gelten a
 diesem Engine, nicht als Registry-Pullreferenzen auf einem anderen Host.
 Der abschließende Dokumentations-/Nachweiscommit enthält keine Runtimeänderung und
 überspringt CI ausdrücklich. P2-003/P2-004 abgeschlossen; nächstes Ticket P2-005.
+
+
+## P2-005 · Implementierung und laufende Verifikation · 20.10.2026
+
+Ausgangsstand `ebd606c`, Main-CI `39409720195` eigenständig bestätigt. Dependency-PRs
+bleiben unberührt. Runtime-APIs, explizite Operatorrechte `app.operate`, vollständige
+Lifecyclepläne/Approvalbindung und Hubsteuerung sind implementiert. Keine Änderung
+bestehender Migrationen oder v1-Hashes/Journale. Details: ADR 0010 und `jobs.md`.
+
+Lokal sind Ruff/Mypy, Paketbuild und HTTP-Smoke sowie Hub-Lint/Produktionsbuild,
+11 UI-Tests und Produktionsaudit ausgeführt. Neue Coretests decken autorisierte
+Lifecycleübergänge, Freigaben, Ablauf, Idempotenz, Ressourcenrechte, Redaction,
+verlorene Antworten und Recovery ab. Reale PostgreSQL-Konkurrenz und Container-/
+OIDC-Journey sind als CI-Gates erweitert; Abschlussnachweis folgt nach erfolgreicher
+CI und Mainintegration. Kein lokaler Docker-Daemon, keine Zielhoständerung.
