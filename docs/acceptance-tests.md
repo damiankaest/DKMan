@@ -316,3 +316,35 @@ Log-/Healthzugriff als Fehler erkannt und korrigiert. Zusätzliche Sperrentests 
 geteilte Leser, exklusive Mutationen und begrenzten Sperrerwerb; es gibt weiterhin
 keine automatische Wiederholung einer Mutation. Die abschließenden Zahlen/Nachweise
 unten ersetzen die Zwischenstände.
+
+
+## P2-005 · Abschließender PR-Nachweis
+
+[CI 39430552396](https://github.com/damiankaest/DKMan/actions/runs/39430552396)
+für `f408059`, [PR #11](https://github.com/damiankaest/DKMan/pull/11): alle fünf Jobs
+vollständig erfolgreich und ihre Logs eigenständig gelesen. 184 Backendtests mit
+PostgreSQL 17 (1 Docker-Guard im separaten echten Adapterjob ausgeführt), 11 UI-Tests,
+2 bestehende Browserchecks, tatsächlicher Adaptertest in 92,13 s, echte OIDC-/Notes-
+Journey in 58,7 s und anschließende echte Persistenz-/Least-Privilege-Probe bestanden.
+Keine 429-/503-Antwort im abschließenden Journeylog; erwartete unberechtigte Appdaten-
+anfragen liefern 404.
+
+Geprüft: drei getrennte echte Keycloak-Konten; zweiter Nutzer mit globaler Operatorrolle,
+`app.use` allein ohne Runtimevollmacht, separate Betriebsfreigabe, gespeicherter Plan
+nach Reload, passende Zustimmung, Stop beider vorhandenen Container, Start und Restart
+über Core/Hub, sicher dargestellte echte Logs und identische vollständige Notizdatensätze.
+Die zusätzliche Engineprobe belegt dieselben Container/Images/Volumes und tatsächliche
+neue Startzeitpunkte. Betriebsgrantentzug erhält getrennte Appnutzung; anschließender
+Mitgliedschaftsentzug sperrt auch direkte Notes-Datenanfragen.
+
+Dauerhafter Nachweis: [p2-005-runtime.json](evidence/p2-005-runtime.json), einschließlich
+Enginebeobachtungen, Core-Job-/Operations-IDs und Planhashes. Das verknüpfte Artefakt
+wurde mit SHA-256 `d8a059da62cd81ae13333421924c18e3cebbd90af9ded1d36bdcd915410aeb2c`
+verifiziert. Die enthaltenen Image-IDs sind Engine-lokale Testartefakte.
+Lokaler Endstand nach Sperrregression: 173 bestanden / 12 explizite Dienst-/Docker-Skips.
+Keine neue Migration; bestehende Core-/Adaptermigrationen und Lockfiles unverändert.
+
+Nur P2-005 ist damit abgeschlossen. P2-006-Fehlermatrix/gesicherter Abschluss unsicherer
+Operationen, Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und
+koordinierter Backup/Restore bleiben offen. Vorhandene Backup-/Restore-Skripte decken
+den erweiterten Runtimestack weiterhin nicht vollständig ab.

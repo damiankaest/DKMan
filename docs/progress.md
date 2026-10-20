@@ -19,7 +19,10 @@ Executor validiert tatsächlich registrierte Manifeste. P2-002 ist ebenfalls abg
 separater Compose-Provider mit eigenem Operationsjournal und gebundenen Delegationen,
 in `main` über PR #9 integriert. P2-003/P2-004 sind als `ef888e7` über PR #10 in `main` integriert;
 die vollständige echte Journey und der ergänzende Kompatibilitätslauf sind erfolgreich.
-Nächste Entwicklung P2-005: autorisierte Runtimebedienung über Core/Hub.
+P2-005 ist ebenfalls implementiert und in isolierter CI geprüft: autorisierter Runtime-
+Lifecycle über Core/Hub, getrennte Operatorrechte, maskierte Logs und echter Datenerhalt.
+Nächste Entwicklung P2-006: verbleibende Fehlermatrix und belegten Abschluss unsicherer
+Operationen ergänzen. Mainintegration und abschließender Nachweis stehen am Ende.
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
@@ -72,9 +75,9 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 7. P2-003/P2-004: `notes.md`, ADR 0009 und die tatsächlichen CI-/Buildnachweise lesen.
    Kein Image-Tag aus dem Beispielmanifest ist eine Kuration. Der lokale Builder
    erfasst die tatsächlich auf seinem Engine gespeicherten Image-IDs.
-8. P2-005: typisierte Start-/Stop-/Restart-/Logs-Jobs und passende Hubaktionen auf
-   derselben Approval-/Operationsgrenze ergänzen; Ressourcenrechte prüfen und
-   unklare Ergebnisse weiterhin sperren. Kein Dockerzugriff im Core/Hub.
+8. P2-005 ist geprüft: `runtime_api.py`, `runtime_access.py`, ADR 0010, Jobsvertrag und
+   `docs/evidence/p2-005-runtime.json` lesen. Keine neue Installation durch Lifecycle,
+   keine unbewiesene Auflösung unsicherer Jobs. Core/Hub bleiben ohne Dockerzugriff.
 9. Danach P2-006: Fehlermatrix/DB-Ausfälle und belegten Abschluss unsicherer Operationen
    ergänzen. Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
 
@@ -361,3 +364,34 @@ konnte während des noch laufenden Planladens angehakt und anschließend wieder
 zurückgesetzt werden. Checkboxen bleiben jetzt bis zum Ladeabschluss gesperrt;
 verspätete alte Detailantworten verdrängen keine neuere Auswahl. Ein Test mit bewusst
 verzögerter Statusantwort reproduziert diese Grenze ohne echte Auth zu ersetzen.
+
+
+## Abschließende PR-Abnahme P2-005 · 20.10.2026
+
+[PR #11](https://github.com/damiankaest/DKMan/pull/11), geprüfter Runtime-/UI-Commit
+`f408059d3b0163c94864f78e90826b33034c282e`:
+[CI 39430552396](https://github.com/damiankaest/DKMan/actions/runs/39430552396) vollständig
+erfolgreich, alle fünf Joblogs eigenständig kontrolliert. 184 Backendtests mit
+PostgreSQL 17, 11 UI-Tests, 2 bestehende Browserchecks, echter Docker-Adaptertest
+(92,13 s), echte OIDC-/Notes-Journey (58,7 s) und nachfolgende Persistenz-/DB-Rollenprobe
+bestanden. Die letzte Journey enthält keine 429-/503-Antwort; erwartete fremde bzw.
+entzogene Appzugriffe bleiben 404.
+
+Die tatsächlichen Container-/Image-/Volume-IDs und Startzeitpunkte sowie die drei
+Core-Jobs/Operationen sind dauerhaft in [p2-005-runtime.json](evidence/p2-005-runtime.json)
+versioniert. Das [CI-Artefakt](https://github.com/damiankaest/DKMan/actions/runs/39430552396/artifacts/12268236404)
+wurde heruntergeladen und seine SHA-256 geprüft. Image-IDs gelten ausschließlich auf
+dem jeweiligen CI-Engine, nicht als Registry-Pullreferenzen. Keine Secrets im Nachweis.
+
+Lokaler Endstand: 173 Backendtests bestanden, 11 PostgreSQLfälle und 1 Docker-Guard
+mangels lokaler Dienste übersprungen; alle diese PostgreSQLfälle liefen in CI.
+Ruff/Format/Mypy, Paketbuild, HTTP-Smoke, Manifest-/Vertragsprüfung, Hub-Lint/Build,
+11 UI-Tests und Produktionsaudit erfolgreich. PostgreSQL/WASM-Roundtrip ebenfalls
+bestanden. Lokaler Browserstart mangels Chromium blockiert; beide Browserchecks in
+CI erfolgreich. Bestehende Migrationen, Requirements/Lockfiles und alte v1-Hashes
+bleiben unverändert.
+
+Der folgende reine Dokumentations-/Nachweiscommit enthält keine Runtimeänderung
+und überspringt CI ausdrücklich. Nach Integration wird der Main-Lauf gesondert geprüft.
+P2-006 bleibt nächster Einstieg; Zielhost-/Windows-/VM-/vollständige OIDC-Betriebsmatrix
+und koordinierter Backup/Restore bleiben offen. Keine vorhandenen Hostdienste geändert.
