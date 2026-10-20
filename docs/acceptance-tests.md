@@ -54,7 +54,7 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- Journey B: Notes-App/DeploymentService/Approval-Jobs/Proxyroute sind noch nicht
+- Journey B: Notes-App/DeploymentService/Proxyroute sind noch nicht
   implementiert. Entsprechend keine behauptete Installations-E2E-Abnahme.
 
 ## Zielhost-Abnahme P0-007
@@ -105,3 +105,30 @@ Container-Smoke baut Images, führt Migration mit Exit 0 aus und meldet PostgreS
 Core, Keycloak und Hub healthy. Seed registriert zwei Manifestverträge; Doctor prüft
 Schema, Proxy und OIDC-Discovery. Browsertests verwenden weiterhin Testantworten;
 echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.
+
+## P2-001 · Lokale Prüfung · 20.10.2026
+
+| Prüfung | Befehl / tatsächlich beobachtetes Ergebnis |
+| --- | --- |
+| Reproduzierbare Dependencies | `uv sync --frozen`; im Hub `npm ci --ignore-scripts --no-audit --no-fund` |
+| Pythonqualität | `uv run ruff check backend scripts tests`; `uv run ruff format --check backend scripts tests`; `uv run mypy` (17 Quelldateien) erfolgreich |
+| Backend | `uv run pytest -q`: 67 bestanden, 7 mangels `DKMAN_TEST_DATABASE_URL` übersprungen |
+| Paketbuild | `uv build`: Wheel und Source Distribution gebaut |
+| HTTP-Prozess | `uv run python scripts/smoke_core.py`: Live 200, Ready bei DB-Ausfall 503, anonymes Me 401; Start/Stop erfolgreich |
+| Migration PostgreSQL/WASM | `cd tests/postgres-wasm && npm ci --ignore-scripts --no-audit --no-fund && npm test`: Revision 0002, 15 Tabellen, FK-Abweisung, Downgrade und erneutes Upgrade erfolgreich |
+| Hub | `npm run lint`, `npm run build`, `npm test`: erfolgreich; 5 UI-Tests |
+| Verträge | `uv run python scripts/export_contracts.py`, Hub `npm run generate:api`; OpenAPI und TypeScript eingecheckt |
+
+Neue Tests: serverseitige Rollen und Jobisolation, Requestreplay/409 bei Konflikt,
+alle sechs Approvalbindungsfelder, Ablauf vor Zustimmung und zwischen Claim/Start,
+einmaliger Verbrauch, Gegenentscheidung/Abbruch, geänderte Ressourcen, bereinigte
+Fehler, transaktionaler Rollback ohne verwaiste Datensätze, gültige/abgelaufene
+Leases, alter Worker und Recovery im neuen App-Lifespan auf derselben Testdatei.
+
+`tests/test_jobs_postgres.py` ergänzt sechs Tests mit echten konkurrierenden
+PostgreSQL-Sessions; lokal ausdrücklich übersprungen. Zusammen mit dem Migrationstest
+werden sie in GitHub Actions auf PostgreSQL 17 ausgeführt. CI-Nachweis folgt nach
+eigenständiger Kontrolle des neuen Laufs.
+
+Keine echte OIDC- oder Windows-Abnahme. Keine Runtime-App installiert. Tests von
+Crashgrenzen/Lifespan belegen die Metadatenzustände, keinen Host-/Volume-Restore.

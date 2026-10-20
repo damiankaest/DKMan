@@ -8,7 +8,9 @@ Core und Keycloak erreichen PostgreSQL über ein internes Docker-Netzwerk.
 Core ist ein modularer Monolith: `api.py` für REST, `auth.py` für OIDC/Rollen,
 `registry.py` für Registrierung/Sichtbarkeit, `manifest.py` für den Vertrag,
 `health.py` für tatsächliche DB-/Schema-Readiness. SQLAlchemy-Modelle und Alembic
-liegen im Backend. Es gibt im aktuellen Stand keinen Jobworker und keinen Dockerzugriff.
+liegen im Backend. `jobs.py` und `job_api.py` implementieren persistente Jobs und
+Freigaben; `job_recovery.py` führt ausschließlich Metadaten-Recovery aus.
+Es gibt keinen Deploymentworker und keinen Dockerzugriff.
 
 ## Daten und Rechte
 
@@ -21,8 +23,9 @@ Plattform zur Verwaltung. Nichtberechtigte Detailabfragen liefern 404.
 
 Das Schema umfasst außerdem Nutzer, Haushalte, Mitgliedschaften, Healthbeobachtungen
 und Auditereignisse. Registrierung und Audit werden zusammen committed. Keine
-Appfachdaten im Core. Workflow-/Job-/Approval-/Forge-/Datenprovider-Tabellen kommen
-mit den dazugehörigen Tickets, nicht als funktionslose Vorratsstruktur.
+Appfachdaten im Core. Job-/Event-/Approvaltabellen folgen mit Migration 0002 und
+echten Manifestvalidierungsaufträgen. Workflow-/Forge-/Datenprovider-Tabellen kommen
+mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architecture-decisions/0007-durable-jobs.md).
 
 ## Implementierte API
 
