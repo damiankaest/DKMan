@@ -84,13 +84,16 @@ def authorize_app_access(app_id: str, db: Db, principal: User) -> dict[str, str]
 
 
 def as_service(service: ServiceInstance) -> ServiceView:
+    fresh = service.checked_at is not None and utc(service.checked_at) > utcnow() - timedelta(
+        seconds=45
+    )
     return ServiceView(
         id=service.id,
         installation_id=service.installation_id,
         provider=service.provider,
-        status=service.status,  # type: ignore[arg-type]
+        status=service.status if fresh else "unknown",  # type: ignore[arg-type]
         checked_at=service.checked_at,
-        reason=service.status_reason,
+        reason=service.status_reason if fresh else "observation_expired",
     )
 
 

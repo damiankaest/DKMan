@@ -19,12 +19,17 @@ test('real OIDC, UI approval, Docker installation, shared Notes and revoked acce
   const admin = await adminContext.newPage();
   const member = await memberContext.newPage();
   const outsider = await outsiderContext.newPage();
+  for (const page of [admin, member, outsider]) page.on('response', response => {
+    if (response.url().includes('/api/') && response.status() >= 400) console.log(`API status ${response.status()} ${new URL(response.url()).pathname}`);
+  });
   await login(admin,'ci-admin'); await login(member,'ci-member'); await login(outsider,'ci-outsider');
   await admin.getByRole('button',{name:'Verwaltung',exact:true}).click();
   const access = admin.getByRole('region',{name:'Haushalte und Freigaben'});
   const deployment = admin.getByRole('region',{name:'App installieren'});
   await access.getByLabel('Neuer Haushalt').fill('Journey household');
+  const creation = admin.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/households' && response.request().method() === 'POST');
   await access.getByRole('button',{name:'Haushalt erstellen'}).click();
+  expect((await creation).status()).toBe(201);
   await expect(access.getByLabel('Haushalt',{exact:true}).locator('option').filter({hasText:'Journey household'})).toHaveCount(1);
   await deployment.getByRole('button',{name:'Stand neu laden'}).click();
   await deployment.getByLabel('Haushalt',{exact:true}).selectOption({label:'Journey household'});

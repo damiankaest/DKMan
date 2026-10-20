@@ -63,9 +63,42 @@ def test_notes_proxy_authorization_fails_closed(monkeypatch):
     from fastapi import HTTPException
 
     monkeypatch.setenv("NOTES_INSTALLATION_ID", str(uuid4()))
+
+    class Unavailable:
+        def open(self, *args, **kwargs):
+            raise OSError("test-only connection loss")
+
+    monkeypatch.setattr("urllib.request.build_opener", lambda *args: Unavailable())
     with pytest.raises(HTTPException) as result:
         current_access("Bearer invalid-token")
     assert result.value.status_code == 503  # Fixed internal Core is unavailable locally.
+
+
+def test_missing_adapter_data_key_is_not_silently_rotated(tmp_path):
+    from scripts.generate_adapter_config import generate
+
+    generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    key = tmp_path / ".local/secrets/adapter-data-key"
+    original = key.read_bytes()
+    generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    assert key.read_bytes() == original
+    key.unlink()
+    with pytest.raises(ValueError, match="Incomplete data"):
+        generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    assert not key.exists()
+
+
+def test_runtime_overlay_keeps_socket_and_app_data_key_out_of_core_and_hub():
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    overlay = yaml.safe_load((root / "infrastructure/compose/runtime.yaml").read_text())
+    for name, service in overlay["services"].items():
+        if name != "deployment-adapter":
+            assert "docker.sock" not in str(service)
+            assert "adapter-data-key" not in service.get("secrets", [])
+        assert not service.get("ports")
+    assert overlay["networks"]["app-gateway"]["internal"]
 
 
 def test_build_plan_is_dry_run_and_does_not_call_docker(tmp_path, monkeypatch, capsys):

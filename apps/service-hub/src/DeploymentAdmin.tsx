@@ -50,6 +50,7 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
   }
 
   function plan() {
+    if (job && ['cancelled','expired','failed','succeeded'].includes(job.state)) key.current = null;
     key.current ??= crypto.randomUUID();
     void action(async () => {
       const next = await api.request<Job>('/api/v1/deployments/installations', 'POST', {definition_id:definition, household_id:household}, undefined, key.current!);
@@ -82,8 +83,8 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
     <p className="muted">Prüfe den Plan, erteile die zeitlich begrenzte Freigabe und starte anschließend die Installation.</p>
     {error && <p role="alert" className="error">{error}</p>}
     {images.length === 0 ? <p>Aktuell ist kein gebautes App-Image kuratiert.</p> : <div className="install-controls">
-      <label>App<select value={definition} onChange={event => {setDefinition(event.target.value); key.current = null;}}>{images.map(image => <option key={image.definition_id} value={image.definition_id}>{image.definition_id === 'demo-notes' ? 'Notes' : image.definition_id} · {image.version}</option>)}</select></label>
-      <label>Haushalt<select value={household} onChange={event => {setHousehold(event.target.value); key.current = null;}}><option value="">Haushalt auswählen</option>{households.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+      <div><label htmlFor="deploy-app">App</label><select id="deploy-app" value={definition} onChange={event => {setDefinition(event.target.value); key.current = null;}}>{images.map(image => <option key={image.definition_id} value={image.definition_id}>{image.definition_id === 'demo-notes' ? 'Notes' : image.definition_id} · {image.version}</option>)}</select></div>
+      <div><label htmlFor="deploy-household">Haushalt</label><select id="deploy-household" value={household} onChange={event => {setHousehold(event.target.value); key.current = null;}}><option value="">Haushalt auswählen</option>{households.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></div>
       <button className="primary" disabled={busy || !household || !definition} onClick={plan}>Plan erstellen</button>
     </div>}
     <button className="quiet" disabled={busy} onClick={() => {void action(load);}}>Stand neu laden</button>

@@ -141,8 +141,7 @@ def validate_registered_manifest(db: Session, job: Job) -> dict[str, str | bool]
 
 @router.post("/jobs/{job_id}/run", response_model=JobView, operation_id="runJob")
 def run_validation(job_id: str, db: Db, actor: Admin, request: Request) -> Job:
-    # Only the implemented read-only action can enter this executor. Adding a deployment
-    # action requires a new policy/planner and the isolated adapter, never a shell branch.
+    # Both executors use typed server plans and the same durable approval boundary.
     job = visible_job(db, job_id, actor)
     if job.action == "deployment.install":
         from dkman.deployment_api import run_installation

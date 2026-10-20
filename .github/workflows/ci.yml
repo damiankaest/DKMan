@@ -127,6 +127,7 @@ jobs:
         run: |
           export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
           docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml ps -a
+          uv run python tests/diagnose_notes_ci.py
       - name: Stop only disposable CI resources
         if: always()
         run: |

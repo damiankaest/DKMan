@@ -21,6 +21,7 @@ from dkman.deployments.contracts import (
     CuratedImage,
     DeploymentCommand,
     DeploymentPlan,
+    Identifier,
     InstallationContext,
     OperationView,
     PlanRequest,
@@ -104,7 +105,7 @@ def credential(
 
 class InstallInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    definition_id: str
+    definition_id: Identifier
     household_id: UUID
 
 

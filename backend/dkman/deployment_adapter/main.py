@@ -74,6 +74,8 @@ def create_app(
             app.state.data_secret = settings.data_secret_file.read_bytes().strip()
             if len(app.state.data_secret) < 32:
                 raise ValueError("Data credential key must contain at least 32 bytes")
+            if app.state.data_secret == key:
+                raise ValueError("Delegation and data keys must be separate")
         app.state.journal = Journal(settings.state_root)
         app.state.journal.recover()
         task = asyncio.create_task(recovery_loop(app.state.journal))

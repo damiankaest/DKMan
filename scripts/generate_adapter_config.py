@@ -31,11 +31,19 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
             raise ValueError("Adapter configuration may not use symlinks")
     if marker.exists() and (not catalog.is_file() or not key.is_file()):
         raise ValueError("Incomplete adapter configuration; restore it without rotating secrets")
+    if marker.exists() and not data_key.is_file():
+        old_catalog = Catalog.model_validate_json(catalog.read_text())
+        if marker.read_text().strip() != "v1" or any(
+            x.profile == "notes-postgres-v1" for x in old_catalog.images
+        ):
+            raise ValueError(
+                "Incomplete data credentials; restore the existing key without rotation"
+            )
     for path, content in [
         (catalog, Catalog().model_dump_json() + "\n"),
         (key, secrets.token_urlsafe(48) + "\n"),
         (data_key, secrets.token_urlsafe(48) + "\n"),
-        (marker, "v1\n"),
+        (marker, "v2\n"),
     ]:
         if not path.exists():
             descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o444)
@@ -46,6 +54,10 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
         raise ValueError("Invalid existing delegation secret; no replacement performed")
     if len(data_key.read_bytes().strip()) < 32:
         raise ValueError("Invalid data key; no replacement performed")
+    if marker.read_text().strip() == "v1":
+        marker.chmod(0o600)
+        marker.write_text("v2\n")
+        marker.chmod(0o444)
     print("Adapter configuration ready. Catalog remains explicit; no images installed.")
 
 
