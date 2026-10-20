@@ -18,7 +18,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P1-004 | P0 / 1 | P1-003 | Haushalts-/Mitglieder-/Grant-Verwaltung: API, Hub-UI und Isolationstests implementiert; Abnahme mit zwei echten OIDC-Nutzern offen |
 | P1-005 | P0 / 1 | P1-003,P2-003 | tatsächliches Healthpolling mit Historie, Zeitstempel, Fehlerursache; DB-Readiness vorhanden, App-Polling offen |
 | P2-001 | P0 / 2 | P0-007,P1-003 | abgeschlossen und geprüft: Migration 0002, Job/Event/Approval, Idempotenz, gebundene Freigabe, Lease/Recovery, autorisierte APIs und echte Manifestvalidierung; PR #8 in main integriert; CI 39382031613: 74 Backendtests inkl. PostgreSQL-Konkurrenz/Migration, 5 UI-, 2 Browserchecks, Container-Smoke erfolgreich; Hostabnahmen bleiben offen |
-| P2-002 | P0 / 2 | P2-001 | DeploymentProvider und isolierter Compose-Adapter; keine freien Befehle/Mounts/Ports; Negativtests |
+| P2-002 | P0 / 2 | P2-001 | implementiert: isolierter Compose-Adapter, kuratierte typisierte Pläne, Delegation, persistentes Operationsjournal, Ressourcensperren und Negativtests; echte Docker-CI vor Abschluss prüfen; kein Zielhoststart |
 | P2-003 | P0 / 2 | P2-002 | Notes-Quellapp bauen/testen, tatsächlichen Digest erfassen und kuratieren; keine Platzhalterimages |
 | P2-004 | P0 / 2 | P2-003 | UI-Plan → hashgebundene Freigabe → Job → echte Installation mit Proxyroute/SSO |
 | P2-005 | P0 / 2 | P2-004 | Start/Stop/Restart/Status/Logs autorisiert, Redaction; Daten nach Stop/Start identisch |
@@ -36,7 +36,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächste Entwicklung: P2-002 isolierter Deployment-Adapter auf Basis der persistenten
-Job-/Approvalzustände. Windows-Abnahme
+Nächste Entwicklung nach CI-Abnahme von P2-002: P2-003, echte Notes-App bauen und
+ihren unveränderlichen Digest kuratieren. Windows-Abnahme
 P0-007 und echter OIDC-Flow bleiben eigene Gates vor Zielhost-Deployments; sie
 blockieren die isolierte Implementierung und automatisierte Tests nicht.

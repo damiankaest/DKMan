@@ -182,3 +182,24 @@ Lokal blieb Playwright wegen fehlender Binary und beschädigtem Downloadarchiv
 blockiert. Die Browserchecks wurden in CI erfolgreich ausgeführt und verwenden
 weiterhin Testantworten. Echte OIDC-/Windows-/Volume-/Restoreabnahmen bleiben offen.
 Kein DeploymentService, kein Beispiel-App-Image installiert, keine Zielhostdienste geändert.
+
+## P2-002 · Isolierter Deployment-Adapter · 20.10.2026
+
+- Ausgangspunkt `main` `360b984`; letzter Main-CI-Lauf `39382343544` erfolgreich.
+- Separater Adapterprozess/Compose, Dockerzugriff ausschließlich dort. Standardstack
+  und Bootstrap unverändert; eigener Katalog standardmäßig leer. Keine Notes-Kuration
+  vorgetäuscht und kein Zielhostcontainer gestartet.
+- Provider für Discover/Pull/Install/Deploy/Start/Stop/Restart/Status/Logs/Remove und
+  separate Datenlöschung; serverseitige begrenzte Pläne, Image-Digests, Ressourcen-
+  und Eigentumsprüfungen. Keine freien Befehle, Mounts, Ports oder Environments.
+- Kurzlebige rollen-/aktions-/ressourcen-/hashgebundene Delegation mit Approval-ID
+  und Ablauf für Mutationen. Typisierter Core-Client, noch kein Core-Runtime-Dispatch.
+- Eigenes persistentes SQLite-Journal mit expliziter Migration, OS-Ressourcensperren
+  und Operation-ID-Idempotenz. Unsichere Ausgänge bleiben auch nach Neustart gesperrt;
+  Reconcile beobachtet tatsächlichen Zustand ohne unbewiesene Erfolgserklärung.
+- Lokal bisher 110 Tests bestanden, 8 mangels PostgreSQL/Docker übersprungen;
+  Ruff/Format/mypy, Paketbuild und Schemaexport erfolgreich. Core-OpenAPI und
+  Frontendtypen bleiben unverändert; Adapter-OpenAPI/Planschema neu exportiert.
+- Neue CI-Probe mit realen Dockerimages, Datenerhalt und absichtlichem Healthfehler;
+  Nachweis nach eigenständiger Kontrolle ergänzen. Vertrag und Grenzen:
+  `deployment-adapter.md`, ADR 0008. Nächster Einstieg P2-003 nach grünem CI.

@@ -1,0 +1,85 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "definition_id": {
+      "pattern": "^[a-z][a-z0-9-]{1,62}$",
+      "title": "Definition Id",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Version",
+      "type": "string"
+    },
+    "image": {
+      "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+      "title": "Image",
+      "type": "string"
+    },
+    "internal_port": {
+      "maximum": 65535,
+      "minimum": 1024,
+      "title": "Internal Port",
+      "type": "integer"
+    },
+    "data_path": {
+      "anyOf": [
+        {
+          "pattern": "^/(data|app/data|var/lib/[a-z][a-z0-9-]*)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data Path"
+    },
+    "user": {
+      "const": "10001:10001",
+      "default": "10001:10001",
+      "title": "User",
+      "type": "string"
+    },
+    "memory_mb": {
+      "default": 128,
+      "maximum": 1024,
+      "minimum": 32,
+      "title": "Memory Mb",
+      "type": "integer"
+    },
+    "cpus": {
+      "default": 0.5,
+      "maximum": 2,
+      "minimum": 0.1,
+      "title": "Cpus",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "provider": {
+      "const": "docker-compose",
+      "default": "docker-compose",
+      "title": "Provider",
+      "type": "string"
+    },
+    "installation_id": {
+      "format": "uuid",
+      "title": "Installation Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "definition_id",
+    "version",
+    "image",
+    "internal_port",
+    "installation_id"
+  ],
+  "title": "DeploymentPlan",
+  "type": "object"
+}
