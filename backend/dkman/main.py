@@ -1,9 +1,10 @@
+import asyncio
 import json
 import logging
 import time
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -15,6 +16,8 @@ from dkman.api import router
 from dkman.auth import TokenVerifier
 from dkman.config import Settings
 from dkman.health import readiness
+from dkman.job_api import router as job_router
+from dkman.job_recovery import recover_once, recovery_loop
 from dkman.schemas import HealthView
 
 logger = logging.getLogger("dkman.http")
@@ -40,9 +43,16 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        yield
-        if owns_engine:
-            active_engine.dispose()
+        await asyncio.to_thread(recover_once, active_engine)
+        task = asyncio.create_task(recovery_loop(active_engine))
+        try:
+            yield
+        finally:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            if owns_engine:
+                active_engine.dispose()
 
     app = FastAPI(title="DKMan Core", version="0.1.0", lifespan=lifespan)
     app.state.engine = engine
@@ -99,4 +109,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     app.include_router(router)
     app.include_router(access_router)
+    app.include_router(job_router)
     return app

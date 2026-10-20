@@ -58,8 +58,8 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 4. P0-007 am freigegebenen Testhost durchführen: Dockerstart und echten OIDC-Flow
    prüfen, eventuelle Integrationsfehler zuerst schließen.
 5. P1-004 mit zwei echten OIDC-Nutzern abnehmen; API und Hub-Verwaltung sind implementiert.
-6. P2-001 persistente Jobs/Events/Approvals mit Idempotenz und Crash-Recovery.
-7. Einen separaten Compose-Adapter umsetzen, kuratierte Notes-App bauen, Digest
+6. P2-001 ist implementiert: `jobs.md`, ADR 0007 und CI-Nachweis unten lesen.
+7. P2-002: Einen separaten Compose-Adapter umsetzen, kuratierte Notes-App bauen, Digest
    erfassen und erst nach Planfreigabe über dieselbe Deploymentgrenze starten.
 
 Die nächste Sitzung braucht keinen Architektur-Neustart. Alle späteren Phasen und
@@ -125,3 +125,30 @@ Container-Smoke baut Images, führt Migration mit Exit 0 aus und meldet PostgreS
 Core, Keycloak und Hub healthy. Seed registriert zwei Manifestverträge; Doctor prüft
 Schema, Proxy und OIDC-Discovery. Browsertests verwenden weiterhin Testantworten;
 echte OIDC-Mehrbenutzerabnahme und Windows-/Restoretests bleiben offen.
+
+## P2-001 · Persistente Jobs und Freigaben · 20.10.2026
+
+- Ausgangspunkt: `main` `e021f57`; Actions `39298429354` für Featurestand `5c8e112`
+  selbst geprüft, alle drei Jobs erfolgreich. Keine fremden Dependabot-Änderungen übernommen.
+- Neue Migration `0002_durable_jobs`: Jobs, sequenzierte Events und Approvals.
+  Initialmigration unverändert; Readiness verlangt neue Revision.
+- Autorisierte Anlage/Liste/Details/Events/Entscheidung/Abbruch/Ausführung. Der echte
+  erste Executor validiert ausschließlich registrierte Manifest-Snapshots erneut.
+  Kein Deployment-/Hostzugriff und kein vorgetäuschter Containererfolg.
+- Unique Constraint pro Subject/Idempotency-Key; Request-Fingerprint gegen Konflikte.
+  Serverplan und Approval binden Aktion, Ressource, Identität, Hash und Ablauf.
+- Transaktionale Events/Audit, exklusive Claims, private Leases und persistierter
+  Ausführungsmarker. Startup/15-Sekunden-Recovery wiederholt keine Aktionen nach
+  möglichem Ausführungsbeginn; dann `reconciliation_required`, alte Worker gesperrt.
+- Lokal: `uv sync --frozen`, Ruff/Format/mypy, `uv build`, HTTP-Smoke erfolgreich;
+  `uv run pytest -q`: 67 bestanden, 7 PostgreSQL-Tests ohne lokale Testdatenbank
+  übersprungen. PostgreSQL-WASM: Upgrade/Downgrade/erneutes Upgrade, 15 Tabellen,
+  Revision und FK-Negativtest erfolgreich. Hub: npm ci, Lint, Build, 5 UI-Tests.
+- OpenAPI und Frontendtypen regeneriert. Sechs zusätzliche PostgreSQLtests prüfen
+  echte parallele Requests, Claims, Gegenentscheidungen, Abbruch und Recovery.
+  GitHub-CI-Nachweis wird nach dem Lauf ergänzt; lokale Ergebnisse sind kein Ersatz.
+- Grenzen und Verträge: `jobs.md`, ADR 0007, `acceptance-tests.md`. Windows-Host,
+  echte OIDC-Mehrbenutzer-, Volume-Persistenz- und Restoreabnahmen bleiben offen.
+- Nächster Einstieg P2-002: isolierter Compose-Adapter, typisierter Runtimeplan,
+  verbindliche Risikopolicy, Ressourcenserialisierung und dauerhafte Operation-ID
+  mit Abgleich unbekannter Ergebnisse. Danach P2-003: echte kuratierte Notes-App.
