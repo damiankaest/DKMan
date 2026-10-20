@@ -183,3 +183,13 @@ class ApprovalRequest(Record, Base):
     decided_by: Mapped[str | None] = mapped_column(String(255))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DeploymentTarget(Record, Base):
+    """Reservation and immutable job link, separate from an actual installation."""
+
+    __tablename__ = "deployment_targets"
+    __table_args__ = (Index("ix_deployment_target_household_app", "household_id", "definition_id"),)
+    job_id: Mapped[str] = mapped_column(ForeignKey("jobs.id"), unique=True)
+    household_id: Mapped[str] = mapped_column(ForeignKey("households.id"))
+    definition_id: Mapped[str] = mapped_column(ForeignKey("app_definitions.id"))

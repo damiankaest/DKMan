@@ -1,9 +1,11 @@
 """Only implemented actions are accepted; new actions need a typed server-side planner."""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+from dkman.deployments.contracts import DeploymentPlan
 
 JobState = Literal[
     "waiting_approval",
@@ -71,7 +73,7 @@ class JobView(BaseModel):
     resource_id: str
     risk: Literal["read_only", "reversible", "sensitive", "destructive"]
     state: JobState
-    plan: ValidationPlan
+    plan: ValidationPlan | DeploymentPlan
     plan_hash: Hash
     requires_approval: bool
     attempt: int
@@ -80,7 +82,7 @@ class JobView(BaseModel):
     execution_started_at: datetime | None
     finished_at: datetime | None
     failure_code: str | None
-    result: dict[str, str | bool] | None
+    result: dict[str, Any] | None
 
 
 class JobEventView(BaseModel):

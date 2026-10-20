@@ -1,4 +1,40 @@
 {
+  "$defs": {
+    "InstallationContext": {
+      "additionalProperties": false,
+      "properties": {
+        "household_id": {
+          "format": "uuid",
+          "title": "Household Id",
+          "type": "string"
+        },
+        "subject": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "manifest_id": {
+          "format": "uuid",
+          "title": "Manifest Id",
+          "type": "string"
+        },
+        "manifest_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Manifest Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "household_id",
+        "subject",
+        "manifest_id",
+        "manifest_hash"
+      ],
+      "title": "InstallationContext",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "definition_id": {
@@ -55,6 +91,41 @@
       "title": "Cpus",
       "type": "number"
     },
+    "profile": {
+      "default": "web-v1",
+      "enum": [
+        "web-v1",
+        "notes-postgres-v1"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "database_image": {
+      "anyOf": [
+        {
+          "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Database Image"
+    },
+    "source_hash": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Hash"
+    },
     "schema_version": {
       "const": 1,
       "default": 1,
@@ -71,6 +142,17 @@
       "format": "uuid",
       "title": "Installation Id",
       "type": "string"
+    },
+    "context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InstallationContext"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

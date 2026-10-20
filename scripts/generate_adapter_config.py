@@ -24,8 +24,9 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
         directory.chmod(0o700)
     catalog = root / ".local/adapter/catalog.json"
     key = root / ".local/secrets/adapter-delegation-key"
+    data_key = root / ".local/secrets/adapter-data-key"
     marker = root / ".local/adapter/config-complete"
-    for path in [catalog, key, marker]:
+    for path in [catalog, key, data_key, marker]:
         if path.is_symlink():
             raise ValueError("Adapter configuration may not use symlinks")
     if marker.exists() and (not catalog.is_file() or not key.is_file()):
@@ -33,6 +34,7 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
     for path, content in [
         (catalog, Catalog().model_dump_json() + "\n"),
         (key, secrets.token_urlsafe(48) + "\n"),
+        (data_key, secrets.token_urlsafe(48) + "\n"),
         (marker, "v1\n"),
     ]:
         if not path.exists():
@@ -42,6 +44,8 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
     Catalog.model_validate_json(catalog.read_text())
     if len(key.read_bytes().strip()) < 32:
         raise ValueError("Invalid existing delegation secret; no replacement performed")
+    if len(data_key.read_bytes().strip()) < 32:
+        raise ValueError("Invalid data key; no replacement performed")
     print("Adapter configuration ready. Catalog remains explicit; no images installed.")
 
 

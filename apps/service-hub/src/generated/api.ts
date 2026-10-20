@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/apps/{app_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Authorize App Access */
+        get: operations["authorizeAppAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services": {
         parameters: {
             query?: never;
@@ -426,7 +443,75 @@ export interface paths {
         get?: never;
         put?: never;
         /** Run Validation */
-        post: operations["runValidationJob"];
+        post: operations["runJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deployments/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Curated Apps */
+        get: operations["listCuratedApps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deployments/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Installation */
+        post: operations["planInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{job_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile Job */
+        post: operations["reconcileInstallationJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{app_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Status */
+        post: operations["refreshInstallationStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -528,6 +613,45 @@ export interface components {
             /** Path */
             path: string;
         };
+        /** CuratedImage */
+        CuratedImage: {
+            /** Definition Id */
+            definition_id: string;
+            /** Version */
+            version: string;
+            /** Image */
+            image: string;
+            /** Internal Port */
+            internal_port: number;
+            /** Data Path */
+            data_path?: string | null;
+            /**
+             * User
+             * @default 10001:10001
+             * @constant
+             */
+            user: "10001:10001";
+            /**
+             * Memory Mb
+             * @default 128
+             */
+            memory_mb: number;
+            /**
+             * Cpus
+             * @default 0.5
+             */
+            cpus: number;
+            /**
+             * Profile
+             * @default web-v1
+             * @enum {string}
+             */
+            profile: "web-v1" | "notes-postgres-v1";
+            /** Database Image */
+            database_image?: string | null;
+            /** Source Hash */
+            source_hash?: string | null;
+        };
         /** DefinitionView */
         DefinitionView: {
             /** Id */
@@ -555,6 +679,63 @@ export interface components {
              * @default true
              */
             required: boolean;
+        };
+        /** DeploymentPlan */
+        DeploymentPlan: {
+            /** Definition Id */
+            definition_id: string;
+            /** Version */
+            version: string;
+            /** Image */
+            image: string;
+            /** Internal Port */
+            internal_port: number;
+            /** Data Path */
+            data_path?: string | null;
+            /**
+             * User
+             * @default 10001:10001
+             * @constant
+             */
+            user: "10001:10001";
+            /**
+             * Memory Mb
+             * @default 128
+             */
+            memory_mb: number;
+            /**
+             * Cpus
+             * @default 0.5
+             */
+            cpus: number;
+            /**
+             * Profile
+             * @default web-v1
+             * @enum {string}
+             */
+            profile: "web-v1" | "notes-postgres-v1";
+            /** Database Image */
+            database_image?: string | null;
+            /** Source Hash */
+            source_hash?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Provider
+             * @default docker-compose
+             * @constant
+             */
+            provider: "docker-compose";
+            /**
+             * Installation Id
+             * Format: uuid
+             */
+            installation_id: string;
+            context?: components["schemas"]["InstallationContext"] | null;
         };
         /** GrantView */
         GrantView: {
@@ -613,6 +794,33 @@ export interface components {
             name: string;
             /** Id */
             id: string;
+        };
+        /** InstallInput */
+        InstallInput: {
+            /** Definition Id */
+            definition_id: string;
+            /**
+             * Household Id
+             * Format: uuid
+             */
+            household_id: string;
+        };
+        /** InstallationContext */
+        InstallationContext: {
+            /**
+             * Household Id
+             * Format: uuid
+             */
+            household_id: string;
+            /** Subject */
+            subject: string;
+            /**
+             * Manifest Id
+             * Format: uuid
+             */
+            manifest_id: string;
+            /** Manifest Hash */
+            manifest_hash: string;
         };
         /** JobEventView */
         JobEventView: {
@@ -675,7 +883,8 @@ export interface components {
              * @enum {string}
              */
             state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
-            plan: components["schemas"]["ValidationPlan"];
+            /** Plan */
+            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"];
             /** Plan Hash */
             plan_hash: string;
             /** Requires Approval */
@@ -700,7 +909,7 @@ export interface components {
             failure_code: string | null;
             /** Result */
             result: {
-                [key: string]: string | boolean;
+                [key: string]: unknown;
             } | null;
         };
         /** Manifest */
@@ -790,6 +999,26 @@ export interface components {
              * @default 0.5
              */
             cpus: number;
+        };
+        /** RuntimeView */
+        RuntimeView: {
+            /**
+             * Installation Id
+             * Format: uuid
+             */
+            installation_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "absent" | "running" | "stopped" | "starting" | "unhealthy" | "unknown";
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Container Id */
+            container_id?: string | null;
         };
         /** ServiceView */
         ServiceView: {
@@ -970,6 +1199,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    authorizeAppAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -1632,7 +1894,7 @@ export interface operations {
             };
         };
     };
-    runValidationJob: {
+    runJob: {
         parameters: {
             query?: never;
             header?: never;
@@ -1650,6 +1912,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listCuratedApps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuratedImage"][];
+                };
+            };
+        };
+    };
+    planInstallation: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcileInstallationJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refreshInstallationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeView"];
                 };
             };
             /** @description Validation Error */

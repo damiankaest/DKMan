@@ -324,6 +324,39 @@
             "title": "Cpus",
             "default": 0.5
           },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "web-v1",
+              "notes-postgres-v1"
+            ],
+            "title": "Profile",
+            "default": "web-v1"
+          },
+          "database_image": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database Image"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
+          },
           "schema_version": {
             "type": "integer",
             "const": 1,
@@ -340,6 +373,16 @@
             "type": "string",
             "format": "uuid",
             "title": "Installation Id"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstallationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -365,6 +408,40 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InstallationContext": {
+        "properties": {
+          "household_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Household Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "manifest_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Manifest Id"
+          },
+          "manifest_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "household_id",
+          "subject",
+          "manifest_id",
+          "manifest_hash"
+        ],
+        "title": "InstallationContext"
       },
       "OperationView": {
         "properties": {
@@ -487,6 +564,16 @@
             "type": "string",
             "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
             "title": "Version"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstallationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
