@@ -76,12 +76,15 @@ def render_compose(plan: DeploymentPlan, credential_key: bytes | None = None) ->
             "environment": {
                 "POSTGRES_USER": "postgres",
                 "POSTGRES_DB": "postgres",
-                "PGHOST": "/tmp",
                 "PGPASSWORD": password("app"),
                 "POSTGRES_PASSWORD": password("admin"),
                 "NOTES_DB_PASSWORD": password("app"),
             },
             "networks": ["private"],
+            "tmpfs": [
+                "/tmp:rw,noexec,nosuid,size=32m",
+                "/var/run/postgresql:rw,noexec,nosuid,size=8m,uid=10001,gid=10001,mode=0700",
+            ],
             "volumes": [{"type": "volume", "source": "data", "target": "/var/lib/postgresql/data"}],
         }
         del database["depends_on"]

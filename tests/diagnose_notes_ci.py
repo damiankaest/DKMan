@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 
 from dkman.deployment_adapter.compose import redact_logs
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     for identifier in ids:
         item = json.loads(subprocess.check_output(["docker", "inspect", identifier], text=True))[0]
         service = (item["Config"].get("Labels") or {}).get("com.docker.compose.service")
-        if service not in {"app", "core", "deployment-adapter"}:
+        if service not in {"app", "database", "core", "deployment-adapter"}:
             continue
         result = subprocess.run(
             ["docker", "logs", "--tail", "30", identifier],
@@ -27,4 +28,9 @@ if __name__ == "__main__":
             timeout=10,
         )
         print(f"Managed CI service: {service}")
-        print(redact_logs(result.stdout + result.stderr))
+        output = result.stdout + result.stderr
+        for entry in item["Config"].get("Env") or []:
+            name, _, value = entry.partition("=")
+            if len(value) >= 6 and re.search("PASSWORD|TOKEN|SECRET|KEY", name):
+                output = output.replace(value, "[REDACTED]")
+        print(redact_logs(output))

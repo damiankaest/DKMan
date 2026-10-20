@@ -47,6 +47,8 @@ OIDC-Client, Code/PKCE und Tokens nur im Speicher. Die leere HTML-/Assetoberflä
 enthält keine Nutzerdaten; jede Daten-API fragt mit dem echten Bearer-Token den Core
 nach aktuellen `app.use`-Rechten. Ein bekannter Direktlink umgeht weder OIDC noch
 Widerruf. Core ist die Autorisierungsinstanz, kein eigener Identity-Provider.
+Der Hub prüft nach Reload mit dem offiziellen Adapter die bestehende OIDC-Sitzung;
+Refresh oder Rückkehr von Notes benötigt keine gespeicherten Browsertokens.
 
 Read-only-Polling speichert gemessenen Status und Historie. Nach 45 Sekunden ohne
 frische Messung zeigt der Hub `unknown` und keinen Öffnen-Link. Die Runtime-Erweiterung

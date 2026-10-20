@@ -3,4 +3,4 @@ RUN groupadd --gid 10001 notes && useradd --uid 10001 --gid 10001 notes && chown
 COPY apps/notes/database/01-notes.sh /docker-entrypoint-initdb.d/01-notes.sh
 USER 10001:10001
 HEALTHCHECK --interval=3s --timeout=3s --retries=15 CMD ["psql", "-h", "127.0.0.1", "-U", "notes_app", "-d", "notes", "-c", "SELECT 1"]
-CMD ["postgres", "-c", "unix_socket_directories=/tmp", "-c", "max_connections=20", "-c", "shared_buffers=32MB"]
+CMD ["postgres", "-c", "max_connections=20", "-c", "shared_buffers=32MB"]

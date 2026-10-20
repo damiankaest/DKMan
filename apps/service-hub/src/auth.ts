@@ -19,6 +19,8 @@ export async function initializeAuth(): Promise<AuthSession> {
     throw new Error('Anmeldung wurde vom Identity-Provider abgelehnt.');
   }
   await identity.init({
+    onLoad: 'check-sso',
+    redirectUri: window.location.origin + '/',
     pkceMethod: 'S256',
     flow: 'standard',
     checkLoginIframe: false,
