@@ -68,19 +68,24 @@ Git-Revision in kontrollierter Wartung wiederherstellen. DB-Downgrades nicht auf
 Verdacht produktiv ausführen. Erster Alembic-Roundtrip wird in einer wegwerfbaren
 Testdatenbank geprüft, was spätere Migrationen nicht automatisch sicher macht.
 
+## Optionaler Deployment-Adapter
+
+P2-002 enthält einen separaten, standardmäßig nicht gestarteten Adapter. Vorbereitung,
+eigene Journalmigrationen und Grenzen stehen in [deployment-adapter.md](deployment-adapter.md).
+Nur dieser Prozess darf den lokalen Docker-Socket erhalten; keine Proxyroute oder
+öffentlichen Ports hinzufügen. Socketgruppe und Linux-Engine vorher am Zielhost prüfen.
+
+Der aktuelle Backupprozess sichert Core/Identity und deren Konfiguration; er erfasst
+weder das persistente Adapterjournal noch `.local/adapter/catalog.json`. Der neue
+Delegationsschlüssel liegt unter `.local/secrets`, die der bestehende Backupplan
+bereits einschließt. Vor Livebetrieb Journal, Katalog, Corezustände und Appvolumes
+koordiniert sichern und Restore abnehmen. Ohne Journal keine vermeintliche Übernahme
+bereits laufender Container und kein neuer Auftrag zum Überspielen unbekannter Ergebnisse.
+
 ## GitHub-Übergabe
 
-GitHub-Verbindung ist vorhanden, bietet in dieser Sitzung aber keine Funktion
-zum Erstellen eines Repositories. Es wurde kein entferntes DKMan-Repo erstellt
-und nichts gepusht. Der lokale Git-Verlauf wird als Bundle mit dem Quellpaket
-übergeben. Nach privater Repoerstellung kann der Eigentümer pushen:
-
-```bash
-git remote add origin https://github.com/damiankaest/DKMan.git
-git push -u origin main
-```
-
-Falls das Paket ohne `.git` entpackt wurde: Bundle neben `DKMan/` nutzen:
-`git clone DKMan-history.bundle DKMan-git`, danach in diesem Checkout arbeiten.
-Alternativ nach Entpacken `git init -b main` und den gelieferten Quellstand committen.
-Kein Remote ist als bereits existent anzunehmen; neues Repository privat anlegen.
+Das private Repository besteht unter [damiankaest/DKMan](https://github.com/damiankaest/DKMan).
+`main` ist maßgeblich; Fortschritt, CI-Nachweise und nächste Tickets stehen in
+`progress.md`, `acceptance-tests.md` und `backlog.md`. P2-001 und P2-002 wurden über
+PR #8 und #9 integriert. Der archivierte ursprüngliche Git-Bundle ist historischer
+Quellnachweis und kein Ersatz für den aktuellen Repository-Stand.

@@ -98,9 +98,10 @@ Unit-/Sicherheitstests: `uv run pytest tests/test_deployment_adapter.py -q`.
 `tests/test_adapter_docker.py` benötigt ausdrücklich einen wegwerfbaren GitHub-Runner
 mit `DKMAN_DISPOSABLE_DOCKER_TEST=1`; lokal ohne diesen Nachweis übersprungen.
 Die Probe baut eigene Testimages und verwendet deren tatsächliche Image-IDs, keine
-behauptete kuratierte Notes-App. Sie soll Lifecycle, echte Health, Volumenerhalt,
-separate Datenlöschung, Kollisionen und unbekannten Ausgang nach Healthfehler prüfen.
-CI-Nachweis nach vollständiger Kontrolle in `acceptance-tests.md` ergänzen.
+behauptete kuratierte Notes-App. Sie hat Lifecycle, echte Health, Volumenerhalt,
+separate Datenlöschung, Kollisionen und unbekannten Ausgang nach Healthfehler geprüft.
+[CI-Nachweis 39388427751](https://github.com/damiankaest/DKMan/actions/runs/39388427751)
+und Details in `acceptance-tests.md`; PR #9 in `main` integriert.
 
 Offen: Notes-App/Kuration P2-003, Core-Approval-Dispatch und Hub-UI/SSO P2-004,
 erweiterte Runtimebedienung P2-005, belegbarer Workflow zum Abschluss unsicherer

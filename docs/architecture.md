@@ -10,7 +10,8 @@ Core ist ein modularer Monolith: `api.py` für REST, `auth.py` für OIDC/Rollen,
 `health.py` für tatsächliche DB-/Schema-Readiness. SQLAlchemy-Modelle und Alembic
 liegen im Backend. `jobs.py` und `job_api.py` implementieren persistente Jobs und
 Freigaben; `job_recovery.py` führt ausschließlich Metadaten-Recovery aus.
-Es gibt keinen Deploymentworker und keinen Dockerzugriff.
+Core hat keinen Dockerzugriff. Der separate optionale Deployment-Adapter führt seit
+P2-002 begrenzte Runtimeaktionen aus; Core-Dispatch und Hubintegration folgen P2-004.
 
 ## Daten und Rechte
 
@@ -48,13 +49,22 @@ generierte TypeScript-Typen. Mutationserweiterungen erhalten typisierte Requests
 Idempotency-Keys und persistente Jobs. Fehlende Installations-/Chat-/Forge-Routen
 existieren bewusst noch nicht und melden keinen simulierten Erfolg.
 
-## Nächste Trust Boundary
+## Deployment-Trust-Boundary
 
-Phase 2 trennt einen internen Compose-Deployment-Adapter vom Core. Nur dieser Adapter
-bekommt Dockersteuerung. Er erhält keine freien Compose-Dateien oder Shellbefehle,
-sondern geprüfte strukturierte Pläne mit erlaubtem Image-Digest, Ressourcen,
-Volume-IDs und an einen Hash gebundener Genehmigung. Die Core-API bleibt unabhängig
-vom Provider. Forge wird eine eigene, davon getrennte Workspace-/Build-Domäne.
+P2-002 implementiert den internen Compose-Adapter in einem separaten Prozess und
+Compose-Projekt ohne Hostport. Nur dort liegt der lokale Docker-Socket. Katalog
+standardmäßig leer; typisierte serverseitige Pläne, unveränderliche Image-Referenzen
+und konkrete Delegationen statt freier Compose-Dateien/Shellbefehle. Pro Installation
+gelten Prozesssperren und ein persistentes Operationsjournal mit expliziten Migrationen.
+Unsichere Ausgänge bleiben blockiert, Reconcile liefert tatsächliche Beobachtungen.
+
+`deployments/` enthält socketfreie Verträge, Delegationsformat und Core-Transport;
+`deployment_adapter/` ist die eigene ausführende Trust Boundary. Interne OpenAPI:
+`contracts/openapi/deployment-adapter.v1.json`; Planschema unter `contracts/deployments/`.
+Der reguläre Bootstrap aktiviert den Adapter nicht. Kein Core-Installationsendpunkt
+und keine Hubroute vor P2-004. Details: [Adapter](deployment-adapter.md),
+[ADR 0008](architecture-decisions/0008-isolated-compose-adapter.md).
+Forge bleibt eine eigene, davon getrennte Workspace-/Build-Domäne.
 
 ## Manifest v1alpha1
 

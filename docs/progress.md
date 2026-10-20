@@ -8,13 +8,14 @@ echte interaktive Login bleiben offen.
 Zusätzlich sind zusammenhängende Teile von Phase 1 vorhanden: OIDC-Verifikation,
 Registry-Registrierung, App-/Service-/Capabilitysichtbarkeit, Manifestprüfung,
 Audit und die entsprechende ServiceHub-Oberfläche. Phase 1 insgesamt ist noch
-nicht abgeschlossen. DeploymentService/Notes-Installation gehören zum nächsten
-großen Durchstich, nicht zum behaupteten aktuellen Funktionsumfang.
+nicht abgeschlossen. Der isolierte Deployment-Adapter ist mit P2-002 implementiert;
+Notes-Kuration, Core-Dispatch und Installation über den Hub gehören zum nächsten Durchstich.
 
 P2-001 ist abgeschlossen: persistente Jobs/Events/Approvals mit Idempotenz,
 gebundenen Freigaben und Recovery, in `main` über PR #8 integriert. Der erste
-Executor validiert tatsächlich registrierte Manifeste. Nachweis und Grenzen unten;
-nächste Entwicklung P2-002 (isolierter Deployment-Adapter).
+Executor validiert tatsächlich registrierte Manifeste. P2-002 ist ebenfalls abgeschlossen:
+separater Compose-Provider mit eigenem Operationsjournal und gebundenen Delegationen,
+in `main` über PR #9 integriert. Nächste Entwicklung P2-003 (echte Notes-App/Kuration).
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
@@ -24,7 +25,7 @@ Die GitHub-Commits beginnen mit dem Import; ursprünglicher Quellstand:
 
 ## Implementiert
 
-- Spezifikation übernommen; Architektur, sechs ADRs, Threat Model, Backlog und
+- Spezifikation übernommen; Architektur, acht ADRs, Threat Model, Backlog und
   Arbeitskonventionen angelegt. Lizenzentscheidung beim Eigentümer belassen.
 - FastAPI, SQLAlchemy/Alembic, OIDC-Rollenprüfung und strenges v1alpha1-Manifest.
 - Initialmigration mit elf Domänentabellen; Registry-Mutationen mit Audit.
@@ -63,9 +64,12 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 4. P0-007 am freigegebenen Testhost durchführen: Dockerstart und echten OIDC-Flow
    prüfen, eventuelle Integrationsfehler zuerst schließen.
 5. P1-004 mit zwei echten OIDC-Nutzern abnehmen; API und Hub-Verwaltung sind implementiert.
-6. P2-001 ist implementiert: `jobs.md`, ADR 0007 und CI-Nachweis unten lesen.
-7. P2-002: Einen separaten Compose-Adapter umsetzen, kuratierte Notes-App bauen, Digest
-   erfassen und erst nach Planfreigabe über dieselbe Deploymentgrenze starten.
+6. P2-001/P2-002: `jobs.md`, `deployment-adapter.md`, ADR 0007/0008 und CI-Nachweise lesen.
+7. P2-003: Notes-App bauen/testen, tatsächlichen unveränderlichen Digest ermitteln und
+   den Katalog gezielt kuratieren; keine Beispiel-Tags als freigegebene Images behandeln.
+8. P2-004: Core-Approval/Job-Dispatch mit identischer Operation-ID, passende interne
+   Netzwerk-/Secretverknüpfung und Hub-Plan-/Freigabe-/Installationsfluss implementieren.
+   Zielhost- und echte OIDC-Abnahmen bleiben eigene Gates.
 
 Die nächste Sitzung braucht keinen Architektur-Neustart. Alle späteren Phasen und
 Akzeptanzkriterien stehen bereits im priorisierten `backlog.md`.
@@ -201,7 +205,31 @@ Kein DeploymentService, kein Beispiel-App-Image installiert, keine Zielhostdiens
   Ruff/Format/mypy, Paketbuild und Schemaexport erfolgreich. Core-OpenAPI und
   Frontendtypen bleiben unverändert; Adapter-OpenAPI/Planschema neu exportiert.
 - Neue CI-Probe mit realen Dockerimages, Datenerhalt und absichtlichem Healthfehler
-  im ersten Lauf erfolgreich; abschließenden CI-Nachweis nach Kontrolle ergänzen.
+  erfolgreich; abschließender PR-Lauf `39388427751` für `bb4b49c` vollständig grün.
   Zusätzlich Ablaufprüfung innerhalb der Journaltransaktion und einmalige Bindung
   jeder Approval-ID an eine Operation. Vertrag und Grenzen:
-  `deployment-adapter.md`, ADR 0008. Nächster Einstieg P2-003 nach grünem CI.
+  `deployment-adapter.md`, ADR 0008. Nächster Einstieg P2-003.
+
+## CI-Abnahme und Integration P2-002 · 20.10.2026
+
+[PR #9](https://github.com/damiankaest/DKMan/pull/9) wurde als `864f002` in `main`
+integriert. [PR-Lauf 39388427751](https://github.com/damiankaest/DKMan/actions/runs/39388427751)
+prüfte Featurecommit `bb4b49c` vollständig erfolgreich, alle vier Jobs selbst kontrolliert.
+
+- Backend: 123 Tests bestanden; ein bewusst übersprungener Docker-Guardtest wird im
+  separaten Adapterjob tatsächlich ausgeführt. PostgreSQL-17-Tests laufen ohne Skip.
+- Adapter-Smoke: 1 echter Docker-Integrationstest bestanden, 95,53 Sekunden. Eigene
+  Images gebaut, kuratierte Image-IDs verwendet, Health/Lifecycle/Volumenerhalt,
+  separate Datenlöschung, fremdes Projekt und Healthfehler-/Neustart-Abgleich geprüft.
+- Frontend: Produktionsbuild, 5 UI-Tests, 2 Browserchecks und Dependency-Audit grün.
+- Regulärer Container-Smoke: PostgreSQL/Core/Keycloak/Hub healthy, Migration Exit 0,
+  Seed/Doctor erfolgreich. Der bisherige Stack erhielt keinen Docker-Socket.
+
+Core-OpenAPI/Frontendtypen und bestehende Alembic-Migrationen sind unverändert.
+Neu: Adapter-OpenAPI, Planschema und unabhängige explizite Journalmigrationen 0001/0002.
+Zielhostaktivierung, echte OIDC-Mehrbenutzer-, Windows-/VM- und koordinierte
+Backup-/Restoreabnahmen bleiben offen. Keine kuratierte Notes-App installiert.
+
+Auch [Main-Lauf 39388850554](https://github.com/damiankaest/DKMan/actions/runs/39388850554)
+für `864f002` ist vollständig grün; alle vier Jobs eigenständig kontrolliert. Der
+folgende reine Dokumentationscommit speichert den Abschluss mit `[skip ci]`.

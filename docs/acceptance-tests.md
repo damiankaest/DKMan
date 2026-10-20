@@ -54,7 +54,7 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- Journey B: Notes-App/DeploymentService/Proxyroute sind noch nicht
+- Journey B: Notes-App/Kuration, Core-Approval-Dispatch und Proxyroute sind noch nicht
   implementiert. Entsprechend keine behauptete Installations-E2E-Abnahme.
 
 ## Zielhost-Abnahme P0-007
@@ -176,5 +176,26 @@ bereinigtes CLI-Environment/Timeout-Prozessgruppe und Logredaktion.
 Die erste echte Dockerprobe in CI `39387390163` war erfolgreich: ein Integrationstest
 in 82,18 Sekunden, eigene tatsächlich gebaute Fixture-Images, komplette Lifecycle-
 und Persistenzprüfung sowie absichtlich ungesunder Container. Das ist keine
-Notes-/OIDC-/Zielhostabnahme. Abschließenden CI-Nachweis für den endgültigen Commit
-nach allen ergänzenden Prüfungen unten ergänzen.
+Notes-/OIDC-/Zielhostabnahme. Abschließender CI-Nachweis unten.
+
+## P2-002 · Abschließende CI-Abnahme
+
+[PR-Lauf 39388427751](https://github.com/damiankaest/DKMan/actions/runs/39388427751)
+für `bb4b49c`, über [PR #9](https://github.com/damiankaest/DKMan/pull/9) als
+`864f002` in `main` integriert. Alle vier Jobs erfolgreich; relevante Logs geprüft.
+
+| Job | Tatsächliches Ergebnis |
+| --- | --- |
+| backend | 123 bestanden; 1 expliziter Docker-Guard-Skip, der im eigenen Job ausgeführt wird; PostgreSQL 17, Lint/Format/mypy, HTTP-Smoke, PowerShell, Manifest- und Vertragsdrift erfolgreich |
+| adapter-smoke | 1 bestanden in 95,53 Sekunden: eigene Images gebaut, echten Adaptercontainer gestartet, exakte kuratierte Image-IDs; echte Health, Install/Stop/Start/Restart, persistenter Zähler über Remove/erneutes Install, separate Datenlöschung, fremdes Projekt unangetastet; ungesundes Image führt zu gesperrtem unsicherem Ergebnis, Duplikat/neue Operation/Adapterneustart wiederholen die Aktion nicht |
+| frontend | Produktionsbuild, 5 UI-Tests, 2 Browserchecks, generierte Typen ohne Drift, Dependency-Audit erfolgreich |
+| container-smoke | bestehender Plattformstack gebaut/gestartet, Migration Exit 0, PostgreSQL/Core/Keycloak/Hub healthy, Seed und Doctor erfolgreich |
+
+Docker-Smoke läuft nur auf ausdrücklich wegwerfbaren GitHub-Runnern. Keine Änderung
+an bestehenden Zielhostdiensten. Notes-Kuration, UI-/OIDC-Installationsjourney und
+Windows-/VM-/Restoreabnahmen bleiben offen. Der alte Backupprozess deckt das neue
+Adapterjournal und den Adapterkatalog noch nicht ab; vor Livebetrieb gesondert ergänzen.
+
+Zusätzlich nach Integration [Main-Lauf 39388850554](https://github.com/damiankaest/DKMan/actions/runs/39388850554)
+für `864f002` geprüft: backend, frontend, adapter-smoke und container-smoke erfolgreich.
+Der folgende Dokumentationscommit enthält keine Code-/Vertragsänderung und überspringt CI.
