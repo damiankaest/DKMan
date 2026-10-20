@@ -1,0 +1,48 @@
+# Separate, opt-in trust boundary. Not loaded by the regular bootstrap or Hub proxy.
+name: dkman-adapter
+services:
+  adapter-migrate:
+    image: dkman/deployment-adapter:0.1.0
+    build: {context: ../.., dockerfile: infrastructure/deployment-adapter/Dockerfile}
+    command: [python, -m, dkman.deployment_adapter.journal, --state-root, /var/lib/dkman-adapter]
+    volumes: [adapter-state:/var/lib/dkman-adapter]
+    networks: [control]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+
+  deployment-adapter:
+    image: dkman/deployment-adapter:0.1.0
+    build: {context: ../.., dockerfile: infrastructure/deployment-adapter/Dockerfile}
+    restart: unless-stopped
+    group_add: ['${DKMAN_DOCKER_SOCKET_GID:?Set the socket group after host preflight}']
+    depends_on:
+      adapter-migrate: {condition: service_completed_successfully}
+    secrets: [adapter-delegation-key]
+    volumes:
+      - adapter-state:/var/lib/dkman-adapter
+      - ../../.local/adapter/catalog.json:/etc/dkman-adapter/catalog.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [control]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    pids_limit: 128
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health/ready',timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+volumes:
+  adapter-state:
+networks:
+  control: {internal: true}
+secrets:
+  adapter-delegation-key: {file: ../../.local/secrets/adapter-delegation-key}

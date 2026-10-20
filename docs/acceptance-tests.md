@@ -153,3 +153,28 @@ Dokumentationscommit verändert weder Code noch Verträge und überspringt CI au
 Abgeschlossen ist die isolierte Implementierung P2-001. Echte OIDC-Mehrbenutzer-,
 Windows-/VM-Neustart-, Volume-Persistenz- und Restoreabnahmen bleiben separat offen.
 Die reale Manifestvalidierung ist keine Deployment- oder Appinstallationsabnahme.
+
+## P2-002 · Lokale Prüfung · 20.10.2026
+
+| Prüfung | Tatsächliches Ergebnis |
+| --- | --- |
+| Pythonqualität | Ruff Check/Format und Mypy erfolgreich; 25 Quelldateien |
+| Backend/Sicherheit | `uv run pytest -q`: 116 bestanden; 7 PostgreSQLtests ohne lokale Testdatenbank und 1 Dockerprobe ohne wegwerfbaren Runner ausdrücklich übersprungen |
+| Paket | `uv build` erfolgreich; explizite Adaptermigrationen sind Teil des Wheels |
+| HTTP-Smoke | Uvicorn tatsächlich gestartet/beendet; Live 200, Ready bei DB-Ausfall 503, Me anonym 401 |
+| Hub | Lint, Produktionsbuild und 5 UI-Tests erfolgreich; Core-API-/Frontendtypen unverändert |
+| Verträge | Export von Core-/Adapter-OpenAPI und Planschema sowie Frontendgenerierung erneut ohne Drift |
+
+Adaptertests prüfen kuratierte Pläne, schädliche Felder, Rollen/Signatur/Issuer/Audience,
+Operation-/Aktions-/Ressourcen-/Hashbindung, Approvalablauf auch nach Erwerb des
+Journal-Schreiblocks, einmaligen Approvalverbrauch, Duplikate/Konflikte, SQLite-
+Transaktionsrollback, konkurrierende IDs und Dateisperren, verwaiste Ausführungsmarker,
+persistente Ressourcensperre nach Fehler und beobachtenden Reconcile ohne Blind-Retry.
+Zusätzlich Konfigurations-Dry-run/Secreterhalt, exklusiver Socketempfänger,
+bereinigtes CLI-Environment/Timeout-Prozessgruppe und Logredaktion.
+
+Die erste echte Dockerprobe in CI `39387390163` war erfolgreich: ein Integrationstest
+in 82,18 Sekunden, eigene tatsächlich gebaute Fixture-Images, komplette Lifecycle-
+und Persistenzprüfung sowie absichtlich ungesunder Container. Das ist keine
+Notes-/OIDC-/Zielhostabnahme. Abschließenden CI-Nachweis für den endgültigen Commit
+nach allen ergänzenden Prüfungen unten ergänzen.

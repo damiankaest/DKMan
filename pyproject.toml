@@ -30,7 +30,10 @@ packages = ["backend/dkman"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["backend"]
-markers = ["postgres: requires DKMAN_TEST_DATABASE_URL pointing at a disposable PostgreSQL database"]
+markers = [
+  "postgres: requires DKMAN_TEST_DATABASE_URL pointing at a disposable PostgreSQL database",
+  "docker: requires an explicitly disposable GitHub Actions Docker runner",
+]
 
 [tool.ruff]
 target-version = "py312"
