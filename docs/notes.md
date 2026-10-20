@@ -92,3 +92,14 @@ Rollback-, Mehrinstanz- oder UI-Lifecycle-Workflow.
 
 Die automatisierte echte CI-Journey ersetzt nicht die Abnahme mit Damians echten
 Benutzern und Windows-/VM-/Netzwerkumgebung. Diese bleibt gesondert dokumentiert offen.
+
+
+## Geprüfter Main-Build
+
+[CI 39409720195](https://github.com/damiankaest/DKMan/actions/runs/39409720195)
+hat beide Images tatsächlich gebaut, kuratiert, über den Hub installiert und mit
+drei echten Keycloak-Benutzern getestet. Vollständige lokale Image-IDs, Quellhash,
+Commit, Artefaktlink und Checksumme sind in
+[build-evidence.json](../examples/demo-notes/build-evidence.json) versioniert.
+Das ist ein Build-/Testnachweis; diese Engine-lokalen IDs werden auf einem anderen
+Host nicht automatisch als verfügbar ausgegeben.

@@ -16,11 +16,11 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P1-002 | P0 / 1 | 003 | Manifest-Schema, zwei Beispiele, kaputte/gefährliche Manifeste ablehnen; implementiert |
 | P1-003 | P0 / 1 | 001,002 | Registry-Registrierung, Katalogliste, App-/Service-/Capabilitysichtbarkeit und Audit; implementiert; revisionssicheres Update/Unregister offen |
 | P1-004 | P0 / 1 | P1-003 | Haushalts-/Mitglieder-/Grant-Verwaltung: API, Hub-UI und Isolationstests implementiert; Abnahme mit zwei echten OIDC-Nutzern offen |
-| P1-005 | P0 / 1 | P1-003,P2-003 | tatsächliches Healthpolling mit Historie, Zeitstempel, Fehlerursache; DB-Readiness vorhanden, App-Polling offen |
+| P1-005 | P0 / 1 | P1-003,P2-003 | tatsächliches Healthpolling mit Historie, Zeitstempel, Fehlerursache; DB-Readiness und App-Polling/45-s-Frischegrenze/Historie implementiert; Zielhost-/Betriebsabnahme offen |
 | P2-001 | P0 / 2 | P0-007,P1-003 | abgeschlossen und geprüft: Migration 0002, Job/Event/Approval, Idempotenz, gebundene Freigabe, Lease/Recovery, autorisierte APIs und echte Manifestvalidierung; PR #8 in main integriert; CI 39382031613: 74 Backendtests inkl. PostgreSQL-Konkurrenz/Migration, 5 UI-, 2 Browserchecks, Container-Smoke erfolgreich; Hostabnahmen bleiben offen |
 | P2-002 | P0 / 2 | P2-001 | abgeschlossen und geprüft: PR #9 in main; isolierter Compose-Provider, kuratierte Pläne, gebundene/einmalige Freigaben, Operationsjournal und Ressourcensperren; CI 39388427751: 123 Backendtests, 1 echter Docker-Integrationstest, 5 UI-/2 Browserchecks und Stack-Smoke erfolgreich; kein Zielhoststart |
-| P2-003 | P0 / 2 | P2-002 | Notes-Quellapp bauen/testen, tatsächlichen Digest erfassen und kuratieren; keine Platzhalterimages |
-| P2-004 | P0 / 2 | P2-003 | UI-Plan → hashgebundene Freigabe → Job → echte Installation mit Proxyroute/SSO |
+| P2-003 | P0 / 2 | P2-002 | abgeschlossen und geprüft: PR #10 in main (`ef888e7`), PR-CI 39409123565 und Main-CI 39409720195 mit Notes-Quellbuild, eigener PostgreSQL-Instanz/Migration, tatsächlichen Image-IDs/Quellhash, echter Daten-/Rollen-/Neustartprobe bestanden |
+| P2-004 | P0 / 2 | P2-003 | abgeschlossen und geprüft: PR #10 in main, Main-CI 39409720195: UI-Plan → gebundene Freigabe → dauerhafter Job → echte Installation/Proxy/SSO; drei echte OIDC-Nutzer, gemeinsame Daten und Widerruf. 151 Backend-/7 UI-Tests; Zielhost bleibt offen |
 | P2-005 | P0 / 2 | P2-004 | Start/Stop/Restart/Status/Logs autorisiert, Redaction; Daten nach Stop/Start identisch |
 | P2-006 | P0 / 2 | P2-005,P1-004 | Journey B mit zwei Nutzern und echten Containern E2E, verbotene Images/Permissions/DB-Ausfall testen; belegter Abschluss unsicherer Runtimeoperationen vor Wiederanlauf |
 | P3-001 | P1 / 3 | P2-006 | AppRequest/Planrevisionen persistieren; Workflow/Jobvertrag wiederverwenden |
@@ -36,7 +36,8 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächste Entwicklung: P2-003, echte Notes-App bauen und
-ihren unveränderlichen Digest kuratieren. Windows-Abnahme
+Nächste Entwicklung: P2-005, autorisierte Start-/Stop-/Restart-/Logs-Jobs und
+Hubaktionen ergänzen. Die Adapteroperationen sind vorhanden; dieselbe gebundene
+Approval-/Jobgrenze verwenden. Windows-Abnahme
 P0-007 und echter OIDC-Flow bleiben eigene Gates vor Zielhost-Deployments; sie
 blockieren die isolierte Implementierung und automatisierte Tests nicht.

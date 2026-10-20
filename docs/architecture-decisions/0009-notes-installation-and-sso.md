@@ -2,7 +2,8 @@
 
 Status: angenommen; Implementierung P2-003/P2-004. Vollständige echte Journey im
 PR-Lauf [39408325672](https://github.com/damiankaest/DKMan/actions/runs/39408325672)
-bestanden; abschließende Prüfung inklusive Kompatibilitätsregression folgt.
+bestanden; abschließender PR-Lauf [39409123565](https://github.com/damiankaest/DKMan/actions/runs/39409123565)
+inklusive Kompatibilitätsregression ebenfalls erfolgreich. PR #10 in Main integriert.
 
 Notes ist eine eigenständige Quellapp mit eigener PostgreSQL-17-Instanz, eigener
 eingeschränkter Loginrolle und expliziter, transaktionaler Migration. Keine Appdaten

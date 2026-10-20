@@ -4,18 +4,22 @@
 
 Phase-0-Code ist implementiert. Backend, Frontend und vollständiger Compose-Smoke
 sind in GitHub Actions erfolgreich geprüft. Die Windows-Zielhost-Abnahme und der
-echte interaktive Login bleiben offen.
+interaktive Login am Zielhost bleiben offen. Die neue echte CI-Journey prüft bereits
+OIDC-Code/PKCE mit drei getrennten Keycloak-Benutzern.
 Zusätzlich sind zusammenhängende Teile von Phase 1 vorhanden: OIDC-Verifikation,
 Registry-Registrierung, App-/Service-/Capabilitysichtbarkeit, Manifestprüfung,
 Audit und die entsprechende ServiceHub-Oberfläche. Phase 1 insgesamt ist noch
-nicht abgeschlossen. Der isolierte Deployment-Adapter ist mit P2-002 implementiert;
-Notes-Kuration, Core-Dispatch und Installation über den Hub gehören zum nächsten Durchstich.
+nicht abgeschlossen. P2-003/P2-004 ergänzen Notes mit eigener PostgreSQL-Datenbank,
+explizitem Quellbuild, tatsächlichen kuratierten Image-IDs und genehmigter Installation
+über den Hub einschließlich Proxyroute/SSO. Keine Zielhostaktivierung durchgeführt.
 
 P2-001 ist abgeschlossen: persistente Jobs/Events/Approvals mit Idempotenz,
 gebundenen Freigaben und Recovery, in `main` über PR #8 integriert. Der erste
 Executor validiert tatsächlich registrierte Manifeste. P2-002 ist ebenfalls abgeschlossen:
 separater Compose-Provider mit eigenem Operationsjournal und gebundenen Delegationen,
-in `main` über PR #9 integriert. Nächste Entwicklung P2-003 (echte Notes-App/Kuration).
+in `main` über PR #9 integriert. P2-003/P2-004 sind als `ef888e7` über PR #10 in `main` integriert;
+die vollständige echte Journey und der ergänzende Kompatibilitätslauf sind erfolgreich.
+Nächste Entwicklung P2-005: autorisierte Runtimebedienung über Core/Hub.
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
@@ -25,7 +29,7 @@ Die GitHub-Commits beginnen mit dem Import; ursprünglicher Quellstand:
 
 ## Implementiert
 
-- Spezifikation übernommen; Architektur, acht ADRs, Threat Model, Backlog und
+- Spezifikation übernommen; Architektur, neun ADRs, Threat Model, Backlog und
   Arbeitskonventionen angelegt. Lizenzentscheidung beim Eigentümer belassen.
 - FastAPI, SQLAlchemy/Alembic, OIDC-Rollenprüfung und strenges v1alpha1-Manifest.
 - Initialmigration mit elf Domänentabellen; Registry-Mutationen mit Audit.
@@ -65,11 +69,14 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
    prüfen, eventuelle Integrationsfehler zuerst schließen.
 5. P1-004 mit zwei echten OIDC-Nutzern abnehmen; API und Hub-Verwaltung sind implementiert.
 6. P2-001/P2-002: `jobs.md`, `deployment-adapter.md`, ADR 0007/0008 und CI-Nachweise lesen.
-7. P2-003: Notes-App bauen/testen, tatsächlichen unveränderlichen Digest ermitteln und
-   den Katalog gezielt kuratieren; keine Beispiel-Tags als freigegebene Images behandeln.
-8. P2-004: Core-Approval/Job-Dispatch mit identischer Operation-ID, passende interne
-   Netzwerk-/Secretverknüpfung und Hub-Plan-/Freigabe-/Installationsfluss implementieren.
-   Zielhost- und echte OIDC-Abnahmen bleiben eigene Gates.
+7. P2-003/P2-004: `notes.md`, ADR 0009 und die tatsächlichen CI-/Buildnachweise lesen.
+   Kein Image-Tag aus dem Beispielmanifest ist eine Kuration. Der lokale Builder
+   erfasst die tatsächlich auf seinem Engine gespeicherten Image-IDs.
+8. P2-005: typisierte Start-/Stop-/Restart-/Logs-Jobs und passende Hubaktionen auf
+   derselben Approval-/Operationsgrenze ergänzen; Ressourcenrechte prüfen und
+   unklare Ergebnisse weiterhin sperren. Kein Dockerzugriff im Core/Hub.
+9. Danach P2-006: Fehlermatrix/DB-Ausfälle und belegten Abschluss unsicherer Operationen
+   ergänzen. Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
 
 Die nächste Sitzung braucht keinen Architektur-Neustart. Alle späteren Phasen und
 Akzeptanzkriterien stehen bereits im priorisierten `backlog.md`.
@@ -233,3 +240,77 @@ Backup-/Restoreabnahmen bleiben offen. Keine kuratierte Notes-App installiert.
 Auch [Main-Lauf 39388850554](https://github.com/damiankaest/DKMan/actions/runs/39388850554)
 für `864f002` ist vollständig grün; alle vier Jobs eigenständig kontrolliert. Der
 folgende reine Dokumentationscommit speichert den Abschluss mit `[skip ci]`.
+
+
+## P2-003/P2-004 · Notes und genehmigte Hubinstallation · 20.10.2026
+
+- Ausgangspunkt `main` `3cc27ff`; Main-CI `39388850554` und aktuelle Branches geprüft.
+  Keine fremden Dependabot-Änderungen übernommen; bestehende Migrationen unverändert.
+- Eigenständige Notes-App mit SQL-Parametern, Textausgabe und serverseitiger
+  Autoridentität. Eigene PostgreSQL-17-Instanz, eingeschränkte Approlle und explizite
+  transaktionale Migration; keine Appdaten in Core oder Identity.
+- Bestätigter Build auf isoliertem Linux-Builder: gepinnte Basis/Lockfiles, tatsächliche
+  App-/DB-Image-IDs und Quellhash, validierter Nutzer-/Healthvertrag. Kein Registry-Push,
+  kein Platzhalterimage im ausführbaren Katalog. Kuration gilt auf dem jeweiligen Engine.
+- Migration 0003 reserviert Pläne getrennt von realen Installationen. PostgreSQLlocks
+  verhindern doppelte Instanzen auch bei verschiedenen Keys. Identität, Haushalt,
+  Manifestrevision und gesamte Runtime sind an denselben Approval-/Plan-Hash gebunden.
+- Core verbraucht die Freigabe und committet den Marker vor Dispatch; Job-ID =
+  Adapteroperation. Verlorener Ausgang bleibt gesperrt; Reconcile liest nur das
+  gespeicherte Ergebnis. Erst belegter Erfolg materialisiert Installation und Service.
+- Hub zeigt Plan/Freigabe/Installation/Verlauf, nimmt gespeicherte Jobs nach Reload
+  wieder auf und öffnet nur frisch gemessene gesunde Apps. Read-only-Polling, eigene
+  OIDC-Notes-Clientkonfiguration, automatische SSO-Prüfung nach Hub-Reload.
+- Getrennte Delegations-/Datenschlüssel; nur Adapter erhält Datenkey und Docker-Socket.
+  Ein explizites Runtime-Overlay verknüpft die Dienste, der Basisbootstrap bleibt unverändert.
+- Lokal: Ruff/Format/mypy, Paket- und beide Frontendbuilds erfolgreich; 142 Backendtests,
+  9 PostgreSQLtests und 1 Docker-Guard mangels lokaler Dienste übersprungen. 7 UI-Tests,
+  OpenAPI/Typgenerierung, Dependency-Audits und PostgreSQL/WASM-Migration mit 16 Tabellen
+  erfolgreich. Core-, Adapter- und Notes-OpenAPI versioniert.
+- Vollständiger PR-Lauf `39408325672` für `d633db6` erfolgreich: fünf Jobs,
+  149 Backendtests, 7 UI-Tests, zwei bestehende Browserchecks, echte Adapterprobe und
+  echte Notes-Journey (22,8 s) mit drei separaten Keycloak-Logins, UI-Plan/Freigabe,
+  echter Installation, gemeinsamen Daten und entzogenem Direktzugriff.
+  Zusätzliche echte Stop-/Start-Probe erhält beide Notizen und prüft DB-Least-Privilege.
+- Bei der echten Integration behoben: eindeutig zugeordnete Auswahlfeldlabels,
+  Unix-Socket-Vertrag des PostgreSQL-Entrypoints, SSO bei Rückkehr in den Hub und
+  zu enger Proxyburst bei normaler Verwaltung. Kein Auth-Bypass oder Mutations-Retry.
+- Abschließender Zusatz: alte generische v1-Planhashes und Journal-Replays bleiben
+  beim Upgrade erhalten; zwei Regressionstests. Finaler PR-Lauf `39409123565` für `8ff5429` vollständig erfolgreich; Integration
+  über PR #10 als `ef888e7`. Main-CI `39409720195` ebenfalls vollständig erfolgreich.
+
+Grenzen: Die echte CI-Journey ist keine Windows-/VM-/Zielhostabnahme mit Damians
+Benutzern. Passwortwechsel, Logout/Refresh-Matrix, Host-/VM-Neustart, vollständiger
+koordinierter Backup/Restore und Runtimeaktionen im Hub bleiben offen. Die bisherigen
+Backup-/Restore-/Upgrade-Skripte decken den erweiterten Runtimestack nicht vollständig ab.
+Nächster Einstieg P2-005, danach verbleibende P2-006-Fehlermatrix und sichere Entsperrung.
+
+
+## Abschließende PR-Abnahme P2-003/P2-004
+
+[PR #10](https://github.com/damiankaest/DKMan/pull/10) wurde nach Kontrolle aller
+fünf Jobs von [CI 39409123565](https://github.com/damiankaest/DKMan/actions/runs/39409123565)
+integriert. Featurestand `8ff5429`, Mainstand `ef888e7`; identischer geprüfter Tree.
+151 Backendtests, 7 UI-Tests, zwei bisherige Browserchecks, echter Adaptertest
+(85,08 s), echte OIDC-/Notes-Journey (21,4 s) und nachfolgende reale Datenerhalt-/
+DB-Rollenprobe erfolgreich. Alte v1-Hashes und gespeicherte Replays zusätzlich geprüft.
+Der Basisstack-Smoke meldet Migration Exit 0 und vier gesunde Dienste; Doctor bestätigt
+Schema 0003, OIDC-Discovery und anonymes 401. Die neue Journey startet die vollständige
+opt-in Runtime mit echtem Adapter und separaten Notes-/PostgreSQL-Containern.
+
+
+## Main-Abnahme und dauerhafter Buildnachweis P2-003/P2-004
+
+[Main-Lauf 39409720195](https://github.com/damiankaest/DKMan/actions/runs/39409720195)
+für `ef888e7` ist mit allen fünf Jobs vollständig erfolgreich; auch dieser Lauf wurde
+eigenständig geprüft. 151 Backendtests, 7 UI-Tests, 2 bestehende Browserchecks,
+echte Adapterprobe und echte Notes-/OIDC-Journey (21,2 s); anschließende reale
+Datenerhalt-/Least-Privilege-Probe ebenfalls erfolgreich.
+
+Die tatsächlichen App-/DB-Image-IDs und der Quellhash aus diesem Main-Build sind in
+[build-evidence.json](../examples/demo-notes/build-evidence.json) dauerhaft versioniert;
+[CI-Artefakt](https://github.com/damiankaest/DKMan/actions/runs/39409720195/artifacts/12259580381)
+enthält den tatsächlich kuratierten Katalog und Buildbericht. Die IDs gelten auf
+diesem Engine, nicht als Registry-Pullreferenzen auf einem anderen Host.
+Der abschließende Dokumentations-/Nachweiscommit enthält keine Runtimeänderung und
+überspringt CI ausdrücklich. P2-003/P2-004 abgeschlossen; nächstes Ticket P2-005.

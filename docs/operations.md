@@ -94,5 +94,6 @@ Runtime-Wartungsweg. Vor Zielhostaktivierung müssen diese Betriebsabnahmen erfo
 Das private Repository besteht unter [damiankaest/DKMan](https://github.com/damiankaest/DKMan).
 `main` ist maßgeblich; Fortschritt, CI-Nachweise und nächste Tickets stehen in
 `progress.md`, `acceptance-tests.md` und `backlog.md`. P2-001 und P2-002 wurden über
-PR #8 und #9 integriert. Der archivierte ursprüngliche Git-Bundle ist historischer
+PR #8 und #9 integriert; P2-003/P2-004 über PR #10. Der vollständige
+Main-CI-Lauf 39409720195 ist erfolgreich; Nachweise siehe `acceptance-tests.md`. Der archivierte ursprüngliche Git-Bundle ist historischer
 Quellnachweis und kein Ersatz für den aktuellen Repository-Stand.

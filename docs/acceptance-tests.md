@@ -47,15 +47,18 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
 
 ## Noch nicht ausgeführt / nicht abgenommen
 
-- Separate Negativtests zur Datenbankrollen-Isolation und Volume-Persistenz.
-- Echter Login/Passwortwechsel/Logout/Refresh/JWKS-Abruf,
-  CSP-Integration im echten Login und zwei echte Benutzer.
+- Zielhostprüfungen zur Core-/Identity-DB-Isolation und Volume-Persistenz.
+  Notes-Rolle und Notes-Datenerhalt sind inzwischen zusätzlich in echter CI geprüft.
+- Benutzerabnahme am Zielhost einschließlich Passwortwechsel, Logout/Refresh-Matrix
+  und CSP. Die neue echte CI-Journey prüft Code/PKCE/JWKS/SSO und Appfreigaben mit
+  drei getrennten Keycloak-Konten; sie ersetzt die Zielhostabnahme nicht.
 - Windows-10-Preflight auf echter Hardware, Featureaktivierung, Ubuntu-VM/WSL2,
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- Journey B: Notes-App/Kuration, Core-Approval-Dispatch und Proxyroute sind noch nicht
-  implementiert. Entsprechend keine behauptete Installations-E2E-Abnahme.
+- Journey B am Zielhost und kompletter Runtime-Lifecycle über Core/Hub bleiben offen.
+  Notes-Build/Kuration, UI-Plan/Freigabe, echte Installation/SSO und Mehrbenutzerrechte
+  sind seit P2-003/P2-004 in einer separaten echten CI-Journey geprüft.
 
 ## Zielhost-Abnahme P0-007
 
@@ -199,3 +202,67 @@ Adapterjournal und den Adapterkatalog noch nicht ab; vor Livebetrieb gesondert e
 Zusätzlich nach Integration [Main-Lauf 39388850554](https://github.com/damiankaest/DKMan/actions/runs/39388850554)
 für `864f002` geprüft: backend, frontend, adapter-smoke und container-smoke erfolgreich.
 Der folgende Dokumentationscommit enthält keine Code-/Vertragsänderung und überspringt CI.
+
+
+## P2-003/P2-004 · Lokale und echte CI-Prüfung
+
+Lokal tatsächlich ausgeführt: `uv sync --frozen`, Ruff Check/Format, `uv run mypy`
+(31 Quelldateien), `uv run pytest -q` (142 bestanden / 9 PostgreSQL- und 1 Docker-Guard
+ohne lokale Dienste übersprungen), `uv build`, HTTP-Smoke und Build-Dry-run ohne Docker.
+Im Hub npm ci, Vertragsgenerierung, Lint, TypeScript-/Produktionsbuild, 7 UI-Tests
+und Produktions-Audit; Notes-Web npm ci/TypeScript-/Produktionsbuild/Audit erfolgreich.
+PostgreSQL/WASM: Upgrade auf 0003, 16 Tabellen, FK-Abweisung, Downgrade und Reupgrade.
+Bestehende Core-/Adaptermigrationen anhand ihrer Blob-Hashes unverändert bestätigt;
+das Wheel enthält die explizite Notes-Migration.
+
+[PR-Lauf 39408325672](https://github.com/damiankaest/DKMan/actions/runs/39408325672)
+für `d633db6` ist mit allen fünf Jobs erfolgreich. Zusätzlich zum vorhandenen
+Container-/Adapter-Smoke baut und kuratiert `notes-journey` zwei echte lokale Images,
+startet Core/PostgreSQL/Keycloak/Hub/Adapter und führt folgende Probe ohne Testantworten
+oder Auth-Dependency-Override aus:
+
+1. Drei getrennte Browserkontexte melden sich an echtem Keycloak mit Code/PKCE an.
+2. Admin legt Haushalt an, prüft im Hub Plan und Hash, stimmt explizit zu und installiert.
+3. Beide echten Container sind gesund; zweite Person erhält Mitgliedschaft und App-Grant.
+4. Notes öffnet per SSO. Zwei Nutzer sehen/erstellen denselben Notizdatensatz;
+   HTML-Sonderzeichen bleiben Text. Nicht freigegebener dritter Nutzer bekommt keine Daten.
+5. Rückkehr in den Hub erhält die SSO-Sitzung. Entfernen des Mitglieds entzieht
+   Appzugriff auch unter bekanntem Direktlink beim nächsten Datenrequest.
+6. Echte Containerprobe stoppt/startet ausschließlich diese App/DB; dieselben IDs und
+   Notiztexte bleiben erhalten. UID, read-only, Capabilities, keine Hostports/Socketmounts
+   und Datenbankrolle ohne Superuser/CreateDB/CreateRole geprüft; fremde DB gesperrt.
+
+Echte Journey: 1 bestanden in 22,8 Sekunden; nachfolgende Persistenz-/Rollenprobe
+erfolgreich. Der separate Adaptertest prüft weiterhin echte Lifecycle-/Datenlösch-/
+Kollisions- und ungesunde/unsichere Neustartfälle. Die zwei älteren Browserchecks
+verwenden weiterhin Testantworten und werden ausdrücklich getrennt gezählt.
+
+Neue Backendtests decken Job-/Appisolation, Pflichtfreigabe, sämtliche Bindungen,
+Ablauf, geänderte Pläne/Quellen, doppelte Keys, konkurrierende Haushaltsreservierungen
+in PostgreSQL, verloren gegangene erfolgreiche Adapterantwort, Recovery mit neuer
+Session und ausschließlich lesenden Abgleich ab. Gesunder Container bei unbewiesenem
+Operationsabschluss reicht nicht aus. Alte generische v1-Hashes/Fingerprints erhalten
+eigene Regressionstests. Finaler CI-Nachweis mit diesem Zusatz: Lauf `39409123565` für `8ff5429`,
+alle fünf Jobs erfolgreich. Integration als `ef888e7` über PR #10.
+
+Grenzen bleiben: Zielhost-/Windows-/VM-Neustart, Damians echte Benutzer, vollständige
+Logout-/Refresh-/Passwortwechselmatrix, koordinierter Backup/Restore und sichere
+Auflösung verbleibender Adapterunsicherheit. Kein Zielhostdienst geändert.
+
+
+Abschließender [PR-Lauf 39409123565](https://github.com/damiankaest/DKMan/actions/runs/39409123565):
+151 Backendtests und 1 expliziter Docker-Guard-Skip (im Adapterjob tatsächlich ausgeführt),
+7 UI-Tests, 2 bisherige Browserchecks, echter Docker-Adaptertest (85,08 s), echte
+OIDC-/Notes-Journey (21,4 s) und nachfolgende echte Persistenz-/Rollenprobe erfolgreich.
+Alle Logs der fünf Jobs eigenständig kontrolliert. Main enthält denselben geprüften Tree.
+Buildmetadaten: [Artefakt 12258471841](https://github.com/damiankaest/DKMan/actions/runs/39409123565/artifacts/12258471841).
+
+
+Zusätzlich [Main-Lauf 39409720195](https://github.com/damiankaest/DKMan/actions/runs/39409720195)
+für `ef888e7` kontrolliert: alle fünf Jobs erfolgreich, 151 Backendtests, 7 UI-Tests,
+2 bestehende Browserchecks und beide echten Dockerproben. Echte Notes-/OIDC-Journey
+21,2 Sekunden; tatsächliche Datenerhalt-/Rollenprobe anschließend bestanden.
+Die vollständigen tatsächlichen Image-IDs/Quellhash/Artefaktchecksumme stehen dauerhaft
+in [build-evidence.json](../examples/demo-notes/build-evidence.json). Das Artefakt ist
+zeitlich befristet; der versionierte Nachweis bleibt erhalten. Der folgende reine
+Dokumentations-/Buildnachweiscommit verändert keine Runtime und überspringt CI.

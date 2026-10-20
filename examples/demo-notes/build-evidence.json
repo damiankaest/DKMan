@@ -1,0 +1,22 @@
+{
+  "app_image": "sha256:297360706ae47eefcff86f3a2d3ce24026a357346046ce8ca48b49d34762910a",
+  "database_image": "sha256:a96bc8df8ec5fee82d41c4f1c4882956b50e12b71baf1aa7e9db14e10338616a",
+  "schema_version": 1,
+  "scope": "Evidence of actual images built, curated and tested on the disposable CI Linux engine. Not a pullable registry catalog. Rebuild reviewed sources and explicitly curate actual IDs on another engine.",
+  "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+  "definition_id": "demo-notes",
+  "version": "0.1.0",
+  "profile": "notes-postgres-v1",
+  "source_revision": "ef888e70ad13476bc19ba9c3e4e2204bd594de7d",
+  "ci_run_url": "https://github.com/damiankaest/DKMan/actions/runs/39409720195",
+  "artifact_url": "https://github.com/damiankaest/DKMan/actions/runs/39409720195/artifacts/12259580381",
+  "artifact_sha256": "sha256:e236679153623335ec66013f9b8c136c053d0edba5f2dcc9dc41bcbae44955bb",
+  "artifact_expires_at": "2027-01-18T10:41:33Z",
+  "verified": [
+    "real Keycloak Code/PKCE and SSO for three separate users",
+    "ServiceHub plan, hash-bound approval and actual Docker installation",
+    "shared Notes data, denied unassigned access and revoked membership",
+    "unchanged Notes data after application/database stop/start",
+    "non-root read-only containers, no host ports/socket mounts, private limited PostgreSQL role"
+  ]
+}

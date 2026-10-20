@@ -33,12 +33,16 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
 - OIDC-/JWT-Prüfung und vier Rollen, geschlossene API ohne anonymen Adminzugang.
 - App-/Service-/Capabilitysichtbarkeit pro Benutzer; serverseitige Adminregistrierung.
 - Striktes Manifestformat, JSON-Schema und zwei versionierte Vertragsbeispiele.
-  Bootstrap registriert deren Metadaten idempotent; Images sind noch nicht gebaut.
+  Bootstrap registriert deren Metadaten idempotent; Notes wird separat gebaut und kuratiert.
 - Responsiver dunkler ServiceHub mit Login, Appsuche, tatsächlichem Corestatus und
   Admin-Katalogansicht. Keine Laufzeitmessung bedeutet `unknown`.
 - Compose, zufällige Secrets, Windows-Preflight, Bootstrap/Doctor sowie vorsichtige
   Backup-/Restore-/Upgradeskripte mit Dry-run/Bestätigung.
-- CI-Definition für Python, TypeScript, PostgreSQL-Migrationen und Container-Smoke.
+- Persistente Jobs/Events/Approvals, Idempotenz und Recovery ohne blinde Wiederholungen.
+- Notes mit eigener PostgreSQL-Datenbank: geprüfter Quellbuild, UI-Plan/Freigabe,
+  tatsächliche Installation und Öffnen per SSO; explizites Runtime-Overlay.
+- CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
+  OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 
 ## Entwicklung und Prüfungen
 
