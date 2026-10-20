@@ -4,7 +4,13 @@ from datetime import datetime
 from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9-]{1,62}$")]
 ImageReference = Annotated[
@@ -51,9 +57,16 @@ class CuratedImage(StrictModel):
     user: Literal["10001:10001"] = "10001:10001"
     memory_mb: int = Field(default=128, ge=32, le=1024)
     cpus: float = Field(default=0.5, ge=0.1, le=2, allow_inf_nan=False)
-    profile: Literal["web-v1", "notes-postgres-v1"] = "web-v1"
-    database_image: ImageReference | None = None
-    source_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    # Omit only the new empty/default fields, preserving P2-002 wire hashes/replays.
+    profile: Literal["web-v1", "notes-postgres-v1"] = Field(
+        default="web-v1", exclude_if=lambda value: value == "web-v1"
+    )
+    database_image: ImageReference | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    source_hash: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def profile_contract(self) -> "CuratedImage":
@@ -95,14 +108,18 @@ class PlanRequest(StrictModel):
     installation_id: UUID
     definition_id: Identifier
     version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
-    context: InstallationContext | None = None
+    context: InstallationContext | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class DeploymentPlan(CuratedImage):
     schema_version: Literal[1] = 1
     provider: Literal["docker-compose"] = "docker-compose"
     installation_id: UUID
-    context: InstallationContext | None = None
+    context: InstallationContext | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @property
     def plan_hash(self) -> str:

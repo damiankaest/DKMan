@@ -39,6 +39,76 @@ from dkman.deployments.contracts import (
 SECRET = b"test-only-delegation-key-with-at-least-32-bytes"
 
 
+def test_legacy_web_plan_hash_and_planning_binding_remain_stable(plan):
+    expected = {
+        "definition_id": "test-fixture",
+        "version": "1.0.0",
+        "image": "sha256:" + "a" * 64,
+        "internal_port": 8080,
+        "data_path": "/data",
+        "user": "10001:10001",
+        "memory_mb": 128,
+        "cpus": 0.5,
+        "schema_version": 1,
+        "provider": "docker-compose",
+        "installation_id": str(plan.installation_id),
+    }
+    assert plan.model_dump(mode="json") == expected
+    assert plan.plan_hash == canonical_hash(expected)
+    request = PlanRequest(
+        installation_id=plan.installation_id, definition_id="test-fixture", version="1.0.0"
+    )
+    assert request.model_dump(mode="json") == {
+        key: expected[key] for key in ("installation_id", "definition_id", "version")
+    }
+
+
+def test_pre_notes_journal_replay_uses_unchanged_wire_fingerprint(tmp_path, plan):
+    migrate(tmp_path)
+    journal = Journal(tmp_path)
+    operation_id = uuid4()
+    grant = verify_delegation(token(plan, operation_id, "install"), SECRET)
+    old_plan = {
+        key: value
+        for key, value in plan.model_dump(mode="json").items()
+        if key not in {"profile", "database_image", "source_hash", "context"}
+    }
+    raw = {"action": "install", "plan": old_plan}
+    fingerprint = canonical_hash(
+        {
+            "command": raw,
+            "subject": grant.sub,
+            "approval_id": str(grant.approval_id),
+            "approval_expires_at": grant.approval_expires_at,
+        }
+    )
+    from dkman.deployments.contracts import OperationView
+
+    previous = OperationView(
+        operation_id=operation_id,
+        installation_id=plan.installation_id,
+        action="install",
+        plan_hash=canonical_hash(old_plan),
+        state="succeeded",
+        created_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+    )
+    with journal.connect() as db:
+        db.execute(
+            "INSERT INTO operations VALUES (?,?,?,?,?,?,?)",
+            (
+                str(operation_id),
+                str(plan.installation_id),
+                grant.sub,
+                fingerprint,
+                json.dumps(raw),
+                "succeeded",
+                previous.model_dump_json(),
+            ),
+        )
+    assert journal.replay(DeploymentCommand.model_validate(raw), grant) == previous
+
+
 @pytest.fixture
 def catalog():
     return Catalog(

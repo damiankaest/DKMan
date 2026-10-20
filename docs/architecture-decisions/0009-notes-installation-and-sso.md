@@ -1,6 +1,8 @@
 # ADR 0009 · Kuratierte Notes-App und Installation über den Hub
 
-Status: Implementierung P2-003/P2-004, abschließende CI-Abnahme ausstehend.
+Status: angenommen; Implementierung P2-003/P2-004. Vollständige echte Journey im
+PR-Lauf [39408325672](https://github.com/damiankaest/DKMan/actions/runs/39408325672)
+bestanden; abschließende Prüfung inklusive Kompatibilitätsregression folgt.
 
 Notes ist eine eigenständige Quellapp mit eigener PostgreSQL-17-Instanz, eigener
 eingeschränkter Loginrolle und expliziter, transaktionaler Migration. Keine Appdaten
@@ -27,6 +29,11 @@ Core reserviert pro Haushalt/Definition einen noch nicht abgeschlossenen Plan in
 Idempotency-Keys. Ein Plan enthält Image-/Quellrevision, Ressourcen, Installations-ID,
 Haushalt, Subject und Manifestrevision/-hash. Derselbe vollständige Hash bindet Job,
 Approval und Adapterdelegation. Eine Reservierung erzeugt noch keine Appinstallation.
+
+Die neuen optionalen Profil-/Kontextfelder werden bei alten generischen v1-Plänen
+ohne Zusatzwerte nicht serialisiert. Damit bleiben ihre bestehenden Plan-Hashes,
+Planungsdelegationen und Journal-Fingerprints über das Upgrade erhalten; alte
+Operationen werden als Replay erkannt. Notes-Pläne binden alle neuen Felder.
 
 Nach erneutem Berechtigungs-/Kurationscheck verbraucht Core die Freigabe und schreibt
 den dauerhaften Ausführungsmarker vor dem HTTP-Aufruf. Job-ID = Adapter-Operation-ID.
