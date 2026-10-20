@@ -38,6 +38,7 @@ class AdapterSettings(BaseSettings):
     state_root: Path = Path("/var/lib/dkman-adapter")
     catalog_file: Path = Path("/etc/dkman-adapter/catalog.json")
     secret_file: Path = Path("/run/secrets/adapter-delegation-key")
+    data_secret_file: Path = Path("/run/secrets/adapter-data-key")
     docker_binary: str = Field(default="/usr/local/bin/docker", pattern=r"^/[a-zA-Z0-9/_-]+$")
 
 
@@ -48,7 +49,7 @@ def create_app(
     settings = settings or AdapterSettings()
     factory = provider_factory or (
         lambda operation_id: ComposeProvider(
-            settings.state_root, operation_id, settings.docker_binary
+            settings.state_root, operation_id, settings.docker_binary, app.state.data_secret
         )
     )
 
@@ -66,6 +67,15 @@ def create_app(
             raise ValueError("Delegation key must contain at least 32 bytes")
         app.state.secret = key
         app.state.catalog = Catalog.model_validate_json(settings.catalog_file.read_text())
+        app.state.data_secret = None
+        if any(image.profile == "notes-postgres-v1" for image in app.state.catalog.images):
+            if settings.data_secret_file.is_symlink():
+                raise ValueError("Data credential key may not be a symlink")
+            app.state.data_secret = settings.data_secret_file.read_bytes().strip()
+            if len(app.state.data_secret) < 32:
+                raise ValueError("Data credential key must contain at least 32 bytes")
+            if app.state.data_secret == key:
+                raise ValueError("Delegation and data keys must be separate")
         app.state.journal = Journal(settings.state_root)
         app.state.journal.recover()
         task = asyncio.create_task(recovery_loop(app.state.journal))

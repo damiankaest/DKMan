@@ -139,6 +139,54 @@
         }
       }
     },
+    "/api/v1/apps/{app_id}/access": {
+      "get": {
+        "summary": "Authorize App Access",
+        "operationId": "authorizeAppAccess",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Authorizeappaccess"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/services": {
       "get": {
         "summary": "Services",
@@ -1148,7 +1196,7 @@
           "jobs"
         ],
         "summary": "Run Validation",
-        "operationId": "runValidationJob",
+        "operationId": "runJob",
         "security": [
           {
             "HTTPBearer": []
@@ -1172,6 +1220,192 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/deployments/catalog": {
+      "get": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Curated Apps",
+        "operationId": "listCuratedApps",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CuratedImage"
+                  },
+                  "type": "array",
+                  "title": "Response Listcuratedapps"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/deployments/installations": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Plan Installation",
+        "operationId": "planInstallation",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/reconcile": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Reconcile Job",
+        "operationId": "reconcileInstallationJob",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apps/{app_id}/refresh": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Refresh Status",
+        "operationId": "refreshInstallationStatus",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeView"
                 }
               }
             }
@@ -1464,6 +1698,105 @@
         ],
         "title": "CapabilityView"
       },
+      "CuratedImage": {
+        "properties": {
+          "definition_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,62}$",
+            "title": "Definition Id"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "title": "Version"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+            "title": "Image"
+          },
+          "internal_port": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Internal Port"
+          },
+          "data_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^/(data|app/data|var/lib/[a-z][a-z0-9-]*)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Path"
+          },
+          "user": {
+            "type": "string",
+            "const": "10001:10001",
+            "title": "User",
+            "default": "10001:10001"
+          },
+          "memory_mb": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 32.0,
+            "title": "Memory Mb",
+            "default": 128
+          },
+          "cpus": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.1,
+            "title": "Cpus",
+            "default": 0.5
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "web-v1",
+              "notes-postgres-v1"
+            ],
+            "title": "Profile",
+            "default": "web-v1"
+          },
+          "database_image": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database Image"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "definition_id",
+          "version",
+          "image",
+          "internal_port"
+        ],
+        "title": "CuratedImage"
+      },
       "DefinitionView": {
         "properties": {
           "id": {
@@ -1525,6 +1858,133 @@
           "capability"
         ],
         "title": "Dependency"
+      },
+      "DeploymentPlan": {
+        "properties": {
+          "definition_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,62}$",
+            "title": "Definition Id"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "title": "Version"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$",
+            "title": "Image"
+          },
+          "internal_port": {
+            "type": "integer",
+            "maximum": 65535.0,
+            "minimum": 1024.0,
+            "title": "Internal Port"
+          },
+          "data_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^/(data|app/data|var/lib/[a-z][a-z0-9-]*)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Path"
+          },
+          "user": {
+            "type": "string",
+            "const": "10001:10001",
+            "title": "User",
+            "default": "10001:10001"
+          },
+          "memory_mb": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 32.0,
+            "title": "Memory Mb",
+            "default": 128
+          },
+          "cpus": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.1,
+            "title": "Cpus",
+            "default": 0.5
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "web-v1",
+              "notes-postgres-v1"
+            ],
+            "title": "Profile",
+            "default": "web-v1"
+          },
+          "database_image": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database Image"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
+          },
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "provider": {
+            "type": "string",
+            "const": "docker-compose",
+            "title": "Provider",
+            "default": "docker-compose"
+          },
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstallationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "definition_id",
+          "version",
+          "image",
+          "internal_port",
+          "installation_id"
+        ],
+        "title": "DeploymentPlan"
       },
       "GrantView": {
         "properties": {
@@ -1666,6 +2126,61 @@
         ],
         "title": "HouseholdView"
       },
+      "InstallInput": {
+        "properties": {
+          "definition_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,62}$",
+            "title": "Definition Id"
+          },
+          "household_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Household Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "definition_id",
+          "household_id"
+        ],
+        "title": "InstallInput"
+      },
+      "InstallationContext": {
+        "properties": {
+          "household_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Household Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "manifest_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Manifest Id"
+          },
+          "manifest_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "household_id",
+          "subject",
+          "manifest_id",
+          "manifest_hash"
+        ],
+        "title": "InstallationContext"
+      },
       "JobEventView": {
         "properties": {
           "sequence": {
@@ -1794,7 +2309,15 @@
             "title": "State"
           },
           "plan": {
-            "$ref": "#/components/schemas/ValidationPlan"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValidationPlan"
+              },
+              {
+                "$ref": "#/components/schemas/DeploymentPlan"
+              }
+            ],
+            "title": "Plan"
           },
           "plan_hash": {
             "type": "string",
@@ -1857,16 +2380,7 @@
           "result": {
             "anyOf": [
               {
-                "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ]
-                },
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -2109,6 +2623,51 @@
           "internalPort"
         ],
         "title": "Runtime"
+      },
+      "RuntimeView": {
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "absent",
+              "running",
+              "stopped",
+              "starting",
+              "unhealthy",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "container_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Container Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "installation_id",
+          "state",
+          "observed_at"
+        ],
+        "title": "RuntimeView"
       },
       "ServiceView": {
         "properties": {

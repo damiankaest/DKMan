@@ -15,6 +15,9 @@ from dkman.access import router as access_router
 from dkman.api import router
 from dkman.auth import TokenVerifier
 from dkman.config import Settings
+from dkman.deployment_api import router as deployment_router
+from dkman.deployment_health import health_loop
+from dkman.deployments.client import HttpDeploymentClient
 from dkman.health import readiness
 from dkman.job_api import router as job_router
 from dkman.job_recovery import recover_once, recovery_loop
@@ -45,12 +48,18 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await asyncio.to_thread(recover_once, active_engine)
         task = asyncio.create_task(recovery_loop(active_engine))
+        health_task = asyncio.create_task(
+            health_loop(active_engine, settings, app.state.deployment_client)
+        )
         try:
             yield
         finally:
             task.cancel()
+            health_task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+            with suppress(asyncio.CancelledError):
+                await health_task
             if owns_engine:
                 active_engine.dispose()
 
@@ -58,6 +67,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.state.engine = engine
     app.state.settings = settings
     app.state.verifier = TokenVerifier(settings)
+    app.state.deployment_client = HttpDeploymentClient()
 
     @app.middleware("http")
     async def request_context(
@@ -110,4 +120,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(router)
     app.include_router(access_router)
     app.include_router(job_router)
+    app.include_router(deployment_router)
     return app

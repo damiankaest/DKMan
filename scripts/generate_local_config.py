@@ -68,6 +68,11 @@ def generate(root: Path, port: int) -> None:
         client["redirectUris"] = [origin + "/"]
         client["webOrigins"] = [origin]
         client["attributes"]["post.logout.redirect.uris"] = origin + "/"
+        for app_client in realm["clients"][1:]:
+            app_client["rootUrl"] = origin
+            app_client["redirectUris"] = [origin + "/run/*"]
+            app_client["webOrigins"] = [origin]
+            app_client["attributes"]["post.logout.redirect.uris"] = origin + "/"
         realm["users"] = [
             {
                 "username": "platform-admin",

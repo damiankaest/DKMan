@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     oidc_audience: str = "dkman-api"
     public_url: str = "http://localhost:8080"
     health_timeout_seconds: float = 3.0
+    deployment_enabled: bool = False
+    deployment_catalog_file: Path = Path("/etc/dkman-adapter/catalog.json")
+    deployment_secret_file: Path = Path("/run/secrets/adapter-delegation-key")
 
     @cached_property
     def sqlalchemy_url(self) -> str | URL:

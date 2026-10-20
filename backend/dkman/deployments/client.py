@@ -49,7 +49,7 @@ class HttpDeploymentClient:
             headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
-            with self.opener.open(request, timeout=45) as response:
+            with self.opener.open(request, timeout=120) as response:
                 result = bytes(response.read(65537))
                 if len(result) > 65536:
                     raise AdapterUnavailable("Adapter response exceeds limit")

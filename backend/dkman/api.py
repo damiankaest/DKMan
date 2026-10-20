@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -7,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from dkman.auth import Principal, current_principal, require_admin
 from dkman.database import get_session
+from dkman.jobs import utc
 from dkman.manifest import Manifest
-from dkman.models import AppDefinition, Capability, ServiceInstance
+from dkman.models import AppDefinition, Capability, DeploymentTarget, ServiceInstance, utcnow
 from dkman.registry import register_manifest, visible_installations
 from dkman.schemas import AppView, CapabilityView, DefinitionView, MeView, ServiceView
 
@@ -47,9 +49,19 @@ def apps(db: Db, principal: User) -> list[AppView]:
                 name=definition.name,
                 version=definition.version,
                 description=definition.description,
-                status=service.status if service else "unknown",  # type: ignore[arg-type]
+                status=service.status
+                if service
+                and service.checked_at
+                and utc(service.checked_at) > utcnow() - timedelta(seconds=45)
+                else "unknown",  # type: ignore[arg-type]
                 checked_at=service.checked_at if service else None,
-                route=None,
+                route=f"/run/{installation.id}/"
+                if service
+                and service.status == "healthy"
+                and service.checked_at
+                and utc(service.checked_at) > utcnow() - timedelta(seconds=45)
+                and db.get(DeploymentTarget, installation.id) is not None
+                else None,
             )
         )
     return result
@@ -63,14 +75,25 @@ def app_detail(app_id: str, db: Db, principal: User) -> AppView:
     raise HTTPException(404, "App not found")
 
 
+@router.get("/apps/{app_id}/access", operation_id="authorizeAppAccess")
+def authorize_app_access(app_id: str, db: Db, principal: User) -> dict[str, str]:
+    app_detail(app_id, db, principal)
+    if not principal.roles.intersection({"member", "admin"}):
+        raise HTTPException(403, "Member role required")
+    return {"installation_id": app_id, "subject": principal.subject}
+
+
 def as_service(service: ServiceInstance) -> ServiceView:
+    fresh = service.checked_at is not None and utc(service.checked_at) > utcnow() - timedelta(
+        seconds=45
+    )
     return ServiceView(
         id=service.id,
         installation_id=service.installation_id,
         provider=service.provider,
-        status=service.status,  # type: ignore[arg-type]
+        status=service.status if fresh else "unknown",  # type: ignore[arg-type]
         checked_at=service.checked_at,
-        reason=service.status_reason,
+        reason=service.status_reason if fresh else "observation_expired",
     )
 
 
@@ -148,6 +171,10 @@ def register(manifest: Manifest, db: Db, principal: Admin, request: Request) -> 
 
 
 @router.get("/platform", operation_id="getPlatform")
-def platform(principal: User, response: Response) -> dict[str, str]:
+def platform(principal: User, response: Response, request: Request) -> dict[str, str]:
     response.headers["Cache-Control"] = "no-store"
-    return {"version": "0.1.0", "milestone": "foundation", "deployment": "not-implemented"}
+    return {
+        "version": "0.1.0",
+        "milestone": "curated-installation",
+        "deployment": "enabled" if request.app.state.settings.deployment_enabled else "disabled",
+    }

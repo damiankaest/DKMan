@@ -1,5 +1,7 @@
 """The only production module allowed to invoke Docker. No client shell/YAML/env."""
 
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -19,7 +21,7 @@ class CommandError(Exception):
     """Command may have reached the engine. Never expose subprocess output."""
 
 
-def render_compose(plan: DeploymentPlan) -> dict[str, Any]:
+def render_compose(plan: DeploymentPlan, credential_key: bytes | None = None) -> dict[str, Any]:
     labels = {"io.dkman.managed": "true", "io.dkman.installation": str(plan.installation_id)}
     service: dict[str, Any] = {
         "image": plan.image,
@@ -45,6 +47,50 @@ def render_compose(plan: DeploymentPlan) -> dict[str, Any]:
     if plan.data_path:
         config["volumes"] = {"data": {"name": f"{plan.project}-data", "labels": labels}}
         service["volumes"] = [{"type": "volume", "source": "data", "target": plan.data_path}]
+    if plan.profile == "notes-postgres-v1":
+        if credential_key is None or len(credential_key) < 32:
+            raise ValueError("Notes credential derivation requires the adapter secret")
+
+        # Domain-separated credentials, stable across restart; never sent to Core/Hub.
+        def password(purpose: str) -> str:
+            return hmac.new(
+                credential_key,
+                f"notes-v1:{plan.installation_id}:{purpose}".encode(),
+                hashlib.sha256,
+            ).hexdigest()
+
+        service["environment"] = {
+            "NOTES_INSTALLATION_ID": str(plan.installation_id),
+            "NOTES_DB_PASSWORD": password("app"),
+        }
+        service["networks"] = {
+            "private": {},
+            "gateway": {"aliases": [f"{plan.project}-web"]},
+        }
+        service["depends_on"] = {"database": {"condition": "service_healthy"}}
+        database = {
+            **service,
+            "image": plan.database_image,
+            "mem_limit": "256m",
+            "cpus": 0.5,
+            "environment": {
+                "POSTGRES_USER": "postgres",
+                "POSTGRES_DB": "postgres",
+                "PGPASSWORD": password("app"),
+                "POSTGRES_PASSWORD": password("admin"),
+                "NOTES_DB_PASSWORD": password("app"),
+            },
+            "networks": ["private"],
+            "tmpfs": [
+                "/tmp:rw,noexec,nosuid,size=32m",
+                "/var/run/postgresql:rw,noexec,nosuid,size=8m,uid=10001,gid=10001,mode=0700",
+            ],
+            "volumes": [{"type": "volume", "source": "data", "target": "/var/lib/postgresql/data"}],
+        }
+        del database["depends_on"]
+        config["services"]["database"] = database
+        config["networks"]["gateway"] = {"external": True, "name": "dkman-app-gateway"}
+        config["volumes"] = {"data": {"name": f"{plan.project}-data", "labels": labels}}
     return config
 
 
@@ -67,11 +113,16 @@ def redact_logs(value: str) -> str:
 
 class ComposeProvider:
     def __init__(
-        self, root: Path, operation_id: UUID, docker_binary: str = "/usr/local/bin/docker"
+        self,
+        root: Path,
+        operation_id: UUID,
+        docker_binary: str = "/usr/local/bin/docker",
+        credential_key: bytes | None = None,
     ):
         self.root = root
         self.operation_id = operation_id
         self.binary = docker_binary
+        self.credential_key = credential_key
 
     def run(self, arguments: list[str], timeout: int = 45, *, include_stderr: bool = False) -> str:
         env = {
@@ -134,13 +185,17 @@ class ComposeProvider:
             if (
                 labels.get("io.dkman.managed") != "true"
                 or labels.get("io.dkman.installation") != str(plan.installation_id)
-                or labels.get("com.docker.compose.service") != "app"
+                or labels.get("com.docker.compose.service")
+                not in ({"app", "database"} if plan.profile == "notes-postgres-v1" else {"app"})
             ):
                 raise AdapterError("foreign_project")
             result.append(item)
-        if len(result) > 1:
+        names = [item["Config"]["Labels"]["com.docker.compose.service"] for item in result]
+        if len(names) != len(set(names)):
             raise AdapterError("unexpected_project_resources")
-        return result
+        return sorted(
+            result, key=lambda item: item["Config"]["Labels"]["com.docker.compose.service"]
+        )
 
     def resource_exists(self, kind: str, name: str, plan: DeploymentPlan) -> bool:
         ids = self.run([kind, "ls", "--filter", f"name=^{name}$", "--format", "{{.Name}}"])
@@ -162,10 +217,17 @@ class ComposeProvider:
         found |= self.resource_exists("volume", f"{plan.project}-data", plan)
         if found and not known:
             raise AdapterError("unregistered_project_collision")
+        if plan.profile == "notes-postgres-v1":
+            network = json.loads(self.run(["network", "inspect", "dkman-app-gateway"]))[0]
+            if (
+                not network.get("Internal")
+                or (network.get("Labels") or {}).get("io.dkman.gateway") != "true"
+            ):
+                raise AdapterError("untrusted_app_gateway")
 
     def compose(self, plan: DeploymentPlan, arguments: list[str]) -> str:
         path = self.root / "plans" / f"{self.operation_id}.json"
-        raw = json.dumps(render_compose(plan), sort_keys=True)
+        raw = json.dumps(render_compose(plan, self.credential_key), sort_keys=True)
         try:
             descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         except FileExistsError:
@@ -191,27 +253,41 @@ class ComposeProvider:
         )
 
     def verify_image(self, plan: DeploymentPlan) -> None:
-        image = json.loads(self.run(["image", "inspect", plan.image]))[0]
+        self.verify_reference(plan.image, plan.user, plan.data_path)
+        if plan.database_image:
+            self.verify_reference(plan.database_image, plan.user, "/var/lib/postgresql/data")
+        if plan.profile == "notes-postgres-v1":
+            for reference in [plan.image, plan.database_image]:
+                assert reference is not None
+                image = json.loads(self.run(["image", "inspect", reference]))[0]
+                if (image["Config"].get("Labels") or {}).get(
+                    "io.dkman.source-sha256"
+                ) != plan.source_hash:
+                    raise AdapterError("reviewed_source_mismatch")
+
+    def verify_reference(self, reference: str, user: str, data_path: str | None) -> None:
+        image = json.loads(self.run(["image", "inspect", reference]))[0]
         config = image.get("Config") or {}
         volumes = set((config.get("Volumes") or {}).keys())
         if (
-            config.get("User") != plan.user
+            config.get("User") != user
             or not config.get("Healthcheck", {}).get("Test")
             or config["Healthcheck"]["Test"][0] != "CMD"
-            or not volumes.issubset({plan.data_path} if plan.data_path else set())
+            or not volumes.issubset({data_path} if data_path else set())
         ):
             raise AdapterError("curated_image_contract_mismatch")
-        if plan.image.startswith("sha256:") and image["Id"] != plan.image:
+        if reference.startswith("sha256:") and image["Id"] != reference:
             raise AdapterError("image_digest_mismatch")
-        if "@sha256:" in plan.image and plan.image not in image.get("RepoDigests", []):
+        if "@sha256:" in reference and reference not in image.get("RepoDigests", []):
             raise AdapterError("image_digest_mismatch")
 
     def discover(self, plan: DeploymentPlan) -> RuntimeView:
         return self.status(plan)
 
     def pull(self, plan: DeploymentPlan) -> None:
-        if not plan.image.startswith("sha256:"):
-            self.run(["image", "pull", plan.image], timeout=90)
+        for reference in [plan.image, plan.database_image]:
+            if reference and not reference.startswith("sha256:"):
+                self.run(["image", "pull", reference], timeout=90)
         self.verify_image(plan)
 
     def install(self, plan: DeploymentPlan) -> RuntimeView:
@@ -248,13 +324,13 @@ class ComposeProvider:
         return self.status(plan)
 
     def stop(self, plan: DeploymentPlan) -> RuntimeView:
-        self.compose(plan, ["stop", "--timeout", "10", "app"])
+        self.compose(plan, ["stop", "--timeout", "10"])
         return self.status(plan)
 
     def restart(self, plan: DeploymentPlan) -> RuntimeView:
         if not self.containers(plan):
             raise AdapterError("installation_absent")
-        self.compose(plan, ["restart", "--timeout", "10", "app"])
+        self.compose(plan, ["restart", "--timeout", "10"])
         return self.status(plan)
 
     def status(self, plan: DeploymentPlan) -> RuntimeView:
@@ -262,7 +338,7 @@ class ComposeProvider:
         state: Any = "absent"
         identifier = None
         if containers:
-            item = containers[0]
+            item = containers[0]  # Sorted: app first, database second.
             identifier = item["Id"]
             runtime = item.get("State") or {}
             if runtime.get("Status") in {"exited", "dead", "created"}:
@@ -275,6 +351,11 @@ class ComposeProvider:
                 }.get(runtime.get("Health", {}).get("Status"), "unknown")
             else:
                 state = "unknown"
+            if state == "running" and plan.profile == "notes-postgres-v1":
+                if len(containers) != 2:
+                    state = "unhealthy"
+                elif containers[1].get("State", {}).get("Health", {}).get("Status") != "healthy":
+                    state = "unhealthy"
         return RuntimeView(
             installation_id=plan.installation_id,
             state=state,

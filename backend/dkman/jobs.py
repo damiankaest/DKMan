@@ -246,7 +246,7 @@ def cancel(db: Session, job_id: str, actor: Principal) -> Job:
     return job
 
 
-def claim(db: Session, job_id: str, actor: Principal) -> str:
+def claim(db: Session, job_id: str, actor: Principal, *, lease_seconds: int = LEASE_SECONDS) -> str:
     admin(actor)
     job = locked_job(db, job_id)
     if job.requested_by != actor.subject:
@@ -260,7 +260,7 @@ def claim(db: Session, job_id: str, actor: Principal) -> str:
     job.attempt += 1
     token = str(uuid4())
     job.lease_token = token
-    job.lease_expires_at = utcnow() + timedelta(seconds=LEASE_SECONDS)
+    job.lease_expires_at = utcnow() + timedelta(seconds=lease_seconds)
     event(db, job, "claimed", actor.subject)
     db.commit()
     return token

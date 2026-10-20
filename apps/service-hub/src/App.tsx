@@ -4,6 +4,7 @@ import type { AppItem, Definition, Readiness, User } from './api';
 import type { AuthSession } from './auth';
 import './styles.css';
 import { AccessAdmin } from './AccessAdmin';
+import { DeploymentAdmin } from './DeploymentAdmin';
 
 const labels: Record<AppItem['status'], string> = {
   healthy: 'Bereit', starting: 'Startet', degraded: 'Eingeschränkt',
@@ -60,6 +61,12 @@ export function App({ auth }: { auth: AuthSession }) {
     }
     void load();
     return () => controller.abort();
+  }, [api, auth.authenticated]);
+
+  useEffect(() => {
+    if (!auth.authenticated) return;
+    const timer = window.setInterval(() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app, status:'unknown', route:null}))));}, 15_000);
+    return () => window.clearInterval(timer);
   }, [api, auth.authenticated]);
 
   function login() {
@@ -125,9 +132,10 @@ export function App({ auth }: { auth: AuthSession }) {
           </section>
         ) : (
           <section>
+            {user && <DeploymentAdmin api={api} subject={user.subject} onInstalled={() => {void api.apps().then(setApps).catch(() => setError('Apps konnten nicht aktualisiert werden.'));}} />}
             <AccessAdmin api={api} installations={apps} />
             <span className="section-number">02 / VERWALTUNG</span><h2>Registrierte App-Definitionen</h2>
-            <p className="muted">Die Registry enthält Metadaten. Installationen und Deployment-Freigaben folgen in Phase 2.</p>
+            <p className="muted">Die Registry beschreibt Apps. Nur separat kuratierte Quellbuilds können installiert werden.</p>
             {catalog.length === 0 ? <div className="empty"><h3>Registry ist bereit</h3><p>Manifeste können über die geschützte Registry-API registriert werden. Eine Beispielregistrierung steht in der Startanleitung.</p></div> :
               <div className="grid">{catalog.map(item => <article className="catalog-card" key={item.id}><span className="muted">{item.version} · {item.source}</span><h3>{item.name}</h3><p>{item.description}</p></article>)}</div>}
           </section>

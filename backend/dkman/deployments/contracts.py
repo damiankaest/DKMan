@@ -4,7 +4,13 @@ from datetime import datetime
 from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9-]{1,62}$")]
 ImageReference = Annotated[
@@ -51,6 +57,32 @@ class CuratedImage(StrictModel):
     user: Literal["10001:10001"] = "10001:10001"
     memory_mb: int = Field(default=128, ge=32, le=1024)
     cpus: float = Field(default=0.5, ge=0.1, le=2, allow_inf_nan=False)
+    # Omit only the new empty/default fields, preserving P2-002 wire hashes/replays.
+    profile: Literal["web-v1", "notes-postgres-v1"] = Field(
+        default="web-v1", exclude_if=lambda value: value == "web-v1"
+    )
+    database_image: ImageReference | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    source_hash: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None
+    )
+
+    @model_validator(mode="after")
+    def profile_contract(self) -> "CuratedImage":
+        if self.profile == "notes-postgres-v1":
+            if (
+                self.definition_id != "demo-notes"
+                or self.version != "0.1.0"
+                or self.internal_port != 8080
+                or self.data_path is not None
+                or self.database_image is None
+                or self.source_hash is None
+            ):
+                raise ValueError("Notes requires its exact reviewed database/runtime profile")
+        elif self.database_image is not None:
+            raise ValueError("Database sidecars require a reviewed profile")
+        return self
 
 
 class Catalog(StrictModel):
@@ -65,16 +97,29 @@ class Catalog(StrictModel):
         return self
 
 
+class InstallationContext(StrictModel):
+    household_id: UUID
+    subject: str = Field(min_length=1, max_length=255)
+    manifest_id: UUID
+    manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class PlanRequest(StrictModel):
     installation_id: UUID
     definition_id: Identifier
     version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    context: InstallationContext | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class DeploymentPlan(CuratedImage):
     schema_version: Literal[1] = 1
     provider: Literal["docker-compose"] = "docker-compose"
     installation_id: UUID
+    context: InstallationContext | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @property
     def plan_hash(self) -> str:
@@ -88,7 +133,11 @@ class DeploymentPlan(CuratedImage):
 def build_plan(catalog: Catalog, request: PlanRequest) -> DeploymentPlan:
     for image in catalog.images:
         if (image.definition_id, image.version) == (request.definition_id, request.version):
-            return DeploymentPlan(**image.model_dump(), installation_id=request.installation_id)
+            return DeploymentPlan(
+                **image.model_dump(),
+                installation_id=request.installation_id,
+                context=request.context,
+            )
     raise ValueError("Image revision is not curated")
 
 
@@ -99,6 +148,7 @@ def validate_plan(catalog: Catalog, plan: DeploymentPlan) -> None:
             installation_id=plan.installation_id,
             definition_id=plan.definition_id,
             version=plan.version,
+            context=plan.context,
         ),
     )
     if expected != plan:

@@ -11,7 +11,8 @@ Core ist ein modularer Monolith: `api.py` für REST, `auth.py` für OIDC/Rollen,
 liegen im Backend. `jobs.py` und `job_api.py` implementieren persistente Jobs und
 Freigaben; `job_recovery.py` führt ausschließlich Metadaten-Recovery aus.
 Core hat keinen Dockerzugriff. Der separate optionale Deployment-Adapter führt seit
-P2-002 begrenzte Runtimeaktionen aus; Core-Dispatch und Hubintegration folgen P2-004.
+P2-002 begrenzte Runtimeaktionen aus. P2-003/P2-004 ergänzen die eigene Notes-App
+und den genehmigten Installationsfluss über Core und Hub; Details in [Notes](notes.md).
 
 ## Daten und Rechte
 
@@ -40,13 +41,18 @@ mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architectur
 | `GET /api/v1/capabilities` | angemeldet | sichtbare Apps und passende Capability-Rolle |
 | `GET /api/v1/catalog` | Admin | registrierte Definitionen; noch keine installierbaren Artefakte |
 | `POST /api/v1/registry/manifests` | Admin | strenge JSON-Validierung, Registrierung, Audit; kein Start |
+| `GET /api/v1/deployments/catalog` | Admin | tatsächlich gebaute, separat kuratierte Notes-Revisionen |
+| `POST /api/v1/deployments/installations` | Admin | Idempotency-Key; Haushalt reservieren, unveränderlichen Plan und Approval als Job anlegen |
+| `POST /api/v1/jobs/{id}/reconcile` | anforderndes Admin-Subject | ausschließlich gespeichertes Adapterergebnis lesen; keine erneute Installation |
+| `GET /api/v1/apps/{id}/access` | angemeldet, App-Freigabe und Member/Admin | aktuelle OIDC-/App-Autorisierung für Notes-Datenanfragen |
+| `POST /api/v1/apps/{id}/refresh` | Admin | tatsächliche Read-only-Runtimemessung |
 | `GET /api/v1/platform` | angemeldet | Versions-/Ausbaustand |
 | `GET/POST /api/v1/jobs` und Jobdetails/Events | Admin für Anlage, eigene Sichtbarkeit beim Lesen | persistierte Aufträge und sequenzierte Historie; siehe `jobs.md` |
 | Approvalentscheidung, Jobabbruch und Validierung | Admin; Ausführung zusätzlich anforderndes Subject | hashgebundene Freigabe, klare Zustandsgrenzen, tatsächliche Manifestvalidierung |
 
 OpenAPI ist in `contracts/openapi/core.v1.json` versioniert. Der Hub verwendet daraus
 generierte TypeScript-Typen. Mutationserweiterungen erhalten typisierte Requests,
-Idempotency-Keys und persistente Jobs. Fehlende Installations-/Chat-/Forge-Routen
+Idempotency-Keys und persistente Jobs. Fehlende Chat-/Forge-Routen
 existieren bewusst noch nicht und melden keinen simulierten Erfolg.
 
 ## Deployment-Trust-Boundary
@@ -61,8 +67,12 @@ Unsichere Ausgänge bleiben blockiert, Reconcile liefert tatsächliche Beobachtu
 `deployments/` enthält socketfreie Verträge, Delegationsformat und Core-Transport;
 `deployment_adapter/` ist die eigene ausführende Trust Boundary. Interne OpenAPI:
 `contracts/openapi/deployment-adapter.v1.json`; Planschema unter `contracts/deployments/`.
-Der reguläre Bootstrap aktiviert den Adapter nicht. Kein Core-Installationsendpunkt
-und keine Hubroute vor P2-004. Details: [Adapter](deployment-adapter.md),
+Der reguläre Bootstrap aktiviert den Adapter nicht. Das explizite Runtime-Overlay
+verknüpft den Core mit dem Adapter und routet UUID-basierte App-URLs im Hub.
+Notes erhält eine eigene PostgreSQL-Instanz und ein persistentes Volume, keine
+Schreibrechte auf Core-/Identity-DBs. Schlüssel für Appdaten bleiben beim Adapter;
+der Core erhält ausschließlich den getrennten Delegationsschlüssel.
+Details: [Notes](notes.md), [ADR 0009](architecture-decisions/0009-notes-installation-and-sso.md), [Adapter](deployment-adapter.md),
 [ADR 0008](architecture-decisions/0008-isolated-compose-adapter.md).
 Forge bleibt eine eigene, davon getrennte Workspace-/Build-Domäne.
 

@@ -44,14 +44,14 @@ export function AccessAdmin({ api, installations }: { api: ApiClient; installati
   return <section className="access-admin" aria-label="Haushalte und Freigaben">
     <h2>Haushalte und Freigaben</h2>
     <p>Benutzer erscheinen nach ihrer ersten Anmeldung. Konten und globale Rollen werden in Keycloak verwaltet.</p>
-    {error && <p role="alert" className="error">{error}</p>}
+    {error && <><p role="alert" className="error">{error}</p><button disabled={busy} onClick={() => {setError(''); setRevision(value => value + 1);}}>Freigaben neu laden</button></>}
     <form onSubmit={event => { event.preventDefault(); void change('/api/v1/households', 'POST', { name: name.trim() }); }}>
       <label>Neuer Haushalt <input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></label>
       <button disabled={busy || !name.trim()}>Haushalt erstellen</button>
     </form>
-    <label>Haushalt <select value={home} onChange={event => { setHome(event.target.value); setMembers([]); }}>
+    <label htmlFor="access-household">Haushalt</label><select id="access-household" value={home} onChange={event => { setHome(event.target.value); setMembers([]); }}>
       <option value="">Bitte wählen</option>{homes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-    </select></label>
+    </select>
     {home && <ul>{users.map(person => {
       const member = members.some(item => item.id === person.id);
       return <li key={person.id}>{person.display_name} <small>{person.subject}</small> <button disabled={disabled} onClick={() => {
@@ -61,9 +61,9 @@ export function AccessAdmin({ api, installations }: { api: ApiClient; installati
     })}</ul>}
     <h3>App-Zugriff</h3>
     <p>Eine Mitgliedschaft allein gibt keine App frei. Freigaben gelten nur für Mitglieder des Installationshaushalts.</p>
-    {!installations.length ? <p>Noch keine installierten Apps vorhanden.</p> : <label>Installation <select value={app} onChange={event => { setApp(event.target.value); setGrants([]); }}>
+    {!installations.length ? <p>Noch keine installierten Apps vorhanden.</p> : <><label htmlFor="access-installation">Installation</label><select id="access-installation" value={app} onChange={event => { setApp(event.target.value); setGrants([]); }}>
       <option value="">Bitte wählen</option>{installations.map(item => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}
-    </select></label>}
+    </select></>}
     {app && <ul>{users.map(person => {
       const allowed = grants.some(item => item.subject === person.subject && item.permission === 'app.use');
       return <li key={person.id}>{person.display_name} <button disabled={disabled} onClick={() => {
