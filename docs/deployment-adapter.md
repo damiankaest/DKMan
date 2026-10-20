@@ -3,7 +3,8 @@
 Eigenständiger interner FastAPI-Prozess mit einem echten Compose-Provider. Nur dieser
 Prozess besitzt Dockerzugriff. Das reguläre Core-/Hub-Compose-Projekt aktiviert ihn
 nicht. Der ausgelieferte kuratierte Katalog ist leer; die Manifestbeispiele installieren
-weiterhin keine Images. Notes-App und ihre echte Kuration folgen in P2-003.
+weiterhin keine Images. P2-003 ergänzt den expliziten Quellbuild der Notes-App;
+P2-004 verknüpft ihn mit Core und Hub. Anleitung: [Notes](notes.md).
 
 ## Implementierte Verträge
 
@@ -24,8 +25,9 @@ enthält den genauen Digest, Nutzer, Ressourcen und einen zulässigen Datenpfad.
 | remove_data | separate freigegebene Aktion; Workload muss bereits entfernt sein; nur eigenes Volume |
 
 Pläne gestatten keine eigenen Shellbefehle, Entrypoints, Environments, Mounts, Ports,
-Geräte oder Hostnetzwerke. Interner Netzwerkzugang ohne veröffentlichte Ports ist
-bewusst noch keine im Hub erreichbare App. Eine passende SSO-/Proxyroute folgt P2-004.
+Geräte oder Hostnetzwerke. Das konkrete Profil `notes-postgres-v1` ergänzt einen
+festen PostgreSQL-Sidecar und die interne Gatewayroute; seine zusätzlichen Secrets,
+Netze und Ressourcen entstehen ausschließlich serverseitig gemäß ADR 0009.
 Der Katalog ist eine ausdrücklich gepflegte Vertrauensquelle; Registryeinträge und
 Suchergebnisse ändern ihn nicht automatisch. Hot-Reload ist nicht implementiert.
 
@@ -50,9 +52,9 @@ den jeweiligen Freigaben ausführen. Member/Developer erhalten keine Runtimevoll
 Falsche/abgelaufene Tokens: 401, unpassende Vollmacht: 403, Konflikte: 409.
 
 Die Signierfunktion ist eine interne Bibliothek, kein offener Aussteller. Der Core
-muss in P2-004 OIDC-/Ressourcenrechte und die persistente Approvalbindung prüfen,
-Freigaben vor Dispatch verbrauchen und dieselbe Job-ID als Operation-ID verwenden.
-Aktuell besteht keine Core-Installationsroute. Auch ein 200-Operationsresultat muss
+prüft seit P2-004 OIDC-/Ressourcenrechte und die persistente Approvalbindung,
+verbraucht Freigaben vor Dispatch und verwendet dieselbe Job-ID als Operation-ID.
+Die Core-Installationsroute nimmt keine freien Pläne entgegen. Auch ein 200-Operationsresultat muss
 über sein Feld `state` ausgewertet werden; unsichere Ergebnisse sind kein Erfolg.
 
 ## Journal und Fehlergrenzen
@@ -82,8 +84,10 @@ kaschiert werden. Bestehende Runtime-Projekte ohne Journaleintrag werden nicht �
 
 `uv run python scripts/generate_adapter_config.py` ist ausschließlich ein Dry-run.
 Bewusste Konfigurationsvorbereitung benötigt `--apply --confirm ADAPTER_CONFIG`.
-Das erzeugt einen leeren Katalog und ein neues zufälliges Secret nur bei Erstanlage;
-bestehende Konfiguration/Secrets bleiben erhalten. Es startet keinen Container.
+Das erzeugt einen leeren Katalog und getrennte zufällige Delegations-/Datenschlüssel;
+bestehende Konfiguration/Secrets bleiben erhalten. Beim expliziten Upgrade von v1
+wird nur der vorher noch nicht vorhandene Datenschlüssel ergänzt. Ein verlorener
+v2-Schlüssel wird nicht ersetzt. Es startet keinen Container.
 
 Das separate `infrastructure/deployment-adapter/compose.yaml` benötigt nach Host-Preflight
 die tatsächliche Gruppe des lokalen Docker-Sockets in `DKMAN_DOCKER_SOCKET_GID`.
@@ -103,8 +107,9 @@ separate Datenlöschung, Kollisionen und unbekannten Ausgang nach Healthfehler g
 [CI-Nachweis 39388427751](https://github.com/damiankaest/DKMan/actions/runs/39388427751)
 und Details in `acceptance-tests.md`; PR #9 in `main` integriert.
 
-Offen: Notes-App/Kuration P2-003, Core-Approval-Dispatch und Hub-UI/SSO P2-004,
-erweiterte Runtimebedienung P2-005, belegbarer Workflow zum Abschluss unsicherer
+P2-003/P2-004 ergänzen Notes-Quellbuild, Kuration und die echte Installationsjourney;
+deren eigener Nachweis steht in `acceptance-tests.md`. Offen: erweiterte
+Runtimebedienung P2-005, belegbarer Workflow zum Abschluss unsicherer
 Mutationen, Live-OIDC, Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme.
 Logredaktion entfernt bekannte Muster, kann frei formulierte oder unbekannte Secrets
 in beliebigen App-Logs nicht vollständig erkennen; Apps müssen sichere Logs erzeugen.

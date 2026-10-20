@@ -65,7 +65,7 @@ export function App({ auth }: { auth: AuthSession }) {
 
   useEffect(() => {
     if (!auth.authenticated) return;
-    const timer = window.setInterval(() => {void api.apps().then(setApps).catch(() => {});}, 15_000);
+    const timer = window.setInterval(() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app, status:'unknown', route:null}))));}, 15_000);
     return () => window.clearInterval(timer);
   }, [api, auth.authenticated]);
 

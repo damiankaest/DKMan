@@ -6,8 +6,9 @@ mit Linux-Containern.
 
 **Stand 0.1.0:** Phase 0 ist implementiert; Registry-/Auth-/Health-Basis aus Phase 1
 ist enthalten. Der Docker-Stack und der Windows-Host sind in dieser Sitzung noch
-nicht live abgenommen. **Notes-Installation, DeploymentService, Chat/Wizard und
-Forge folgen erst in den nächsten Phasen.** Es gibt keine simulierten Installationen.
+nicht am Zielhost abgenommen. **Notes-Quellapp, isolierter Deployment-Adapter und
+genehmigte Installation über den Hub sind implementiert.** Chat/Wizard und Forge
+folgen später. Einstieg und offene Host-Gates: [Notes](docs/notes.md).
 
 ## Start in vorbereiteter Linux-Docker-Umgebung
 

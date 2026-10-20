@@ -7,6 +7,8 @@ eingeschränkter Loginrolle und expliziter, transaktionaler Migration. Keine App
 in Core- oder Identitytabellen. Ein fest geprüftes Profil `notes-postgres-v1` erweitert
 den Adapter um genau diesen Sidecar; es gibt weiterhin keine freien Befehle,
 Umgebungsvariablen, Hostmounts, Ports oder Netzwerke aus einem Request.
+Das Profil ist nach Abnahme unveränderlich; geänderte Runtime-Semantik benötigt
+eine neue Profilrevision, einen neuen Plan-Hash und eine neue Zustimmung.
 
 Beide Images laufen als 10001:10001, read-only, mit Ressourcenlimits und echten
 CMD-Healthprüfungen. Nur die Datenbank besitzt ein persistentes Datenvolume und ein

@@ -2,6 +2,10 @@
 
 Status: angenommen; Implementierung P2-002. Baut auf ADR 0003/0006/0007 auf.
 
+Fortschreibung P2-003/P2-004: [ADR 0009](0009-notes-installation-and-sso.md)
+ergänzt das konkrete Notes-Profil, Core-Dispatch, SSO und die Runtime-Verknüpfung.
+Die folgenden Aussagen zum noch ausstehenden Core beziehen sich auf P2-002.
+
 Der Docker-Socket liegt ausschließlich im eigenständigen Deployment-Adapter. Der
 reguläre Stack und sein Bootstrap bleiben unverändert; ein separates Compose-Projekt
 ist explizit vorzubereiten und zu starten. Kein veröffentlichter Adapterport und keine

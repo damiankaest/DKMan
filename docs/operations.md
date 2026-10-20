@@ -77,10 +77,17 @@ Nur dieser Prozess darf den lokalen Docker-Socket erhalten; keine Proxyroute ode
 
 Der aktuelle Backupprozess sichert Core/Identity und deren Konfiguration; er erfasst
 weder das persistente Adapterjournal noch `.local/adapter/catalog.json`. Der neue
-Delegationsschlüssel liegt unter `.local/secrets`, die der bestehende Backupplan
+Delegationsschlüssel und der ausschließlich dem Adapter zugängliche Datenschlüssel
+liegen unter `.local/secrets`, die der bestehende Backupplan
 bereits einschließt. Vor Livebetrieb Journal, Katalog, Corezustände und Appvolumes
 koordiniert sichern und Restore abnehmen. Ohne Journal keine vermeintliche Übernahme
 bereits laufender Container und kein neuer Auftrag zum Überspielen unbekannter Ergebnisse.
+
+Notes und genehmigte Hubinstallation sind als explizites Runtime-Overlay implementiert;
+Vorbereitung, OIDC-Client und Startauswahl stehen in [Notes](notes.md). Notes hat eine
+eigene PostgreSQL-Instanz/ein eigenes Volume. Die alten Backup-/Restore-/Upgradeskripte
+sind weiterhin nur für den Basisstack ausgelegt. Sie sind kein koordinierter
+Runtime-Wartungsweg. Vor Zielhostaktivierung müssen diese Betriebsabnahmen erfolgen.
 
 ## GitHub-Übergabe
 

@@ -38,7 +38,11 @@ test('real OIDC, UI approval, Docker installation, shared Notes and revoked acce
   await expect(deployment.getByRole('button',{name:'Diesen Plan freigeben'})).toBeDisabled();
   await deployment.getByRole('checkbox').check();
   await deployment.getByRole('button',{name:'Diesen Plan freigeben'}).click();
+  const execution = admin.waitForResponse(response => /\/api\/v1\/jobs\/[^/]+\/run$/.test(new URL(response.url()).pathname), {timeout:120_000});
   await deployment.getByRole('button',{name:'Jetzt installieren'}).click();
+  const executed = await execution;
+  expect(executed.status()).toBe(200);
+  expect((await executed.json()).state).toBe('succeeded');
   await expect(deployment.getByRole('heading',{name:/Installiert · Notes/})).toBeVisible({timeout:120_000});
   await access.getByLabel('Haushalt',{exact:true}).selectOption({label:'Journey household'});
   const memberRow = access.locator('li').filter({hasText:'ci-member'}).first();

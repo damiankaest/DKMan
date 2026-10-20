@@ -44,7 +44,7 @@ export function AccessAdmin({ api, installations }: { api: ApiClient; installati
   return <section className="access-admin" aria-label="Haushalte und Freigaben">
     <h2>Haushalte und Freigaben</h2>
     <p>Benutzer erscheinen nach ihrer ersten Anmeldung. Konten und globale Rollen werden in Keycloak verwaltet.</p>
-    {error && <p role="alert" className="error">{error}</p>}
+    {error && <><p role="alert" className="error">{error}</p><button disabled={busy} onClick={() => {setError(''); setRevision(value => value + 1);}}>Freigaben neu laden</button></>}
     <form onSubmit={event => { event.preventDefault(); void change('/api/v1/households', 'POST', { name: name.trim() }); }}>
       <label>Neuer Haushalt <input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></label>
       <button disabled={busy || !name.trim()}>Haushalt erstellen</button>

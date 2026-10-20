@@ -22,6 +22,7 @@ export class ApiClient {
     if (!response.ok) {
       if (response.status === 401) throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
       if (response.status === 403) throw new Error('Für diese Aktion fehlen dir die Rechte.');
+      if (response.status === 429) throw new Error('Zu viele Anfragen. Warte einen Moment und lade den Stand erneut.');
       if (response.status === 409) throw new Error('Änderung steht im Konflikt mit dem aktuellen Stand. Lade Haushalt, Plan und Job erneut.');
       throw new Error(`DKMan ist momentan nicht erreichbar (HTTP ${response.status}).`);
     }
