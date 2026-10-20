@@ -125,3 +125,9 @@ vollständig vorhandene Container voraus. Fehlende Container sind ein Diagnosefa
 kein automatischer Neuinstallationsauftrag. Die Zielhost-/Windows-/VM-Abnahme, vollständige
 OIDC-Betriebsmatrix und koordinierter Backup/Restore bleiben offen. Vorhandene Backups
 und Upgrades sind weiterhin nur für den Basisstack ausgelegt.
+
+
+P2-005 ist über PR #11 in `main` (`07e18c5`) integriert; Main-CI `39431777779` ist
+vollständig erfolgreich, einschließlich echter OIDC-/Notes-Lifecycleprobe. Der genaue
+Mainnachweis steht in [p2-005-main-runtime.json](evidence/p2-005-main-runtime.json).
+Das ist eine isolierte CI-Abnahme und keine Zielhost-/Restorefreigabe.

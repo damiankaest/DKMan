@@ -21,8 +21,9 @@ in `main` über PR #9 integriert. P2-003/P2-004 sind als `ef888e7` über PR #10 
 die vollständige echte Journey und der ergänzende Kompatibilitätslauf sind erfolgreich.
 P2-005 ist ebenfalls implementiert und in isolierter CI geprüft: autorisierter Runtime-
 Lifecycle über Core/Hub, getrennte Operatorrechte, maskierte Logs und echter Datenerhalt.
-Nächste Entwicklung P2-006: verbleibende Fehlermatrix und belegten Abschluss unsicherer
-Operationen ergänzen. Mainintegration und abschließender Nachweis stehen am Ende.
+P2-005 ist über PR #11 als `07e18c5` integriert; Main-CI `39431777779` vollständig
+erfolgreich. Nächste Entwicklung P2-006: verbleibende Fehlermatrix und belegten
+Abschluss unsicherer Operationen ergänzen. Konkrete Nachweise stehen am Ende.
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
@@ -395,3 +396,41 @@ Der folgende reine Dokumentations-/Nachweiscommit enthält keine Runtimeänderun
 und überspringt CI ausdrücklich. Nach Integration wird der Main-Lauf gesondert geprüft.
 P2-006 bleibt nächster Einstieg; Zielhost-/Windows-/VM-/vollständige OIDC-Betriebsmatrix
 und koordinierter Backup/Restore bleiben offen. Keine vorhandenen Hostdienste geändert.
+
+
+## Mainintegration und abschließende Abnahme P2-005
+
+[PR #11](https://github.com/damiankaest/DKMan/pull/11) ist als
+[`07e18c5e0b9f6082b96a846e63455c90b0cef854`](https://github.com/damiankaest/DKMan/commit/07e18c5e0b9f6082b96a846e63455c90b0cef854)
+in `main` integriert. Der integrierte Tree entspricht exakt dem geprüften Featurestand
+plus reinem Dokumentations-/Nachweischeckpoint; dies wurde nach dem Merge verglichen.
+Keine fremden Dependency-PRs integriert, keine bestehenden Migrationen/Lockfiles geändert.
+
+Zusätzlich [Main-CI 39431777779](https://github.com/damiankaest/DKMan/actions/runs/39431777779)
+für `07e18c5` vollständig erfolgreich. Logs aller fünf Jobs eigenständig geprüft:
+184 Backendtests einschließlich PostgreSQL-17-Konkurrenz und Migrationen, 11 UI-Tests,
+2 bestehende Browserchecks, echter Adaptertest (96,54 s), Plattform-Smoke und echte
+Notes-/OIDC-Journey (1,0 min) erfolgreich. Die zusätzliche echte Daten-/DB-Rollenprobe
+besteht ebenfalls. Kein 429/503 im Main-Journeylog; erwartete unberechtigte Notes-
+Datenzugriffe liefern 404. Die zwei älteren Browserchecks bleiben Tests mit Testantworten.
+
+Tatsächlicher separater Main-Nachweis mit Container-/Image-/Volumeidentität, Startzeiten,
+Core-Job-/Operations-IDs und Planhashes:
+[p2-005-main-runtime.json](evidence/p2-005-main-runtime.json).
+[Artefakt 12268123279](https://github.com/damiankaest/DKMan/actions/runs/39431777779/artifacts/12268123279)
+wurde heruntergeladen und SHA-256
+`5cb0412cd2669197d5a842077c2a588ccb052d5783aa80de4db04bd34219a94d` bestätigt.
+Engine-lokale Image-IDs sind weiterhin keine Registry-Pullreferenzen.
+
+P2-005 ist abgeschlossen. Der folgende reine Dokumentations-/Nachweiscommit verändert
+keine Runtime und verwendet ausdrücklich `[skip ci]`. Die dokumentierte Main-CI prüft
+alle integrierten Runtime-/UIquellen. Windows-/VM-/Zielhostabnahmen, vollständige OIDC-
+Betriebsmatrix und koordinierter Backup/Restore bleiben offen. Bestehende Backup-/
+Restore-/Upgrade-Skripte decken den Runtimestack nicht vollständig ab.
+
+Nächster Einstieg P2-006: `runtime_api.py`, `deployment_api.py`, `jobs.py`, Adapterjournal,
+ADRs 0007–0010 und die echten Journey-/Sperrentests lesen. Die positive Journey B ist
+bereits belegt. Die restliche Fehlermatrix (verbotene Images, Rechte, DB-Ausfälle) und
+einen belastbaren Abschluss dauerhaft unsicherer Adapteroperationen ergänzen. Aktuelle
+Health allein, insbesondere nach möglichem Restart, reicht weiterhin nicht. Keine
+pauschale Entsperrung, keine Journallöschung und kein Blind-Retry als Wiederanlaufweg.

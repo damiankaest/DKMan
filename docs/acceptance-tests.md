@@ -348,3 +348,23 @@ Nur P2-005 ist damit abgeschlossen. P2-006-Fehlermatrix/gesicherter Abschluss un
 Operationen, Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und
 koordinierter Backup/Restore bleiben offen. Vorhandene Backup-/Restore-Skripte decken
 den erweiterten Runtimestack weiterhin nicht vollständig ab.
+
+
+## P2-005 · Main-Abnahme
+
+Nach Integration von PR #11 als `07e18c5` wurde
+[Main-CI 39431777779](https://github.com/damiankaest/DKMan/actions/runs/39431777779)
+eigenständig vollständig geprüft: alle fünf Jobs erfolgreich. 184 Backendtests mit
+PostgreSQL 17, 11 UI-Tests, 2 bestehende Browserchecks mit Testantworten, echter
+Adaptertest in 96,54 s, echte Notes-/OIDC-Lifecycle-Journey in 1,0 min und nachfolgende
+reale Datenerhalt-/Rollenprobe bestanden. Wieder drei getrennte Konten, Operatorrechte,
+Reload, echte Freigaben/Operationen, Stop/Start/Restart, Logs, Datenidentität und
+Widerruf geprüft. Keine 429-/503-Antwort im Main-Journeylog.
+
+Der tatsächliche Main-Engine-Nachweis ist separat dauerhaft als
+[p2-005-main-runtime.json](evidence/p2-005-main-runtime.json) gespeichert. Artefakt
+`12268123279` heruntergeladen, SHA-256
+`5cb0412cd2669197d5a842077c2a588ccb052d5783aa80de4db04bd34219a94d` bestätigt.
+P2-005 ist abgeschlossen; der anschließende reine Dokumentationscommit überspringt
+CI ausdrücklich. Die oben genannten Zielhost-/Windows-/OIDC-Betriebs-/Restoregates
+und P2-006 bleiben offen.
