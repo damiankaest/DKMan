@@ -21,7 +21,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P2-002 | P0 / 2 | P2-001 | abgeschlossen und geprüft: PR #9 in main; isolierter Compose-Provider, kuratierte Pläne, gebundene/einmalige Freigaben, Operationsjournal und Ressourcensperren; CI 39388427751: 123 Backendtests, 1 echter Docker-Integrationstest, 5 UI-/2 Browserchecks und Stack-Smoke erfolgreich; kein Zielhoststart |
 | P2-003 | P0 / 2 | P2-002 | abgeschlossen und geprüft: PR #10 in main (`ef888e7`), PR-CI 39409123565 und Main-CI 39409720195 mit Notes-Quellbuild, eigener PostgreSQL-Instanz/Migration, tatsächlichen Image-IDs/Quellhash, echter Daten-/Rollen-/Neustartprobe bestanden |
 | P2-004 | P0 / 2 | P2-003 | abgeschlossen und geprüft: PR #10 in main, Main-CI 39409720195: UI-Plan → gebundene Freigabe → dauerhafter Job → echte Installation/Proxy/SSO; drei echte OIDC-Nutzer, gemeinsame Daten und Widerruf. 151 Backend-/7 UI-Tests; Zielhost bleibt offen |
-| P2-005 | P0 / 2 | P2-004 | Start/Stop/Restart/Status/Logs autorisiert, Redaction; Daten nach Stop/Start identisch |
+| P2-005 | P0 / 2 | P2-004 | implementiert in PR #11; autorisierte Lifecyclejobs, getrennte Operatorfreigaben, persistente Ressourcenreservierung, Status/Redaction/Hub, echte OIDC-/Docker-Abnahme in Prüfung; Abschlussnachweis folgt |
 | P2-006 | P0 / 2 | P2-005,P1-004 | Journey B mit zwei Nutzern und echten Containern E2E, verbotene Images/Permissions/DB-Ausfall testen; belegter Abschluss unsicherer Runtimeoperationen vor Wiederanlauf |
 | P3-001 | P1 / 3 | P2-006 | AppRequest/Planrevisionen persistieren; Workflow/Jobvertrag wiederverwenden |
 | P3-002 | P1 / 3 | P3-001 | Intent-/Tool-Dispatcher + austauschbarer Modellprovider; regelbasierter Modus offen gekennzeichnet |

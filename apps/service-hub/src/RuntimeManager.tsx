@@ -76,12 +76,20 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
     if (recent) await details(recent);
     onChanged();
   }
+  async function acceptJob(next: Job) {
+    // Mutation responses already contain the durable job. Do not reload it and its
+    // approval twice in the same interaction.
+    await details(next);
+    setJobs(current => [next,...current.filter(item => item.id !== next.id)]);
+    setStatus(await api.get<Status>(`/api/v1/installations/${selected}/status`));
+    onChanged();
+  }
   function plan(action: Action) {
     if (key.current?.action !== action || key.current.installation !== selected) key.current = {action,installation:selected,value:crypto.randomUUID()};
     const requestKey = key.current.value;
     void work(async () => {
       const next = await api.request<Job>(`/api/v1/installations/${selected}/${action}`,'POST',{},undefined,requestKey);
-      await details(next); setConfirmed(false); await reload();
+      await acceptJob(next); setConfirmed(false);
     });
   }
   function decide() {
@@ -94,8 +102,8 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
   function execute(suffix: 'run' | 'cancel' | 'reconcile') {
     if (!job) return;
     void work(async () => {
-      await details(await api.request<Job>(`/api/v1/jobs/${job.id}/${suffix}`,'POST'));
-      key.current = null; setConfirmed(false); await reload();
+      await acceptJob(await api.request<Job>(`/api/v1/jobs/${job.id}/${suffix}`,'POST'));
+      key.current = null; setConfirmed(false);
     });
   }
   const planView = job && 'runtime' in job.plan ? job.plan : null;

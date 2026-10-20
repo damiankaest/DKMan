@@ -266,3 +266,45 @@ Die vollständigen tatsächlichen Image-IDs/Quellhash/Artefaktchecksumme stehen 
 in [build-evidence.json](../examples/demo-notes/build-evidence.json). Das Artefakt ist
 zeitlich befristet; der versionierte Nachweis bleibt erhalten. Der folgende reine
 Dokumentations-/Buildnachweiscommit verändert keine Runtime und überspringt CI.
+
+
+## P2-005 · Lokale Prüfung und CI-Vertrag
+
+Ausgang: `ebd606c`; vorhandene Main-CI `39409720195` selbst geprüft. Lokal tatsächlich:
+`uv sync --frozen`, Ruff Check/Format, Mypy (34 Quelldateien), `uv run pytest -q`
+(171 bestanden; 11 PostgreSQLfälle und 1 Docker-Guard ohne lokale Dienste übersprungen),
+`uv build`, `scripts/smoke_core.py` (Live 200 / Ready bei fehlender DB 503 / anonym 401),
+Manifestprüfung und Vertrags-/Typgenerierung erfolgreich. Hub: npm ci, Lint, TypeScript-
+und Produktionsbuild, 11 UI-Tests, Produktionsaudit ohne Befund. PostgreSQL/WASM:
+Revision 0003, 16 Tabellen, FK-Abweisung, Downgrade und Reupgrade erfolgreich.
+Der lokale Playwrightstart scheiterte an fehlender Chromium-Binary; die zwei
+bestehenden Browserchecks laufen zusätzlich in GitHub CI, weiterhin mit Testantworten.
+
+Neue Tests prüfen autorisierte Stop-/Start-/Restartübergänge, unveränderte Installationszahl,
+Operator + getrenntes `app.operate`, verweigerte App-use-Eskalation, fremde Ressourcen/Jobs,
+Rollen-/Grant-/Mitgliedschaftsentzug vor Ausführung, alle sechs Approvalbindungen,
+Ablauf, geänderte Ressource, Key-Konflikte und Reservierung über unterschiedliche Keys,
+Redaction/UTF-8-/Zeilengrenzen, maskierte Fehler, read-only Status/Logs, fehlende oder
+unpassende Operationsnachweise, verlorene erfolgreiche Antwort und Recovery in neuer
+DB-Session. Eine verspätete gesunde Messung kann den neueren Stopstatus nicht überschreiben.
+Alte generische Plan-/Journalreplays bleiben durch bestehende Regressionstests geprüft.
+
+Zwei neue echte PostgreSQL-Tests prüfen konkurrierende Lifecycleplanung über unabhängige
+Sessions: gleiche Keys konvergieren, andere Keys werden bis zum Abschluss blockiert;
+auch ein abgelaufener `running`-Marker bleibt nach Recovery reserviert. Sie ersetzen
+keine Windows-/Hostneustartprobe. Die echte Notes-Journey verwendet weiterhin echte
+Keycloak-Code/PKCE-/SSO-Sitzungen, nun mit expliziter Operatorrolle und separater
+Betriebsfreigabe für den zweiten Nutzer. Sie steuert ausschließlich über Core/Hub
+Stop/Start/Restart und vergleicht vollständige Notes-Datensätze einschließlich IDs,
+Autoren und Zeitstempeln. Eine gesonderte lesende Engineprobe belegt identische
+Container, Images und Volumes, beide gestoppten Container und tatsächlich erhöhte
+Startzeitpunkte nach Start/Restart. Keine simulierten Antworten als Runtimeabnahme.
+
+Die Freigabe wird nach Browserreload aus der persistenten Historie fortgesetzt.
+Runtimegrantentzug sperrt den Operatorbetrieb, während getrennte Appnutzung bestehen
+bleibt; danach wird auch die Mitgliedschaft entzogen. Build- und Lifecyclemetadaten
+werden als CI-Artefakt aufbewahrt. Finaler PR-/Mainnachweis folgt nach Abschluss.
+
+Offen bleiben Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix,
+koordinierter Backup/Restore und der umfassende Nachweisworkflow für unsichere
+Operationen in P2-006. Bestehende Backups decken den Runtimestack nicht vollständig ab.

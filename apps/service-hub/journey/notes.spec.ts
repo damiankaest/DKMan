@@ -20,7 +20,9 @@ test('real OIDC, approved installation and operator lifecycle with unchanged Not
   const admin = await adminContext.newPage();
   const member = await memberContext.newPage();
   const outsider = await outsiderContext.newPage();
+  const rateLimitErrors: string[] = [];
   for (const page of [admin, member, outsider]) page.on('response', response => {
+    if (response.status() === 429) rateLimitErrors.push(new URL(response.url()).pathname);
     if (response.url().includes('/api/') && response.status() >= 400) console.log(`API status ${response.status()} ${new URL(response.url()).pathname}`);
   });
   await login(admin,'ci-admin'); await login(member,'ci-member'); await login(outsider,'ci-outsider');
@@ -156,6 +158,7 @@ test('real OIDC, approved installation and operator lifecycle with unchanged Not
   await expect(member.locator('article')).toHaveCount(0);
   // Return installation ID without credentials for the container persistence probe.
   writeFileSync('../../.local/notes-installation.txt',id);
+  expect(rateLimitErrors).toEqual([]);
   console.log(`Verified real Notes installation ${id}`);
   await adminContext.close(); await memberContext.close(); await outsiderContext.close();
 });

@@ -33,6 +33,7 @@ it('reviews the full lifecycle binding, then executes and displays actual stoppe
   fireEvent.click(stop);
   const approve = await screen.findByRole('button',{name:'Runtimeplan freigeben'});
   expect(approve).toBeDisabled();
+  expect(fetcher.mock.calls.filter(([path]) => path.endsWith('/approval'))).toHaveLength(1);
   expect(screen.queryByRole('button',{name:'Runtimeaktion ausführen'})).toBeNull();
   await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled());
   fireEvent.click(screen.getByRole('checkbox'));

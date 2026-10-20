@@ -329,3 +329,17 @@ Lifecycleübergänge, Freigaben, Ablauf, Idempotenz, Ressourcenrechte, Redaction
 verlorene Antworten und Recovery ab. Reale PostgreSQL-Konkurrenz und Container-/
 OIDC-Journey sind als CI-Gates erweitert; Abschlussnachweis folgt nach erfolgreicher
 CI und Mainintegration. Kein lokaler Docker-Daemon, keine Zielhoständerung.
+
+
+Erster vollständiger PR-Lauf [39427241600](https://github.com/damiankaest/DKMan/actions/runs/39427241600)
+für `f0f5011` erfolgreich: 182 Backendtests (ein Docker-Guard im eigenen Job), 11 UI-Tests,
+2 bestehende Browserchecks, echter Adaptertest (87,53 s), Plattform-Smoke und echte
+Notes-/OIDC-Lifecycle-Journey (1,1 min). Engineprobe belegt Stop beider Container,
+identische Container/Images/Volumes und tatsächlich neue Startzeitpunkte. Vollständige
+Notes-Datensätze nach Start und Restart identisch; getrennte Betriebsfreigabe/Widerruf geprüft.
+
+Im Log fiel eine kurzzeitige 429-Antwort beim Freigabeladen auf. Deshalb doppelte
+Runtime-Detailabfragen entfernt und Benutzer-/Haushaltsverzeichnisse von Mitglieds-/
+Grantänderungen getrennt geladen. Die bestehende Proxybegrenzung bleibt unverändert.
+Die echte Journey verlangt jetzt zusätzlich das Ausbleiben von 429-Antworten.
+Abschließender CI-/Mainnachweis folgt; keine externe Mutation wird automatisch wiederholt.
