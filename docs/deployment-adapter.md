@@ -58,7 +58,8 @@ Aktuell besteht keine Core-Installationsroute. Auch ein 200-Operationsresultat m
 ## Journal und Fehlergrenzen
 
 Explizite Migration: `python -m dkman.deployment_adapter.journal --state-root ...`.
-Der normale Service erzeugt keine Datenbanktabellen. Eigene Journalrevision 1,
+Der normale Service erzeugt keine Datenbanktabellen. Eigene Journalrevision 2
+(0001 Operationsjournal, 0002 einmalige Approval-IDs),
 getrennt von PostgreSQL/Alembic im Core. Das Adaptervolume gehört in ein späteres
 koordiniertes Backup; sein Verlust darf nicht durch einen leeren Journalstart
 kaschiert werden. Bestehende Runtime-Projekte ohne Journaleintrag werden nicht übernommen.
@@ -67,6 +68,7 @@ kaschiert werden. Bestehende Runtime-Projekte ohne Journaleintrag werden nicht �
   Volumes werden abgelehnt. Ein gültiges Imageformat allein reicht nicht aus.
 - Pro Installation gilt eine OS-Dateisperre über den gesamten Aufruf. Dieselbe
   Operation-ID mit anderem Inhalt, Subject oder anderer Approvalbindung: 409.
+  Eine bereits verbrauchte Approval-ID ist auch für eine neue Operation-ID gesperrt.
 - Nach dem dauerhaften `running`-Marker kann ein Timeout oder Fehler bereits
   wirksam gewordene Dockeraktionen betreffen. Deshalb `reconciliation_required` und
   dauerhafte Ressourcensperre statt neuem Versuch.

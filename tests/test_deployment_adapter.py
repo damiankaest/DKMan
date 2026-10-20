@@ -1,9 +1,13 @@
 import json
+import os
 import sqlite3
+import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from pathlib import Path
+from threading import Barrier
+from uuid import UUID, uuid4
 
 import jwt
 import pytest
@@ -472,3 +476,138 @@ def test_log_redaction_and_output_limit():
 def test_client_rejects_unconfigured_endpoints(endpoint):
     with pytest.raises(ValueError):
         HttpDeploymentClient(endpoint)
+
+
+def test_only_isolated_adapter_receives_socket_and_no_service_publishes_it():
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    config = yaml.safe_load((root / "infrastructure/deployment-adapter/compose.yaml").read_text())
+    receivers = []
+    for name, service in config["services"].items():
+        assert not service.get("ports")
+        if "docker.sock" in json.dumps(service):
+            receivers.append(name)
+    assert receivers == ["deployment-adapter"]
+    assert config["networks"]["control"]["internal"]
+    main = (root / "backend/dkman/main.py").read_text()
+    client = (root / "backend/dkman/deployments/client.py").read_text()
+    assert "deployment_adapter" not in main
+    assert "subprocess" not in client and "docker.sock" not in client
+
+
+def test_adapter_config_defaults_to_plan_and_preserves_existing_secrets(tmp_path):
+    import importlib.util
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location(
+        "adapter_config", root / "scripts/generate_adapter_config.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.generate(tmp_path)
+    assert not (tmp_path / ".local").exists()
+    with pytest.raises(ValueError):
+        module.generate(tmp_path, apply=True)
+    module.generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    key = tmp_path / ".local/secrets/adapter-delegation-key"
+    original = key.read_bytes()
+    module.generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    assert key.read_bytes() == original and len(original) > 48
+    assert not Catalog.model_validate_json(
+        (tmp_path / ".local/adapter/catalog.json").read_text()
+    ).images
+    key.unlink()
+    with pytest.raises(ValueError, match="Incomplete"):
+        module.generate(tmp_path, apply=True, confirmation="ADAPTER_CONFIG")
+    assert not key.exists()
+
+
+def test_concurrent_operation_id_collision_is_atomic(adapter, plan):
+    _, app, _, settings, _ = adapter
+    operation_id = uuid4()
+    plans = [plan, plan.model_copy(update={"installation_id": uuid4()})]
+    barrier = Barrier(2)
+
+    def begin(item):
+        journal = Journal(settings.state_root)
+        grant = verify_delegation(token(item, operation_id, "install"), SECRET)
+        with journal.lock(item.installation_id):
+            barrier.wait(timeout=5)
+            try:
+                journal.begin(DeploymentCommand(action="install", plan=item), grant, True)
+                return "created"
+            except AdapterError as error:
+                return error.code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(begin, plans)) == ["created", "operation_id_conflict"]
+    with app.state.journal.connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM resources").fetchone()[0] == 1
+
+
+def test_cli_cleans_environment_and_terminates_timed_out_process_group(tmp_path, monkeypatch):
+    captured = []
+    killed = []
+    monkeypatch.setenv("DOCKER_CONTEXT", "foreign-host")
+    monkeypatch.setenv("COMPOSE_FILE", "/foreign/compose.yaml")
+    monkeypatch.setenv("DOCKER_HOST", "tcp://foreign:2375")
+
+    class Process:
+        returncode = 0
+        pid = 12345
+        calls = 0
+
+        def wait(self, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise subprocess.TimeoutExpired("docker", timeout)
+
+    def popen(arguments, **kwargs):
+        captured.append((arguments, kwargs))
+        return Process()
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    monkeypatch.setattr(os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+    with pytest.raises(CommandError):
+        ComposeProvider(tmp_path, uuid4()).run(["version"], timeout=1)
+    arguments, kwargs = captured[0]
+    assert arguments[:3] == ["/usr/local/bin/docker", "--host", "unix:///var/run/docker.sock"]
+    assert not {"DOCKER_CONTEXT", "COMPOSE_FILE", "DOCKER_HOST"}.intersection(kwargs["env"])
+    assert "shell" not in kwargs and kwargs["start_new_session"]
+    assert len(captured) == 1 and killed[0][0] == 12345
+
+
+def test_expiry_is_checked_after_acquiring_journal_write_lock(adapter, plan, monkeypatch):
+    _, app, engine, _, _ = adapter
+    operation_id = uuid4()
+    grant = verify_delegation(token(plan, operation_id, "install"), SECRET)
+    monkeypatch.setattr("dkman.deployment_adapter.journal.time.time", lambda: grant.exp + 1)
+    with pytest.raises(AdapterError, match="delegation_expired_before_execution"):
+        app.state.journal.begin(DeploymentCommand(action="install", plan=plan), grant, True)
+    assert app.state.journal.get(operation_id) is None
+    assert app.state.journal.current_plan(plan.installation_id) is None
+    assert not engine.calls
+
+
+def test_approval_cannot_authorize_a_second_operation_even_with_a_new_valid_delegation(
+    adapter, plan
+):
+    client, app, engine, _, _ = adapter
+    response, _, credential = submit(client, plan)
+    assert response.json()["state"] == "succeeded"
+    claims = jwt.decode(credential, options={"verify_signature": False})
+    operation_id = uuid4()
+    replay = token(
+        plan,
+        operation_id,
+        "stop",
+        approval_id=UUID(claims["approval_id"]),
+        approval_expires_at=datetime.fromtimestamp(claims["approval_expires_at"], UTC),
+    )
+    denied, _, _ = submit(client, plan, "stop", operation_id=operation_id, credential=replay)
+    assert denied.status_code == 409
+    assert denied.json()["detail"] == "approval_already_consumed"
+    assert len(engine.calls) == 1
+    assert app.state.journal.get(operation_id) is None

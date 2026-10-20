@@ -21,6 +21,7 @@ def generate(root: Path, *, apply: bool = False, confirmation: str = "") -> None
         if directory.is_symlink():
             raise ValueError("Adapter configuration may not use symlinks")
         directory.mkdir(exist_ok=True, mode=0o700)
+        directory.chmod(0o700)
     catalog = root / ".local/adapter/catalog.json"
     key = root / ".local/secrets/adapter-delegation-key"
     marker = root / ".local/adapter/config-complete"

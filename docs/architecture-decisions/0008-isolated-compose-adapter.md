@@ -30,10 +30,13 @@ OIDC-/Ressourcenrechte prüfen und die konkrete persistierte Freigabe verbrauche
 Es gibt keinen HTTP-Endpunkt zum Ausstellen von Delegationen.
 
 Eigenes SQLite-Operationsjournal im persistenten Adaptervolume, explizite SQL-Migration
-und unabhängige Revision 1. Keine Erweiterung der Core-Migrationen oder gemeinsamen
+und unabhängige Revision 2 (0001 Operationsjournal, 0002 einmalige Approvals).
+Keine Erweiterung der Core-Migrationen oder gemeinsamen
 DB-Schreibrechte. SQLite-Transaktionen und OS-Dateisperren serialisieren Installationen
 über Threads und Prozesse. Operation-ID/Fingerprint verhindert doppelte Ausführung.
 Der Marker `running` wird vor dem ersten mutierenden Provideraufruf dauerhaft gespeichert.
+Approval-IDs werden in derselben Transaktion einmalig an eine Operation gebunden;
+auch eine neu signierte Delegation kann sie nicht für eine zweite Operation verwenden.
 
 Nach Timeout, Fehler oder verwaistem Marker: `reconciliation_required`; die Ressource
 bleibt auch für andere Operation-IDs gesperrt. Startup/periodischer Abgleich respektiert

@@ -3,6 +3,7 @@
 import fcntl
 import os
 import sqlite3
+import time
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime
@@ -35,7 +36,12 @@ def migrate(root: Path) -> None:
         version = db.execute("PRAGMA user_version").fetchone()[0]
         if version == 0:
             db.executescript((Path(__file__).parent / "migrations/0001_operations.sql").read_text())
-        elif version != 1:
+            version = 1
+        if version == 1:
+            db.executescript(
+                (Path(__file__).parent / "migrations/0002_single_use_approvals.sql").read_text()
+            )
+        elif version != 2:
             raise ValueError("Unknown adapter journal revision")
 
 
@@ -45,7 +51,7 @@ class Journal:
         if root.is_symlink() or (root / "operations.sqlite3").is_symlink():
             raise ValueError("Symlinks are forbidden for adapter state")
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+            if db.execute("PRAGMA user_version").fetchone()[0] != 2:
                 raise ValueError("Run the explicit adapter journal migration")
         for name in ["locks", "plans", "docker-config"]:
             path = self.root / name
@@ -145,6 +151,15 @@ class Journal:
         )
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if grant.exp <= int(time.time()):
+                raise AdapterError("delegation_expired_before_execution", 401)
+            if grant.approval_id is not None:
+                used = db.execute(
+                    "SELECT operation_id FROM consumed_approvals WHERE approval_id=?",
+                    (str(grant.approval_id),),
+                ).fetchone()
+                if used is not None:
+                    raise AdapterError("approval_already_consumed")
             if mutating:
                 row = db.execute(
                     "SELECT blocked_by FROM resources WHERE installation_id=?",
@@ -164,6 +179,11 @@ class Journal:
                     result.model_dump_json(),
                 ),
             )
+            if grant.approval_id is not None:
+                db.execute(
+                    "INSERT INTO consumed_approvals VALUES (?,?)",
+                    (str(grant.approval_id), str(grant.jti)),
+                )
             if mutating:
                 db.execute(
                     "INSERT INTO resources VALUES (?,?,?) ON CONFLICT(installation_id) "

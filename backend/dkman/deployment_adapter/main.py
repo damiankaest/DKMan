@@ -137,7 +137,7 @@ def create_app(
     def ready() -> dict[str, str]:
         app.state.journal.recover()
         factory(UUID(int=0)).ready()
-        return {"status": "healthy", "journal_revision": "1"}
+        return {"status": "healthy", "journal_revision": "2"}
 
     @app.post("/v1/plans", response_model=DeploymentPlan, operation_id="planDeployment")
     def plan(body: PlanRequest, value: Annotated[Delegation, Depends(grant)]) -> DeploymentPlan:
