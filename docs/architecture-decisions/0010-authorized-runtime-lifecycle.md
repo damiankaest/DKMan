@@ -36,3 +36,11 @@ Logredaktion ist ein gemeinsames reines Textmodul ohne Dockerabhängigkeit, auf 
 und Coregrenze angewandt. React rendert Logs ausschließlich als Text. Musterbasierte
 Maskierung kann unbekannte frei formulierte Secrets nicht erkennen; sichere App-Logs
 bleiben erforderlich. Keine Rohfehler oder Logtexte in Jobs/Events/Audit.
+
+
+Lesende Adapteroperationen teilen sich eine Prozesssperre; Mutationen bleiben
+exklusiv. Beim Sperrerwerb wird höchstens zwei Sekunden auf kurze Beobachtungen
+gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließlich
+der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
+Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
+weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.

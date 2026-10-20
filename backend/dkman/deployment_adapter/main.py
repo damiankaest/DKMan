@@ -183,7 +183,9 @@ def create_app(
         if previous:
             return previous
         mutating = body.action not in READ_ACTIONS
-        with journal.lock(body.plan.installation_id):
+        # Reads may overlap reads, never a mutation. Briefly wait for an active
+        # observation before rejecting a mutation; this retries only lock acquisition.
+        with journal.lock(body.plan.installation_id, shared=not mutating, wait_seconds=2):
             previous = journal.replay(body, value)
             if previous:
                 return previous

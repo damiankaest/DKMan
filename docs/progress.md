@@ -343,3 +343,12 @@ Runtime-Detailabfragen entfernt und Benutzer-/Haushaltsverzeichnisse von Mitglie
 Grantänderungen getrennt geladen. Die bestehende Proxybegrenzung bleibt unverändert.
 Die echte Journey verlangt jetzt zusätzlich das Ausbleiben von 429-Antworten.
 Abschließender CI-/Mainnachweis folgt; keine externe Mutation wird automatisch wiederholt.
+
+
+Der Folgelauf `39428416976` legte nach erfolgreichem Stop eine Read/Read-Kollision
+zwischen Healthpolling und Logabruf offen (503). Die Sperre war bisher auch für
+lesende Operationen exklusiv. Korrektur: gemeinsame Lesesperren, weiterhin exklusive
+Mutationen und maximal zwei Sekunden Wartezeit allein für den Sperrerwerb. Keine
+Wiederholung von Docker-/Provideraufrufen. Zwei deterministische Regressionstests
+prüfen parallele Leser, ausgeschlossene Schreiber, erfolgreichen späteren Erwerb
+und Wartezeitgrenze. Die echte Journey bleibt unverändert streng.

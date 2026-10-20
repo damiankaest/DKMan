@@ -7,7 +7,7 @@ mit Linux-Containern.
 **Stand 0.1.0:** Phase 0 ist implementiert; Registry-/Auth-/Health-Basis aus Phase 1
 ist enthalten. Der Docker-Stack und der Windows-Host sind in dieser Sitzung noch
 nicht am Zielhost abgenommen. **Notes-Quellapp, isolierter Deployment-Adapter und
-genehmigte Installation über den Hub sind implementiert.** Chat/Wizard und Forge
+genehmigte Installation und autorisierter Runtime-Lifecycle über den Hub sind implementiert.** Chat/Wizard und Forge
 folgen später. Einstieg und offene Host-Gates: [Notes](docs/notes.md).
 
 ## Start in vorbereiteter Linux-Docker-Umgebung
@@ -41,6 +41,8 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
 - Persistente Jobs/Events/Approvals, Idempotenz und Recovery ohne blinde Wiederholungen.
 - Notes mit eigener PostgreSQL-Datenbank: geprüfter Quellbuild, UI-Plan/Freigabe,
   tatsächliche Installation und Öffnen per SSO; explizites Runtime-Overlay.
+- Start/Stop/Restart als konkret freizugebende persistente Jobs; getrennte Operatorrechte
+  pro Installation, gemessener Status und maskierte Textlogs; Daten bleiben erhalten.
 - CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
   OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 
@@ -96,14 +98,15 @@ konfigurierten Proxy-Origin, dafür bevorzugt den Compose-Stack verwenden.
 | aktueller Stand und nächster Einstieg | [docs/progress.md](docs/progress.md) |
 | tatsächlich ausgeführte Prüfungen und Grenzen | [docs/acceptance-tests.md](docs/acceptance-tests.md) |
 | Architektur/API/Manifest | [docs/architecture.md](docs/architecture.md) |
-| sechs Entscheidungen | [docs/architecture-decisions/](docs/architecture-decisions/) |
+| Architekturentscheidungen | [docs/architecture-decisions/](docs/architecture-decisions/) |
 | Tickets mit Abhängigkeiten | [docs/backlog.md](docs/backlog.md) |
 | Sicherheitsmodell | [docs/security-threat-model.md](docs/security-threat-model.md) |
 | Betrieb und GitHub-Übergabe | [docs/operations.md](docs/operations.md) |
 | Arbeitskonventionen | [AGENTS.md](AGENTS.md) |
 
-GitHub: kein Remote-Repository erstellt; die verfügbare Verbindung unterstützt die
-Repoerstellung nicht. Lokaler Git-Verlauf ist im Übergabepaket als Bundle enthalten.
+Privates GitHub-Repository: [damiankaest/DKMan](https://github.com/damiankaest/DKMan).
+Aktueller Main-/CI-Stand steht in `docs/progress.md`; der archivierte ursprüngliche
+Git-Bundle ist ausschließlich historischer Quellnachweis.
 
 Lizenz: noch nicht festgelegt. Es wird ohne Eigentümerentscheidung keine
 Open-Source-Lizenz vergeben. Abhängigkeiten behalten ihre jeweiligen Lizenzen.

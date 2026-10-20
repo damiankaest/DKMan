@@ -47,3 +47,9 @@ Abgleich gesperrt; kein generischer Retry-/Erfolgsbutton.
 Grundlagen: [PostgreSQL SELECT/Zeilensperren](https://www.postgresql.org/docs/17/sql-select.html),
 [SQLAlchemy Transaktionen](https://docs.sqlalchemy.org/en/21/orm/session_transaction.html).
 Eigener Vertrag: [Jobs und Freigaben](../jobs.md).
+
+
+Fortschreibung P2-005: Der Runtime-Lifecycle ist implementiert. Globale Operatorrolle
+plus explizites `app.operate` und Haushaltsmitgliedschaft begrenzen die Ressourcen.
+Die bestehende Zustandsmaschine wird wiederverwendet; Details und unveränderte
+v1-Kompatibilität in [ADR 0010](0010-authorized-runtime-lifecycle.md).

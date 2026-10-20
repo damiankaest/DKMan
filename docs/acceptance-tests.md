@@ -56,9 +56,10 @@ wurde angelegt; der pytest-Netzwerktest wird daher transparent übersprungen.
   Netzwerk, Host-/VM-Neustart und Autostart. Syntaxprüfung ist keine Hostabnahme.
 - Backup, Restore und Upgrade im laufenden Stack; Skripte existieren, aber kein
   behaupteter Recovery-Erfolg. Container-Securityscan mangels gebauter Images offen.
-- Journey B am Zielhost und kompletter Runtime-Lifecycle über Core/Hub bleiben offen.
-  Notes-Build/Kuration, UI-Plan/Freigabe, echte Installation/SSO und Mehrbenutzerrechte
-  sind seit P2-003/P2-004 in einer separaten echten CI-Journey geprüft.
+- Journey B am Zielhost bleibt offen. Notes-Build/Kuration, UI-Plan/Freigabe,
+  echte Installation/SSO und Mehrbenutzerrechte sind seit P2-003/P2-004 in einer
+  separaten echten CI-Journey geprüft; P2-005 ergänzt den kompletten autorisierten
+  Runtime-Lifecycle über Core/Hub mit realem Daten-/Containeridentitätsnachweis.
 
 ## Zielhost-Abnahme P0-007
 
@@ -308,3 +309,10 @@ werden als CI-Artefakt aufbewahrt. Finaler PR-/Mainnachweis folgt nach Abschluss
 Offen bleiben Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix,
 koordinierter Backup/Restore und der umfassende Nachweisworkflow für unsichere
 Operationen in P2-006. Bestehende Backups decken den Runtimestack nicht vollständig ab.
+
+
+Nach dem ersten erfolgreichen Lifecyclelauf wurde ein konkurrierender lesender
+Log-/Healthzugriff als Fehler erkannt und korrigiert. Zusätzliche Sperrentests prüfen
+geteilte Leser, exklusive Mutationen und begrenzten Sperrerwerb; es gibt weiterhin
+keine automatische Wiederholung einer Mutation. Die abschließenden Zahlen/Nachweise
+unten ersetzen die Zwischenstände.
