@@ -3,7 +3,9 @@
 Belegbedingungen: [ADR 0011](architecture-decisions/0011-evidence-based-runtime-reconciliation.md).
 Die CI-Abnahme läuft in einem wegwerfbaren Linux-Stack. PR #12 / CI 39566266737
 ist vollständig grün; dauerhafter Nachweis: [p2-006-runtime.json](evidence/p2-006-runtime.json).
-Mainnachweis folgt nach Integration. Testidentitäten/Transportdoubles der schnellen
+Main-CI [39567571003](https://github.com/damiankaest/DKMan/actions/runs/39567571003)
+für `6c749e2` ebenfalls vollständig erfolgreich; tatsächlicher Mainnachweis:
+[p2-006-main-runtime.json](evidence/p2-006-main-runtime.json). Testidentitäten/Transportdoubles der schnellen
 Backendtests sind ausdrücklich keine OIDC-/Dockerabnahme.
 
 | Fehlergrenze | Implementierte Prüfung | Erwarteter belastbarer Ausgang |

@@ -408,3 +408,21 @@ koordinierter Runtime-Backup/Restore sowie Docker-Daemon-Ausfall auf dem Zielhos
 Tests verwenden echte Prozesse und Dockeraktionen, Prozessabbrüche aber ausschließlich
 einen separat gemounteten CI-Entrypoint. Produktionsimage/-overlay enthält keinen
 Faultschalter. Unklarheit ohne Beleg bleibt bewusst blockiert. Main-CI nach Integration folgt.
+
+
+## P2-006 · Erfolgreiche Main-Abnahme
+
+Nach Integration als `6c749e2` auch [Main-CI 39567571003](https://github.com/damiankaest/DKMan/actions/runs/39567571003)
+vollständig erfolgreich; alle fünf Joblogs eigenständig gelesen. 214 Backendtests mit
+PostgreSQL 17, 12 UI-Tests, 2 bestehende Browserchecks, echter Adaptertest 93,57 s,
+echte Notes-/OIDC-Ausfalljourney 1,8 min und nachfolgende reale Daten-/Rollenprobe.
+Die komplette positive Journey und beide DB-/Adapterabsturzfälle erneut bestanden;
+kein weiterer Restart durch Reconcile, keine 429-Antwort im Journeylog.
+
+Dauerhafter Mainnachweis [p2-006-main-runtime.json](evidence/p2-006-main-runtime.json),
+heruntergeladenes Artefakt `12331021072`, bestätigtes SHA-256
+`4a0df1299281213fbdf8e3357f9d60662b4cc7d9e5711e473dc118a59c5a31e1`.
+Core-/Adapter-/Enginebindungen zusätzlich geprüft. P2-006 abgeschlossen. Folgender
+Dokumentationscommit überspringt CI ausdrücklich; keine Runtimeänderung. Die genannten
+Windows-/VM-/Zielhost-/OIDC-Betriebs-/Restoregates bleiben offen; nächste gemeinsame
+Abnahme P0-007, nächste Entwicklung P3-001.

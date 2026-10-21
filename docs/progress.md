@@ -22,8 +22,9 @@ die vollständige echte Journey und der ergänzende Kompatibilitätslauf sind er
 P2-005 ist ebenfalls implementiert und in isolierter CI geprüft: autorisierter Runtime-
 Lifecycle über Core/Hub, getrennte Operatorrechte, maskierte Logs und echter Datenerhalt.
 P2-005 ist über PR #11 als `07e18c5` integriert; Main-CI `39431777779` vollständig
-erfolgreich. P2-006 ist implementiert und über PR #12 geprüft: sichere Belegauflösung
-und echte Fehlermatrix; CI 39566266737 grün. Main-Abnahme nach Integration folgt.
+erfolgreich. P2-006 ist über PR #12 als `6c749e2` integriert und abgeschlossen:
+sichere Belegauflösung und echte Fehlermatrix; PR-CI 39566266737 und Main-CI
+39567571003 vollständig erfolgreich.
 Nächster gemeinsamer Schritt P0-007 (Windows-/VM-Testinstallation), nächste Entwicklung
 P3-001. Konkrete Nachweise stehen am Ende.
 
@@ -500,3 +501,30 @@ Neue Adapterjournalrevision 3 ist explizit zu migrieren; Core bleibt auf 0003. K
 Force-Success oder Runtime-Retry. Zielhost-/Windows-/VM-/OIDC-Betriebs- und koordinierte
 Backup-/Restoregates bleiben offen. Windowsanleitung enthält den konkreten Teststart;
 keine Windows- oder Hoständerung durchgeführt. Nach Integration Main-CI prüfen.
+
+
+## P2-006 · Main-Abnahme und Abschluss · 21.10.2026
+
+PR #12 als `6c749e27a387cb7422d668f5a4ac7130aa6b55f4` integriert; Main entspricht dem
+geprüften PR-Tree. [Main-CI 39567571003](https://github.com/damiankaest/DKMan/actions/runs/39567571003)
+eigenständig mit allen fünf Jobs und deren Logs geprüft: 214 Backendtests mit PostgreSQL 17,
+12 UI-Tests, 2 ältere Browserchecks, echter Adaptertest in 93,57 s, echte Notes-/OIDC-
+Ausfalljourney in 1,8 min und nachfolgende reale Datenerhalt-/Rollenprobe bestanden.
+Erneut drei echte Konten, Stop/Start/Restart, Notes-/Core-DB-Ausfall, beide realen
+Adapterabsturzgrenzen und belegter Abschluss bzw. fortbestehende Sperre nachgewiesen.
+Keine 429-Antwort im Main-Journeylog; erwartete Rechte- und Ausfallantworten gehören zur Probe.
+
+Mainartefakt `12331021072` heruntergeladen, SHA-256
+`4a0df1299281213fbdf8e3357f9d60662b4cc7d9e5711e473dc118a59c5a31e1` bestätigt.
+Core-/Adapter-/Enginebindung sowie unveränderte Runtime über den unbelegten Reconcile
+zusätzlich geprüft. Dauerhafter vollständiger Nachweis:
+[p2-006-main-runtime.json](evidence/p2-006-main-runtime.json).
+Der folgende reine Dokumentationscommit enthält keine Runtimeänderung und verwendet
+`[skip ci]` ausdrücklich.
+
+P2-006 ist abgeschlossen. Nächster gemeinsamer Einstieg: Windows-Rechner für lesenden
+Preflight starten, Hostumgebung prüfen, anschließend bewusst freigegebene isolierte
+Ubuntu-Testumgebung/Basisstack und Notes gemäß windows10-setup.md abnehmen. Nur
+entbehrliche Testdaten, bis Runtime-Backup/Restore koordiniert geprüft ist. Windows-/VM-
+Neustart/Autostart und volle OIDC-Betriebsmatrix bleiben offen. Nächstes Entwicklungsticket
+P3-001; keine bereits erfolgte Zielhostinstallation behauptet.

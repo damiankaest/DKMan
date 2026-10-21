@@ -153,3 +153,10 @@ Der reale Fehlertest verwendet ausschließlich wegwerfbare CI-Container. Sein
 `tests/notes-faults.compose.yaml` und der dort gemountete Prozess-Faultentrypoint gehören
 **nicht** zur Zielhost-Konfiguration. Produktionsstart verwendet nur die beiden Dateien
 `compose.yaml` und `runtime.yaml` aus `infrastructure/compose/`.
+
+
+P2-006 ist als `6c749e2` über PR #12 integriert; [Main-CI 39567571003](https://github.com/damiankaest/DKMan/actions/runs/39567571003)
+vollständig erfolgreich. Dauerhafter tatsächlicher Nachweis:
+[p2-006-main-runtime.json](evidence/p2-006-main-runtime.json). Damit ist der geprüfte
+Entwicklungsstand für die bewusst freizugebende Windows-/VM-Testinstallation erreicht.
+Hoststart/Autostart und koordinierter Runtime-Backup/Restore bleiben gesondert abzunehmen.
