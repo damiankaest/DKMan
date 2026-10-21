@@ -72,7 +72,7 @@ Bei `reconciliation_required` nicht neu installieren. „Ergebnis abgleichen“ 
 die bestehende Operation. Nur ein abgeschlossenes passendes Ergebnis kann den Job
 abschließen. Fehlender Datensatz oder unsicherer Adaptermarker bleiben ungeklärt;
 es gibt keinen Force-Retry. Vor erneutem Betrieb ist ein belegter Abschluss nötig
-(weiterer Workflow in P2-006).
+(belegter Workflow inzwischen in P2-006, siehe ADR 0011).
 
 Runtime-Lifecycle ist über die Hubverwaltung verfügbar: Installation wählen, konkrete
 Start-/Stop-/Restart-Aktion planen, Plan einschließlich Hash prüfen, explizit freigeben

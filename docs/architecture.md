@@ -71,7 +71,10 @@ Compose-Projekt ohne Hostport. Nur dort liegt der lokale Docker-Socket. Katalog
 standardmäßig leer; typisierte serverseitige Pläne, unveränderliche Image-Referenzen
 und konkrete Delegationen statt freier Compose-Dateien/Shellbefehle. Pro Installation
 gelten Prozesssperren und ein persistentes Operationsjournal mit expliziten Migrationen.
-Unsichere Ausgänge bleiben blockiert, Reconcile liefert tatsächliche Beobachtungen.
+Unsichere Ausgänge bleiben blockiert. Seit P2-006 kann Reconcile einen dauerhaften,
+aktionsgebundenen Enginebeleg mit aktuellen Containertransitionen prüfen und genau die
+ursprüngliche Operation abschließen. Fehlende Belege bleiben auch bei gesunden Containern
+gesperrt; kein Provider-Retry. Details: ADR 0011 und runtime-failure-matrix.md.
 
 `deployments/` enthält socketfreie Verträge, Delegationsformat und Core-Transport;
 `deployment_adapter/` ist die eigene ausführende Trust Boundary. Interne OpenAPI:

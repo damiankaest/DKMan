@@ -43,12 +43,14 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
   tatsächliche Installation und Öffnen per SSO; explizites Runtime-Overlay.
 - Start/Stop/Restart als konkret freizugebende persistente Jobs; getrennte Operatorrechte
   pro Installation, gemessener Status und maskierte Textlogs; Daten bleiben erhalten.
+- Belegter Abschluss unsicherer Operationen mit dauerhaften Enginebestätigungen;
+  reale DB-/Prozessausfallmatrix, keine Wiederholung bei fehlendem Nachweis.
 - CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
   OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 
 ## Entwicklung und Prüfungen
 
-Python 3.12 und Node 24 verwenden. `uv` ist nur für lokale Entwicklung erforderlich;
+Python 3.12 und Node 24 verwenden. `uv` wird für Entwicklung und Notes-Quellbuild genutzt;
 die Container installieren gehashte, exportierte Requirements.
 
 ```bash
@@ -100,6 +102,7 @@ konfigurierten Proxy-Origin, dafür bevorzugt den Compose-Stack verwenden.
 | Architektur/API/Manifest | [docs/architecture.md](docs/architecture.md) |
 | Architekturentscheidungen | [docs/architecture-decisions/](docs/architecture-decisions/) |
 | Tickets mit Abhängigkeiten | [docs/backlog.md](docs/backlog.md) |
+| Runtime-Fehlermatrix | [docs/runtime-failure-matrix.md](docs/runtime-failure-matrix.md) |
 | Sicherheitsmodell | [docs/security-threat-model.md](docs/security-threat-model.md) |
 | Betrieb und GitHub-Übergabe | [docs/operations.md](docs/operations.md) |
 | Arbeitskonventionen | [AGENTS.md](AGENTS.md) |

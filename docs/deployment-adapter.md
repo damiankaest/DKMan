@@ -42,6 +42,7 @@ Der Service akzeptiert weder Browser-OIDC-Tokens noch ein festes Admin-Token.
 | `POST /v1/operations/{UUID}` | typisierte Aktion; vor Ausführung dauerhafter Marker; identische Wiederholung liefert vorhandenes Ergebnis |
 | `GET /v1/operations/{UUID}` | vorhandenes Ergebnis mit passender Lese-Delegation |
 | `GET /v1/operations/{UUID}/reconcile` | tatsächlichen Zustand beobachten; unsichere Mutation bleibt gesperrt |
+| `POST /v1/operations/{UUID}/reconcile` | ausschließlich vorhandenen Enginebeleg plus aktuelle Containertransitionen prüfen und belegten Metadatenabschluss speichern; keine Runtimeaktion |
 | `/health/live`, `/health/ready` | Prozess bzw. Journalrevision und tatsächlich erreichbare Linux-Engine/Compose prüfen |
 
 Delegation: HS256, exakter Issuer `dkman-core`, Audience `dkman-deployment-adapter`,
@@ -60,8 +61,8 @@ Die Core-Installationsroute nimmt keine freien Pläne entgegen. Auch ein 200-Ope
 ## Journal und Fehlergrenzen
 
 Explizite Migration: `python -m dkman.deployment_adapter.journal --state-root ...`.
-Der normale Service erzeugt keine Datenbanktabellen. Eigene Journalrevision 2
-(0001 Operationsjournal, 0002 einmalige Approval-IDs),
+Der normale Service erzeugt keine Datenbanktabellen. Aktuelle Journalrevision 3
+(0001 Operationsjournal, 0002 einmalige Approval-IDs, 0003 Enginebelege),
 getrennt von PostgreSQL/Alembic im Core. Das Adaptervolume gehört in ein späteres
 koordiniertes Backup; sein Verlust darf nicht durch einen leeren Journalstart
 kaschiert werden. Bestehende Runtime-Projekte ohne Journaleintrag werden nicht übernommen.
@@ -108,8 +109,8 @@ separate Datenlöschung, Kollisionen und unbekannten Ausgang nach Healthfehler g
 und Details in `acceptance-tests.md`; PR #9 in `main` integriert.
 
 P2-003/P2-004 ergänzen Notes-Quellbuild, Kuration und die echte Installationsjourney;
-deren eigener Nachweis steht in `acceptance-tests.md`. Offen: erweiterte
-belegbarer Workflow zum Abschluss unsicherer Mutationen (P2-006), Zielhost-OIDC,
+deren eigener Nachweis steht in `acceptance-tests.md`. P2-006 ergänzt inzwischen den belegten Abschluss unsicherer Mutationen (siehe unten).
+Offen bleiben Zielhost-OIDC,
 Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme. Die Runtimebedienung
 P2-005 ist implementiert; echte OIDC-/Containerabnahme siehe `acceptance-tests.md`.
 Logredaktion entfernt bekannte Muster, kann frei formulierte oder unbekannte Secrets

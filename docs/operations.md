@@ -117,8 +117,8 @@ Bei Transportverlust/Timeout `reconciliation_required` erhalten. „Runtimeergeb
 abgleichen“ liest ausschließlich die bereits gespeicherte Adapteroperation. Aktuell
 gesunde Container belegen keinen erfolgreichen Restart. Fehlende/unsichere Resultate
 sperren weitere Mutationen und den Öffnen-Link. Weder Journal löschen noch neue Keys,
-Force-Retry oder pauschales Entsperren verwenden. Belegter weiterer Abschluss folgt
-P2-006. Laufende Jobs nicht per DB-Update auf Erfolg setzen.
+Force-Retry oder pauschales Entsperren verwenden. Belegter Abschluss ist seit
+P2-006 implementiert; siehe den Abschnitt unten. Laufende Jobs nicht per DB-Update auf Erfolg setzen.
 
 Stop/Start verändert keine Containerdefinition und löscht keine Daten. Lifecycle setzt
 vollständig vorhandene Container voraus. Fehlende Container sind ein Diagnosefall,

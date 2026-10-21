@@ -22,8 +22,10 @@ die vollständige echte Journey und der ergänzende Kompatibilitätslauf sind er
 P2-005 ist ebenfalls implementiert und in isolierter CI geprüft: autorisierter Runtime-
 Lifecycle über Core/Hub, getrennte Operatorrechte, maskierte Logs und echter Datenerhalt.
 P2-005 ist über PR #11 als `07e18c5` integriert; Main-CI `39431777779` vollständig
-erfolgreich. Nächste Entwicklung P2-006: verbleibende Fehlermatrix und belegten
-Abschluss unsicherer Operationen ergänzen. Konkrete Nachweise stehen am Ende.
+erfolgreich. P2-006 ist implementiert und über PR #12 geprüft: sichere Belegauflösung
+und echte Fehlermatrix; CI 39566266737 grün. Main-Abnahme nach Integration folgt.
+Nächster gemeinsamer Schritt P0-007 (Windows-/VM-Testinstallation), nächste Entwicklung
+P3-001. Konkrete Nachweise stehen am Ende.
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
@@ -79,8 +81,9 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 8. P2-005 ist geprüft: `runtime_api.py`, `runtime_access.py`, ADR 0010, Jobsvertrag und
    `docs/evidence/p2-005-runtime.json` lesen. Keine neue Installation durch Lifecycle,
    keine unbewiesene Auflösung unsicherer Jobs. Core/Hub bleiben ohne Dockerzugriff.
-9. Danach P2-006: Fehlermatrix/DB-Ausfälle und belegten Abschluss unsicherer Operationen
-   ergänzen. Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
+9. P2-006: ADR 0011, runtime-failure-matrix.md und docs/evidence/p2-006-runtime.json lesen.
+   Danach P0-007 am freigegebenen Windows-/VM-Testsystem; nächste Entwicklung P3-001.
+   Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
 
 Die nächste Sitzung braucht keinen Architektur-Neustart. Alle späteren Phasen und
 Akzeptanzkriterien stehen bereits im priorisierten `backlog.md`.
@@ -459,3 +462,41 @@ Abbrüche stammen ausschließlich aus einem separat gemounteten Testentrypoint. 
 Auflösung erlaubt Wiederanlauf, fehlender Beleg hält trotz gesunder Container die Sperre.
 Windows-/VM-Abnahme, volle OIDC-Betriebsmatrix und koordinierter Runtime-Backup/Restore
 bleiben offen. Windowsanleitung ergänzt den Weg vom Preflight bis zur Notes-Testinstallation.
+
+
+## P2-006 · Abschließender PR-Nachweis
+
+[PR #12](https://github.com/damiankaest/DKMan/pull/12), Runtimecommit `99aaeed`,
+[CI 39566266737](https://github.com/damiankaest/DKMan/actions/runs/39566266737):
+alle fünf Jobs erfolgreich; sämtliche Joblogs eigenständig kontrolliert. 214 Backendtests
+mit PostgreSQL 17 (1 absichtlicher Docker-Guard im separaten Adapterjob ausgeführt),
+12 UI-Tests, 2 bisherige Browserchecks, echter Adaptertest in 95,71 s, echte OIDC-/Notes-
+Fehlerjourney in 1,9 min und nachfolgende echte Daten-/DB-Rollenprobe bestanden.
+Die erwarteten DB-Ausfälle liefern 503; unberechtigte Zugriffe 403/404, freies Imagefeld
+422 und neue Mutation bei fehlendem Beleg 409. Keine 429-Antwort im Journeylog.
+
+Belegt: Notes/Core-DB-Ausfall und Wiederanlauf; realer Adapterabsturz nach dauerhafter
+Enginebestätigung, persistierter Job nach Reload und erfolgreicher Nachweisabgleich;
+zweiter echter Absturz vor Belegcommit bleibt trotz gesunder Runtime gesperrt. Die
+zusätzliche Engineprobe bestätigt unveränderte Container/Volumes und keinen weiteren
+Restart durch Reconcile. Nachweise enthalten vollständige begrenzte Enginebelege und
+die gebundenen Corejobs, keine Secrets oder simulierten HTTP-Antworten.
+
+Dauerhaft: [p2-006-runtime.json](evidence/p2-006-runtime.json), Artefakt `12330397133`,
+ZIP-SHA-256 `fe9ca201c785cfeea00ddec541afa392d8366e03f4ae2e322c5c639b956d4a12`.
+Heruntergeladen, Prüfsumme sowie Core-/Adapter-/Enginebindungen zusätzlich geprüft.
+Image-IDs sind ausschließlich lokal auf dem jeweiligen CI-Engine verfügbar.
+
+Lokaler Endstand tatsächlich: 203 Backendtests bestanden, 12 Dienst-/Docker-Skips;
+Ruff/Format/Mypy, Wheel/Sdist und HTTP-Smoke erfolgreich. Wheel enthält Migration 0003,
+keinen CI-Faultentrypoint. Hub npm ci, Vertragsgenerierung ohne Drift, Lint/Build und
+12 UI-Tests erfolgreich. Lokaler Browserstart mangels Chromium-Binary blockiert;
+beide Browserchecks sind in CI bestanden. Core-/Adapter-OpenAPI exportiert; Coretypen
+unverändert regeneriert. Alte Migrationen/Lockfiles unverändert. Zusätzliche Regressionen:
+Delegationsablauf nach Enginebeobachtung, Rechteentzug während Reconcile-I/O,
+Rejection ohne Lösen einer fremden Sperre und einmalige Approval-ID auch bei Ablehnung.
+
+Neue Adapterjournalrevision 3 ist explizit zu migrieren; Core bleibt auf 0003. Kein
+Force-Success oder Runtime-Retry. Zielhost-/Windows-/VM-/OIDC-Betriebs- und koordinierte
+Backup-/Restoregates bleiben offen. Windowsanleitung enthält den konkreten Teststart;
+keine Windows- oder Hoständerung durchgeführt. Nach Integration Main-CI prüfen.

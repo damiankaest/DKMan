@@ -107,7 +107,7 @@ bash scripts/linux/doctor.sh
 ```
 
 Danach manuell Login, Logout und Registryansicht testen. Ausgelieferte UI zeigt
-keine installierte App, bis Phase 2 tatsächlich eine Runtime bereitstellt.
+Notes erst nach bewusster Runtime-Aktivierung und genehmigter Hubinstallation.
 Docker-Daemon und VM-Autostart auf dem realen Host gesondert einrichten und prüfen.
 `restart: unless-stopped` startet Container erst bei laufender Linux-Docker-Engine;
 es startet weder Windows, VM noch WSL. Nach bewusstem `compose stop` erneut `up -d`.

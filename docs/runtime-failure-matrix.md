@@ -1,8 +1,9 @@
 # Runtime-Fehlermatrix · P2-006
 
 Belegbedingungen: [ADR 0011](architecture-decisions/0011-evidence-based-runtime-reconciliation.md).
-Die folgende CI-Abnahme läuft in einem wegwerfbaren Linux-Stack; PR-/Mainnachweis wird
-nach tatsächlichem Abschluss ergänzt. Testidentitäten/Transportdoubles der schnellen
+Die CI-Abnahme läuft in einem wegwerfbaren Linux-Stack. PR #12 / CI 39566266737
+ist vollständig grün; dauerhafter Nachweis: [p2-006-runtime.json](evidence/p2-006-runtime.json).
+Mainnachweis folgt nach Integration. Testidentitäten/Transportdoubles der schnellen
 Backendtests sind ausdrücklich keine OIDC-/Dockerabnahme.
 
 | Fehlergrenze | Implementierte Prüfung | Erwarteter belastbarer Ausgang |
@@ -25,7 +26,7 @@ Die positive Journey B bleibt dieselbe echte Kette: drei Keycloak-Konten, Hubpla
 gebundene Zustimmung, reale Installation/SSO, gemeinsame Notes, Stop/Start/Restart mit
 identischen vollständigen Datensätzen und Container-/Volumenidentität, Rechtewiderruf.
 Erweiterte Enginebeobachtungen, Corejobs und feste Fehlercodes liegen im CI-Artefakt.
-Die vorläufige lokale Abnahme umfasst 200 Backend- und 12 UI-Tests; native PostgreSQL-
+Die lokale Endabnahme umfasst 203 Backend- und 12 UI-Tests; native PostgreSQL-
 und Dockerprüfungen sind lokal explizit übersprungen. Lokaler Playwrightstart benötigt
 eine hier fehlende Chromium-Binary; die bisherigen Browserchecks laufen in GitHub CI.
 
