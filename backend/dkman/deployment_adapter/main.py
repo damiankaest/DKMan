@@ -31,6 +31,7 @@ from dkman.deployments.contracts import (
     canonical_hash,
     validate_plan,
 )
+from dkman.deployments.evidence import prove_completion
 
 
 class AdapterSettings(BaseSettings):
@@ -147,7 +148,7 @@ def create_app(
     def ready() -> dict[str, str]:
         app.state.journal.recover()
         factory(UUID(int=0)).ready()
-        return {"status": "healthy", "journal_revision": "2"}
+        return {"status": "healthy", "journal_revision": "3"}
 
     @app.post("/v1/plans", response_model=DeploymentPlan, operation_id="planDeployment")
     def plan(body: PlanRequest, value: Annotated[Delegation, Depends(grant)]) -> DeploymentPlan:
@@ -174,51 +175,73 @@ def create_app(
         bind(value, body.action, operation_id, body.plan.installation_id, body.plan_hash)
         if body.lifecycle and body.lifecycle.subject != value.sub:
             raise HTTPException(403, "Lifecycle identity mismatch")
-        try:
-            validate_plan(app.state.catalog, body.plan)
-        except ValueError as error:
-            raise HTTPException(409, "Plan is not permitted by curated policy") from error
         journal: Journal = app.state.journal
         previous = journal.replay(body, value)
         if previous:
             return previous
         mutating = body.action not in READ_ACTIONS
+        record_rejection = body.action in {"install", "start", "stop", "restart"}
         # Reads may overlap reads, never a mutation. Briefly wait for an active
         # observation before rejecting a mutation; this retries only lock acquisition.
         with journal.lock(body.plan.installation_id, shared=not mutating, wait_seconds=2):
             previous = journal.replay(body, value)
             if previous:
                 return previous
-            current = journal.current_plan(body.plan.installation_id)
-            if body.lifecycle and current is None:
-                raise HTTPException(409, "Lifecycle requires a known installation")
-            if current is not None:
-                if (
-                    current.definition_id != body.plan.definition_id
-                    or current.data_path != body.plan.data_path
-                ):
-                    raise HTTPException(409, "Installation identity or storage changed")
-                if body.action not in {"install", "deploy", "pull"} and current != body.plan:
-                    raise HTTPException(409, "Operation must target the current installation plan")
-            provider = factory(operation_id)
-            provider.preflight(body.plan, known=current is not None)
-            observation = provider.status(body.plan)
-            if body.action == "install" and observation.state != "absent":
-                raise HTTPException(409, "Installation already exists")
-            if body.action in {"start", "restart"} and observation.state == "absent":
-                raise HTTPException(409, "Installation is absent")
-            if body.action == "remove_data" and observation.state != "absent":
-                raise HTTPException(409, "Remove workload before deleting data")
+            try:
+                validate_plan(app.state.catalog, body.plan)
+            except ValueError:
+                if record_rejection:
+                    return journal.reject(body, value, "curation_rejected")
+                raise HTTPException(409, "Plan is not permitted by curated policy") from None
+            try:
+                current = journal.current_plan(body.plan.installation_id)
+                if body.lifecycle and current is None:
+                    raise HTTPException(409, "Lifecycle requires a known installation")
+                if current is not None:
+                    if (
+                        current.definition_id != body.plan.definition_id
+                        or current.data_path != body.plan.data_path
+                    ):
+                        raise HTTPException(409, "Installation identity or storage changed")
+                    if body.action not in {"install", "deploy", "pull"} and current != body.plan:
+                        raise HTTPException(
+                            409, "Operation must target the current installation plan"
+                        )
+                provider = factory(operation_id)
+                provider.preflight(body.plan, known=current is not None)
+                observation = provider.status(body.plan)
+                if body.action == "install" and observation.state != "absent":
+                    raise HTTPException(409, "Installation already exists")
+                if body.action in {"start", "restart"} and observation.state == "absent":
+                    raise HTTPException(409, "Installation is absent")
+                if body.action == "remove_data" and observation.state != "absent":
+                    raise HTTPException(409, "Remove workload before deleting data")
+            except (AdapterError, HTTPException):
+                if record_rejection:
+                    return journal.reject(body, value, "resource_preflight_rejected")
+                raise
+            except CommandError:
+                if record_rejection:
+                    return journal.reject(body, value, "engine_preflight_unavailable")
+                raise
             # Repeat time validation after preflight; an expired request cannot begin execution.
             if value.exp <= int(datetime.now(UTC).timestamp()):
                 raise HTTPException(401, "Delegation expired before execution")
             result = journal.begin(body, value, mutating)
+            provider.collect_receipts(body, journal.record_receipt)
             try:
                 outcome = getattr(provider, body.action)(
                     body.plan
                 )  # Action is a closed Literal enum.
+                completion = None
+                receipt = journal.receipt(operation_id)
+                if receipt:
+                    completion, outcome = prove_completion(
+                        body, operation_id, result.created_at, receipt, provider.evidence(body.plan)
+                    )
                 result = result.model_copy(
                     update={
+                        "completion": completion,
                         "state": "succeeded",
                         "finished_at": datetime.now(UTC),
                         "runtime": outcome if isinstance(outcome, RuntimeView) else None,
@@ -276,5 +299,40 @@ def create_app(
             command.plan, known=journal.current_plan(item.installation_id) is not None
         )
         return item.model_copy(update={"runtime": provider.status(command.plan)})
+
+    @app.post(
+        "/v1/operations/{operation_id}/reconcile",
+        response_model=OperationView,
+        operation_id="reconcileDeploymentEvidence",
+    )
+    def reconcile_evidence(
+        operation_id: UUID, value: Annotated[Delegation, Depends(grant)]
+    ) -> OperationView:
+        item = read_operation(operation_id, value, "reconcile")
+        journal: Journal = app.state.journal
+        journal.require_subject(operation_id, value.sub)
+        journal.recover()
+        with journal.lock(item.installation_id, wait_seconds=2):
+            item = read_operation(operation_id, value, "reconcile")
+            if value.exp <= int(datetime.now(UTC).timestamp()):
+                raise HTTPException(401, "Delegation expired before reconciliation")
+            if item.state != "reconciliation_required":
+                return item
+            command = journal.stored_command(operation_id)
+            provider = factory(operation_id)
+            provider.preflight(
+                command.plan, known=journal.current_plan(item.installation_id) is not None
+            )
+            if journal.receipt(operation_id) is None:
+                return item.model_copy(
+                    update={
+                        "runtime": provider.status(command.plan),
+                        "failure_code": "execution_receipt_missing",
+                    }
+                )
+            after = provider.evidence(command.plan)
+            if value.exp <= int(datetime.now(UTC).timestamp()):
+                raise HTTPException(401, "Delegation expired before evidence commit")
+            return journal.resolve(operation_id, after)
 
     return app

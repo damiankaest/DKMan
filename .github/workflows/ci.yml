@@ -107,9 +107,9 @@ jobs:
       - name: Start isolated runtime stack
         run: |
           export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml config --quiet
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml up -d --build --wait --wait-timeout 300
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml run --rm --no-deps core python -m dkman.seed
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml config --quiet
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml run --rm --no-deps core python -m dkman.seed
       - run: npm ci --ignore-scripts --no-audit --no-fund && npx playwright install --with-deps chromium && npm run test:journey
         working-directory: apps/service-hub
       - run: python3 tests/verify_notes_container.py
@@ -124,11 +124,14 @@ jobs:
             .local/adapter/catalog.json
             .local/notes-lifecycle.json
             .local/notes-lifecycle-jobs.json
+            .local/notes-faults.json
+            .local/notes-fault-results.json
+            .local/notes-operation-evidence.json
       - name: Show sanitized startup state on failure
         if: failure()
         run: |
           export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml ps -a
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml ps -a
           uv run python tests/diagnose_notes_ci.py
       - name: Stop only disposable CI resources
         if: always()
@@ -136,4 +139,4 @@ jobs:
           export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
           ids=$(docker ps -aq --filter label=io.dkman.installation)
           if [ -n "$ids" ]; then docker rm -f $ids; fi
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml down
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml down

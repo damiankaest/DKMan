@@ -74,5 +74,5 @@ class HttpDeploymentClient:
     ) -> OperationView:
         suffix = "/reconcile" if reconcile else ""
         return OperationView.model_validate_json(
-            self.request(f"/v1/operations/{operation_id}{suffix}", token)
+            self.request(f"/v1/operations/{operation_id}{suffix}", token, {} if reconcile else None)
         )

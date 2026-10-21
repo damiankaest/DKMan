@@ -1,0 +1,641 @@
+{
+  "schema_version": 1,
+  "ticket": "P2-006",
+  "scope": "disposable Linux GitHub Actions engine; no Windows/target-host/restore acceptance",
+  "source_commit": "99aaeed34192cf49abf7331f1a44ca1880acd17e",
+  "pull_request": "https://github.com/damiankaest/DKMan/pull/12",
+  "ci_run": "https://github.com/damiankaest/DKMan/actions/runs/39566266737",
+  "artifact_id": 12330397133,
+  "artifact_sha256": "fe9ca201c785cfeea00ddec541afa392d8366e03f4ae2e322c5c639b956d4a12",
+  "build": {
+    "schema_version": 1,
+    "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+    "app_image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+    "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+    "scope": "local Linux engine; rebuild explicitly on another engine"
+  },
+  "image_scope": "Engine-local image IDs, rebuild and curate from reviewed sources on another host",
+  "engine_history": {
+    "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+    "before": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:05:31.049659989Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:05:27.421564369Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "stop": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "exited",
+        "started_at": "2026-10-21T08:05:31.049659989Z",
+        "health": "unhealthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "exited",
+        "started_at": "2026-10-21T08:05:27.421564369Z",
+        "health": "unhealthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "start": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:05:53.265777698Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:05:49.612903778Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "restart": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:04.932795364Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:04.546240859Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "reconciled_restart": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:36.033611716Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:35.408308743Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "unproven_restart": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:07:00.140250945Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:59.522612825Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    },
+    "after_reconcile": {
+      "app": {
+        "id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+        "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+        "status": "running",
+        "started_at": "2026-10-21T08:07:00.140250945Z",
+        "health": "healthy",
+        "volumes": []
+      },
+      "database": {
+        "id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+        "image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+        "status": "running",
+        "started_at": "2026-10-21T08:06:59.522612825Z",
+        "health": "healthy",
+        "volumes": [
+          "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+        ]
+      }
+    }
+  },
+  "lifecycle_jobs": [
+    {
+      "id": "5cb074b6-73e5-4a3d-8212-0a3fb808712a",
+      "requested_by": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+      "action": "deployment.stop",
+      "resource_type": "app_installation",
+      "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "risk": "reversible",
+      "state": "succeeded",
+      "plan": {
+        "schema_version": 1,
+        "action": "stop",
+        "resource_type": "app_installation",
+        "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "subject": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+        "runtime": {
+          "definition_id": "demo-notes",
+          "version": "0.1.0",
+          "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+          "internal_port": 8080,
+          "data_path": null,
+          "user": "10001:10001",
+          "memory_mb": 128,
+          "cpus": 0.5,
+          "profile": "notes-postgres-v1",
+          "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+          "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+          "schema_version": 1,
+          "provider": "docker-compose",
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "context": {
+            "household_id": "6ef7fe09-625b-468d-935b-20b0bc550bc9",
+            "subject": "8b2e7c79-3790-48aa-8df2-d36baa98def7",
+            "manifest_id": "34ca8723-2fd3-46e3-9d0d-2882d6379907",
+            "manifest_hash": "44813bcb22dfecb1127c264864fae2ee72eac1de7625167a07fe52e4a880db75"
+          }
+        }
+      },
+      "plan_hash": "801ede00774d7e95ee1500dd7f0173056f43eb914e6cc9a244fcac0ce33f3418",
+      "requires_approval": true,
+      "attempt": 1,
+      "created_at": "2026-10-21T08:05:41.394187Z",
+      "updated_at": "2026-10-21T08:05:45.247400Z",
+      "execution_started_at": "2026-10-21T08:05:43.569914Z",
+      "finished_at": "2026-10-21T08:05:45.247389Z",
+      "failure_code": null,
+      "result": {
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "operation_id": "5cb074b6-73e5-4a3d-8212-0a3fb808712a",
+        "state": "stopped",
+        "evidence_hash": "6226fc04472dd1dd7680d9f240a5f895775e63b656f53d7b46fd3531e6404f29",
+        "evidence_kind": "engine_acknowledgement"
+      }
+    },
+    {
+      "id": "cad6a63f-d6cc-4274-94bb-e8158fecfb01",
+      "requested_by": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+      "action": "deployment.start",
+      "resource_type": "app_installation",
+      "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "risk": "reversible",
+      "state": "succeeded",
+      "plan": {
+        "schema_version": 1,
+        "action": "start",
+        "resource_type": "app_installation",
+        "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "subject": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+        "runtime": {
+          "definition_id": "demo-notes",
+          "version": "0.1.0",
+          "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+          "internal_port": 8080,
+          "data_path": null,
+          "user": "10001:10001",
+          "memory_mb": 128,
+          "cpus": 0.5,
+          "profile": "notes-postgres-v1",
+          "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+          "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+          "schema_version": 1,
+          "provider": "docker-compose",
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "context": {
+            "household_id": "6ef7fe09-625b-468d-935b-20b0bc550bc9",
+            "subject": "8b2e7c79-3790-48aa-8df2-d36baa98def7",
+            "manifest_id": "34ca8723-2fd3-46e3-9d0d-2882d6379907",
+            "manifest_hash": "44813bcb22dfecb1127c264864fae2ee72eac1de7625167a07fe52e4a880db75"
+          }
+        }
+      },
+      "plan_hash": "512973107900516d4389b129d74b669eb9c649570ae18db693b02b4e2473c0b1",
+      "requires_approval": true,
+      "attempt": 1,
+      "created_at": "2026-10-21T08:05:47.797175Z",
+      "updated_at": "2026-10-21T08:05:59.594970Z",
+      "execution_started_at": "2026-10-21T08:05:49.101717Z",
+      "finished_at": "2026-10-21T08:05:59.594959Z",
+      "failure_code": null,
+      "result": {
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "operation_id": "cad6a63f-d6cc-4274-94bb-e8158fecfb01",
+        "state": "running",
+        "evidence_hash": "6886a3e15d7108d56c402d15e1e518bf836a00559f0e480a13d20d9cdecf435b",
+        "evidence_kind": "engine_acknowledgement"
+      }
+    },
+    {
+      "id": "227b87c7-f612-4a94-ad13-5cb3bab29db3",
+      "requested_by": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+      "action": "deployment.restart",
+      "resource_type": "app_installation",
+      "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "risk": "reversible",
+      "state": "succeeded",
+      "plan": {
+        "schema_version": 1,
+        "action": "restart",
+        "resource_type": "app_installation",
+        "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "subject": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+        "runtime": {
+          "definition_id": "demo-notes",
+          "version": "0.1.0",
+          "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+          "internal_port": 8080,
+          "data_path": null,
+          "user": "10001:10001",
+          "memory_mb": 128,
+          "cpus": 0.5,
+          "profile": "notes-postgres-v1",
+          "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+          "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+          "schema_version": 1,
+          "provider": "docker-compose",
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "context": {
+            "household_id": "6ef7fe09-625b-468d-935b-20b0bc550bc9",
+            "subject": "8b2e7c79-3790-48aa-8df2-d36baa98def7",
+            "manifest_id": "34ca8723-2fd3-46e3-9d0d-2882d6379907",
+            "manifest_hash": "44813bcb22dfecb1127c264864fae2ee72eac1de7625167a07fe52e4a880db75"
+          }
+        }
+      },
+      "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+      "requires_approval": true,
+      "attempt": 1,
+      "created_at": "2026-10-21T08:06:02.775460Z",
+      "updated_at": "2026-10-21T08:06:11.189881Z",
+      "execution_started_at": "2026-10-21T08:06:04.049798Z",
+      "finished_at": "2026-10-21T08:06:11.189872Z",
+      "failure_code": null,
+      "result": {
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "operation_id": "227b87c7-f612-4a94-ad13-5cb3bab29db3",
+        "state": "running",
+        "evidence_hash": "5556f16fe3a194a930a51cd81a8b7894cc3839e4482465044c0ddfea9d8f5b82",
+        "evidence_kind": "engine_acknowledgement"
+      }
+    }
+  ],
+  "fault_steps": [
+    {
+      "action": "notes-db-stop",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "notes-db-start",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "core-db-stop",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "core-db-start",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "after_receipt",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60"
+    },
+    {
+      "action": "adapter-ready",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "evidence",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60"
+    },
+    {
+      "action": "before_receipt",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": "3b7ad311-4383-4ca2-8095-78b21f7614f9"
+    },
+    {
+      "action": "adapter-ready",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": null
+    },
+    {
+      "action": "evidence",
+      "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "operation_id": "3b7ad311-4383-4ca2-8095-78b21f7614f9"
+    }
+  ],
+  "core_fault_results": {
+    "operator_without_scope": 404,
+    "member_without_role": 403,
+    "free_image_payload": 422,
+    "notes_database_down": {
+      "status": 503,
+      "runtime": "unhealthy"
+    },
+    "core_database_down": {
+      "status": 503,
+      "job_after_recovery": "queued"
+    },
+    "acknowledged_crash": {
+      "id": "097ffe68-77c9-45bb-9142-73694cbffa60",
+      "requested_by": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+      "action": "deployment.restart",
+      "resource_type": "app_installation",
+      "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "risk": "reversible",
+      "state": "succeeded",
+      "plan": {
+        "schema_version": 1,
+        "action": "restart",
+        "resource_type": "app_installation",
+        "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "subject": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+        "runtime": {
+          "definition_id": "demo-notes",
+          "version": "0.1.0",
+          "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+          "internal_port": 8080,
+          "data_path": null,
+          "user": "10001:10001",
+          "memory_mb": 128,
+          "cpus": 0.5,
+          "profile": "notes-postgres-v1",
+          "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+          "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+          "schema_version": 1,
+          "provider": "docker-compose",
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "context": {
+            "household_id": "6ef7fe09-625b-468d-935b-20b0bc550bc9",
+            "subject": "8b2e7c79-3790-48aa-8df2-d36baa98def7",
+            "manifest_id": "34ca8723-2fd3-46e3-9d0d-2882d6379907",
+            "manifest_hash": "44813bcb22dfecb1127c264864fae2ee72eac1de7625167a07fe52e4a880db75"
+          }
+        }
+      },
+      "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+      "requires_approval": true,
+      "attempt": 1,
+      "created_at": "2026-10-21T08:06:33.403106Z",
+      "updated_at": "2026-10-21T08:06:54.525273Z",
+      "execution_started_at": "2026-10-21T08:06:34.934002Z",
+      "finished_at": "2026-10-21T08:06:54.525263Z",
+      "failure_code": null,
+      "result": {
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60",
+        "state": "running",
+        "evidence_hash": "f6428174d11dc2fcdefb60cf631ea04bb6dd9d4b06fd7ce35ab61ccde3810cd4",
+        "evidence_kind": "engine_acknowledgement"
+      }
+    },
+    "unacknowledged_crash": {
+      "id": "3b7ad311-4383-4ca2-8095-78b21f7614f9",
+      "requested_by": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+      "action": "deployment.restart",
+      "resource_type": "app_installation",
+      "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+      "risk": "reversible",
+      "state": "reconciliation_required",
+      "plan": {
+        "schema_version": 1,
+        "action": "restart",
+        "resource_type": "app_installation",
+        "resource_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "subject": "b6960ff2-8d87-468a-8860-4d9e40cef477",
+        "runtime": {
+          "definition_id": "demo-notes",
+          "version": "0.1.0",
+          "image": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+          "internal_port": 8080,
+          "data_path": null,
+          "user": "10001:10001",
+          "memory_mb": 128,
+          "cpus": 0.5,
+          "profile": "notes-postgres-v1",
+          "database_image": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+          "source_hash": "dae98919a221fcd8e9c653131214ed08b526191fc350a230f691035e1cf49d2d",
+          "schema_version": 1,
+          "provider": "docker-compose",
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "context": {
+            "household_id": "6ef7fe09-625b-468d-935b-20b0bc550bc9",
+            "subject": "8b2e7c79-3790-48aa-8df2-d36baa98def7",
+            "manifest_id": "34ca8723-2fd3-46e3-9d0d-2882d6379907",
+            "manifest_hash": "44813bcb22dfecb1127c264864fae2ee72eac1de7625167a07fe52e4a880db75"
+          }
+        }
+      },
+      "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+      "requires_approval": true,
+      "attempt": 1,
+      "created_at": "2026-10-21T08:06:57.288842Z",
+      "updated_at": "2026-10-21T08:07:11.838001Z",
+      "execution_started_at": "2026-10-21T08:06:59.004840Z",
+      "finished_at": null,
+      "failure_code": "execution_receipt_missing",
+      "result": null
+    }
+  },
+  "operation_evidence": {
+    "097ffe68-77c9-45bb-9142-73694cbffa60": {
+      "operation": {
+        "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60",
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "action": "restart",
+        "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+        "state": "succeeded",
+        "created_at": "2026-10-21T08:06:35.118838Z",
+        "finished_at": "2026-10-21T08:06:54.514101Z",
+        "failure_code": null,
+        "runtime": {
+          "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+          "state": "running",
+          "observed_at": "2026-10-21T08:06:54.512687Z",
+          "container_id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1"
+        },
+        "logs": null,
+        "completion": {
+          "kind": "engine_acknowledgement",
+          "receipt": {
+            "schema_version": 1,
+            "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60",
+            "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+            "action": "restart",
+            "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+            "before": {
+              "observed_at": "2026-10-21T08:06:35.264782Z",
+              "containers": [
+                {
+                  "service": "app",
+                  "container_id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+                  "image_id": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+                  "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+                  "status": "running",
+                  "health": "healthy",
+                  "started_at": "2026-10-21T08:06:26.786386Z",
+                  "finished_at": "2026-10-21T08:06:26.703069Z",
+                  "volumes": []
+                },
+                {
+                  "service": "database",
+                  "container_id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+                  "image_id": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+                  "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+                  "status": "running",
+                  "health": "healthy",
+                  "started_at": "2026-10-21T08:06:26.386711Z",
+                  "finished_at": "2026-10-21T08:06:26.321408Z",
+                  "volumes": [
+                    "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+                  ]
+                }
+              ]
+            },
+            "acknowledged_at": "2026-10-21T08:06:36.234104Z"
+          },
+          "after": {
+            "observed_at": "2026-10-21T08:06:54.512687Z",
+            "containers": [
+              {
+                "service": "app",
+                "container_id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+                "image_id": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+                "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+                "status": "running",
+                "health": "healthy",
+                "started_at": "2026-10-21T08:06:36.033611Z",
+                "finished_at": "2026-10-21T08:06:35.944927Z",
+                "volumes": []
+              },
+              {
+                "service": "database",
+                "container_id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+                "image_id": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+                "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+                "status": "running",
+                "health": "healthy",
+                "started_at": "2026-10-21T08:06:35.408308Z",
+                "finished_at": "2026-10-21T08:06:35.350373Z",
+                "volumes": [
+                  "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "receipt": {
+        "schema_version": 1,
+        "operation_id": "097ffe68-77c9-45bb-9142-73694cbffa60",
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "action": "restart",
+        "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+        "before": {
+          "observed_at": "2026-10-21T08:06:35.264782Z",
+          "containers": [
+            {
+              "service": "app",
+              "container_id": "81837989496e2d7c9343ce97b2283950528e4f89feef5dad5801ea24f6c393e1",
+              "image_id": "sha256:d96f0992df958ad1ef6bbbb4140d7738d7f46ed10401bf0479e507fc0d526f90",
+              "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+              "status": "running",
+              "health": "healthy",
+              "started_at": "2026-10-21T08:06:26.786386Z",
+              "finished_at": "2026-10-21T08:06:26.703069Z",
+              "volumes": []
+            },
+            {
+              "service": "database",
+              "container_id": "e0b1f6dfcc09549f62e0b8e533c6b480a3183506720b5c17e82e21c81f90e36d",
+              "image_id": "sha256:f2159ac821e662ea6b2bfca2be12d6e883c2d8dbec7e6b9ee8612ace8eccef0d",
+              "runtime_plan_hash": "eff5bf4094926c413435e7e7d7c713cbc734fb407c9c1f337a154536dfafc43e",
+              "status": "running",
+              "health": "healthy",
+              "started_at": "2026-10-21T08:06:26.386711Z",
+              "finished_at": "2026-10-21T08:06:26.321408Z",
+              "volumes": [
+                "dkman-app-7a8b535e-a66a-4a97-b2cf-582a9ceeab38-data"
+              ]
+            }
+          ]
+        },
+        "acknowledged_at": "2026-10-21T08:06:36.234104Z"
+      }
+    },
+    "3b7ad311-4383-4ca2-8095-78b21f7614f9": {
+      "operation": {
+        "operation_id": "3b7ad311-4383-4ca2-8095-78b21f7614f9",
+        "installation_id": "7a8b535e-a66a-4a97-b2cf-582a9ceeab38",
+        "action": "restart",
+        "plan_hash": "1cecfaf0f4b405218fb011b4f74211b78c3f960a7306048e5801eb352fae20a2",
+        "state": "reconciliation_required",
+        "created_at": "2026-10-21T08:06:59.235002Z",
+        "finished_at": "2026-10-21T08:07:02.000658Z",
+        "failure_code": "execution_outcome_unknown",
+        "runtime": null,
+        "logs": null
+      },
+      "receipt": null
+    }
+  },
+  "verified": {
+    "backend_tests": 214,
+    "ui_tests": 12,
+    "legacy_browser_checks": 2,
+    "real_adapter_tests": 1,
+    "real_oidc_notes_journey": 1
+  },
+  "open_gates": [
+    "Windows/VM/target-host startup and autostart",
+    "complete OIDC operations matrix",
+    "coordinated runtime backup/restore"
+  ]
+}

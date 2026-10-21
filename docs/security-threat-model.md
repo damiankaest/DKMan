@@ -54,3 +54,11 @@ gebunden. Konkurrierende Keys/Subjects umgehen keine offene Ressourcenreservieru
 Keine neue Dockergrenze in Core/Hub. Logs werden erneut im Core begrenzt/maskiert und
 in React als Text angezeigt. Unklare Ausgänge werden weder durch Healthpolling noch
 durch einen neuen Auftrag entsperrt. P2-006 erweitert den belegbaren Abschluss.
+
+P2-006: Abgleich darf nur dauerhafte, vollständig gebundene Enginebelege plus passende
+Containertransitionen abschließen. Exklusive Prozesssperre, originale Identität, aktuelle
+Core-Rechte und nochmalige Core-Belegprüfung verhindern eine Health-basierte Entsperrung.
+Vor-Ausführungsablehnungen besitzen einen separaten Nichtausführungsnachweis. Fehlende
+Belege bleiben blockiert. Belege enthalten nur begrenzte nicht vertrauliche Enginefelder;
+Prüfsummen ersetzen keine Host-/Adapterintegrität. CI-Faultsteuerung existiert nur in
+separaten Testdateien und wird weder ins Image noch in das Produktionsoverlay aufgenommen.

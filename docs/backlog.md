@@ -22,7 +22,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P2-003 | P0 / 2 | P2-002 | abgeschlossen und geprüft: PR #10 in main (`ef888e7`), PR-CI 39409123565 und Main-CI 39409720195 mit Notes-Quellbuild, eigener PostgreSQL-Instanz/Migration, tatsächlichen Image-IDs/Quellhash, echter Daten-/Rollen-/Neustartprobe bestanden |
 | P2-004 | P0 / 2 | P2-003 | abgeschlossen und geprüft: PR #10 in main, Main-CI 39409720195: UI-Plan → gebundene Freigabe → dauerhafter Job → echte Installation/Proxy/SSO; drei echte OIDC-Nutzer, gemeinsame Daten und Widerruf. 151 Backend-/7 UI-Tests; Zielhost bleibt offen |
 | P2-005 | P0 / 2 | P2-004 | abgeschlossen und geprüft: PR #11 in main (07e18c5); PR-CI 39430552396 und Main-CI 39431777779 vollständig erfolgreich: 184 Backendtests, 11 UI-Tests, 2 Browserchecks, echter Adaptertest und echte OIDC-/Notes-Lifecycle-Journey mit identischen Daten/Containern/Volumes; konkreter dauerhafter Mainnachweis unter docs/evidence/p2-005-main-runtime.json |
-| P2-006 | P0 / 2 | P2-005,P1-004 | positive Journey B mit echten Nutzern/Containern ist durch P2-005 belegt; verbleibende Fehlermatrix für verbotene Images/Permissions/DB-Ausfall und belegter Abschluss unsicherer Runtimeoperationen vor Wiederanlauf |
+| P2-006 | P0 / 2 | P2-005,P1-004 | implementiert und PR-geprüft: PR #12, Runtimecommit 99aaeed, CI 39566266737 vollständig grün; dauerhafte Enginebelege, gebundene Nichtausführungsnachweise, reale Image-/Rechte-/DB-/Crashmatrix; 214 Backend-/12 UI-Tests; Mainabnahme nach Integration folgt |
 | P3-001 | P1 / 3 | P2-006 | AppRequest/Planrevisionen persistieren; Workflow/Jobvertrag wiederverwenden |
 | P3-002 | P1 / 3 | P3-001 | Intent-/Tool-Dispatcher + austauschbarer Modellprovider; regelbasierter Modus offen gekennzeichnet |
 | P3-003 | P1 / 3 | P3-002 | Garten-Wizard sammelt Requirements und schlägt berechtigte vorhandene Dienste vor; genehmigbarer Plan |
@@ -36,8 +36,9 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächste Entwicklung: P2-006, verbleibende Fehler-/Ausfallmatrix und belegten Abschluss
-unsicherer Operationen vor Wiederanlauf ergänzen. P2-005 führt keine blinde Wiederholung,
-keine pauschale Entsperrung und keinen erzwungenen Erfolg ein. Windows-/VM-/Zielhost-
-abnahme P0-007, vollständige OIDC-Betriebsmatrix und koordinierter Backup/Restore bleiben
-eigene offene Gates. Bestehende Backups decken den Runtimestack nicht vollständig ab.
+Nächster Entwicklungseinstieg nach P2-006: P3-001 (persistente AppRequests und
+Planrevisionen). Nächster gemeinsamer Zielhostschritt: P0-007, Windows-Preflight und
+freigegebene Ubuntu-Testumgebung, danach Basisstack/Notes gemäß windows10-setup.md.
+Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und koordinierter
+Backup/Restore bleiben eigene offene Gates. Bestehende Backups decken den Runtimestack
+nicht vollständig ab. Fehlender Enginebeleg bleibt bewusst gesperrt; kein Force-Retry.

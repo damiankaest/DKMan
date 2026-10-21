@@ -8,6 +8,7 @@ import re
 import signal
 import subprocess
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -15,7 +16,14 @@ from typing import Any
 from uuid import UUID
 
 from dkman.deployment_adapter.journal import AdapterError
-from dkman.deployments.contracts import DeploymentPlan, RuntimeView
+from dkman.deployments.contracts import (
+    ContainerEvidence,
+    DeploymentCommand,
+    DeploymentPlan,
+    EngineReceipt,
+    RuntimeView,
+    WorkloadEvidence,
+)
 from dkman.deployments.redaction import redact_logs
 
 
@@ -108,6 +116,43 @@ class ComposeProvider:
         self.operation_id = operation_id
         self.binary = docker_binary
         self.credential_key = credential_key
+        self._receipt_command: DeploymentCommand | None = None
+        self._receipt_writer: Callable[[EngineReceipt], None] | None = None
+
+    def collect_receipts(
+        self, command: DeploymentCommand, writer: Callable[[EngineReceipt], None]
+    ) -> None:
+        if command.action in {"install", "start", "stop", "restart"}:
+            self._receipt_command = command
+            self._receipt_writer = writer
+
+    def evidence(self, plan: DeploymentPlan) -> WorkloadEvidence:
+        # Deliberately project only bounded non-secret fields; never persist inspect output.
+        containers = []
+        for item in self.containers(plan):
+            labels = item["Config"]["Labels"]
+            state = item["State"]
+            name = labels["com.docker.compose.service"]
+            reference = plan.database_image if name == "database" else plan.image
+            expected_image = json.loads(self.run(["image", "inspect", str(reference)]))[0]["Id"]
+            if item["Image"] != expected_image:
+                raise AdapterError("runtime_image_changed")
+            containers.append(
+                ContainerEvidence(
+                    service=name,
+                    container_id=item["Id"],
+                    image_id=item["Image"],
+                    runtime_plan_hash=labels.get("io.dkman.plan-hash", ""),
+                    status=state["Status"],
+                    health=(state.get("Health") or {}).get("Status"),
+                    started_at=state["StartedAt"],
+                    finished_at=state["FinishedAt"],
+                    volumes=sorted(
+                        m["Name"] for m in item.get("Mounts", []) if m["Type"] == "volume"
+                    ),
+                )
+            )
+        return WorkloadEvidence(observed_at=datetime.now(UTC), containers=containers)
 
     def run(self, arguments: list[str], timeout: int = 45, *, include_stderr: bool = False) -> str:
         env = {
@@ -221,7 +266,9 @@ class ComposeProvider:
         else:
             with os.fdopen(descriptor, "w") as stream:
                 stream.write(raw)
-        return self.run(
+        command = self._receipt_command
+        before = self.evidence(plan) if command else None
+        output = self.run(
             [
                 "compose",
                 "--project-name",
@@ -236,6 +283,24 @@ class ComposeProvider:
             ],
             timeout=90,
         )
+        if (
+            command
+            and command.action in {"install", "start", "stop", "restart"}
+            and before is not None
+            and self._receipt_writer
+        ):
+            # Crash before this durable acknowledgement remains ambiguous. No replay is safe.
+            self._receipt_writer(
+                EngineReceipt(
+                    operation_id=self.operation_id,
+                    installation_id=plan.installation_id,
+                    action=command.action,
+                    plan_hash=command.plan_hash,
+                    before=before,
+                    acknowledged_at=datetime.now(UTC),
+                )
+            )
+        return output
 
     def verify_image(self, plan: DeploymentPlan) -> None:
         self.verify_reference(plan.image, plan.user, plan.data_path)
@@ -351,7 +416,10 @@ class ComposeProvider:
             if state == "running" and plan.profile == "notes-postgres-v1":
                 if len(containers) != 2:
                     state = "unhealthy"
-                elif containers[1].get("State", {}).get("Health", {}).get("Status") != "healthy":
+                elif (
+                    containers[1].get("State", {}).get("Status") != "running"
+                    or containers[1].get("State", {}).get("Health", {}).get("Status") != "healthy"
+                ):
                     state = "unhealthy"
         return RuntimeView(
             installation_id=plan.installation_id,

@@ -42,6 +42,7 @@ Der Service akzeptiert weder Browser-OIDC-Tokens noch ein festes Admin-Token.
 | `POST /v1/operations/{UUID}` | typisierte Aktion; vor Ausführung dauerhafter Marker; identische Wiederholung liefert vorhandenes Ergebnis |
 | `GET /v1/operations/{UUID}` | vorhandenes Ergebnis mit passender Lese-Delegation |
 | `GET /v1/operations/{UUID}/reconcile` | tatsächlichen Zustand beobachten; unsichere Mutation bleibt gesperrt |
+| `POST /v1/operations/{UUID}/reconcile` | ausschließlich vorhandenen Enginebeleg plus aktuelle Containertransitionen prüfen und belegten Metadatenabschluss speichern; keine Runtimeaktion |
 | `/health/live`, `/health/ready` | Prozess bzw. Journalrevision und tatsächlich erreichbare Linux-Engine/Compose prüfen |
 
 Delegation: HS256, exakter Issuer `dkman-core`, Audience `dkman-deployment-adapter`,
@@ -60,8 +61,8 @@ Die Core-Installationsroute nimmt keine freien Pläne entgegen. Auch ein 200-Ope
 ## Journal und Fehlergrenzen
 
 Explizite Migration: `python -m dkman.deployment_adapter.journal --state-root ...`.
-Der normale Service erzeugt keine Datenbanktabellen. Eigene Journalrevision 2
-(0001 Operationsjournal, 0002 einmalige Approval-IDs),
+Der normale Service erzeugt keine Datenbanktabellen. Aktuelle Journalrevision 3
+(0001 Operationsjournal, 0002 einmalige Approval-IDs, 0003 Enginebelege),
 getrennt von PostgreSQL/Alembic im Core. Das Adaptervolume gehört in ein späteres
 koordiniertes Backup; sein Verlust darf nicht durch einen leeren Journalstart
 kaschiert werden. Bestehende Runtime-Projekte ohne Journaleintrag werden nicht übernommen.
@@ -108,8 +109,8 @@ separate Datenlöschung, Kollisionen und unbekannten Ausgang nach Healthfehler g
 und Details in `acceptance-tests.md`; PR #9 in `main` integriert.
 
 P2-003/P2-004 ergänzen Notes-Quellbuild, Kuration und die echte Installationsjourney;
-deren eigener Nachweis steht in `acceptance-tests.md`. Offen: erweiterte
-belegbarer Workflow zum Abschluss unsicherer Mutationen (P2-006), Zielhost-OIDC,
+deren eigener Nachweis steht in `acceptance-tests.md`. P2-006 ergänzt inzwischen den belegten Abschluss unsicherer Mutationen (siehe unten).
+Offen bleiben Zielhost-OIDC,
 Windows-/VM-Betrieb sowie koordinierte Persistenz-/Restoreabnahme. Die Runtimebedienung
 P2-005 ist implementiert; echte OIDC-/Containerabnahme siehe `acceptance-tests.md`.
 Logredaktion entfernt bekannte Muster, kann frei formulierte oder unbekannte Secrets
@@ -136,3 +137,29 @@ gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließl
 der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
 Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
 weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.
+
+## Dauerhafte Enginebelege · P2-006
+
+Explizite Journalrevision **3**, neue Migration `0003_execution_receipts.sql`. Erst nach
+kontrolliertem Adapterstopp und abgestimmter Sicherung ausführen; der Service migriert
+weiterhin nicht automatisch. Alte Migrationen und gespeicherte Command-/Planhashes bleiben
+unverändert. Ein v2-Journal wird ohne explizite Migration abgelehnt.
+
+Nach erfolgreicher Compose-Rückkehr wird der an Operation/Aktion/Ressource/Hash gebundene
+Enginebeleg separat synchron committed. Ein Crash danach, vor dem Operationsabschluss,
+kann durch `POST /v1/operations/{id}/reconcile` belegt aufgelöst werden. Neustart verlangt
+nachweislich neue Startzeitpunkte aller ursprünglichen Container; aktuelle Health allein
+reicht nicht. Derselbe Ressourcensperrmechanismus schützt Abgleich und Ausführung. Es gibt
+keinen Provider-Retry und keine neue Runtime. Der bisherige GET bleibt beobachtend.
+
+Install/Start/Stop/Restart können eine persistierte `failed`-Operation mit gebundenem
+Nichtausführungsnachweis ausgeben, wenn Kuration oder rein lesender Preflight vor dem
+Marker ablehnen. HTTP 200 enthält dann ausdrücklich `state=failed`, niemals Erfolg.
+Andere Fehler und Ausführung mit möglicher Wirkung bleiben unklar. Rejection löst keine
+fremde Ressourcensperre und verbrauchte Approval-IDs bleiben einmalig gebunden.
+
+Kein Beleg nach Crash **vor** dessen Commit: `execution_receipt_missing`. Geänderte/
+unvollständige Container oder fehlende Transition: `execution_evidence_incomplete`.
+Diese Fälle bleiben blockiert, auch nach Adapterneustart oder aktuell gesunder Runtime.
+Die Prüfsumme ist Integritätserkennung innerhalb der vertrauenswürdigen Adaptergrenze.
+Keine vollständigen Inspect-Daten/Environments im Journal oder API-Nachweis. Siehe ADR 0011.

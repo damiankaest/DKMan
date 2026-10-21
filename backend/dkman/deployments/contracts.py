@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID
 
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -203,6 +204,59 @@ class RuntimeView(StrictModel):
     container_id: str | None = None
 
 
+class ContainerEvidence(StrictModel):
+    service: Literal["app", "database"]
+    container_id: str = Field(pattern=r"^[a-f0-9]{64}$")
+    image_id: str = Field(pattern=r"^sha256:[a-f0-9]{64}$")
+    runtime_plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    status: Literal["created", "running", "paused", "restarting", "removing", "exited", "dead"]
+    health: Literal["healthy", "starting", "unhealthy"] | None = None
+    started_at: AwareDatetime
+    finished_at: AwareDatetime
+    volumes: list[str] = Field(max_length=1)
+
+
+class WorkloadEvidence(StrictModel):
+    observed_at: AwareDatetime
+    containers: list[ContainerEvidence] = Field(max_length=2)
+
+
+class EngineReceipt(StrictModel):
+    schema_version: Literal[1] = 1
+    operation_id: UUID
+    installation_id: UUID
+    action: LifecycleAction | Literal["install"]
+    plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    before: WorkloadEvidence
+    acknowledged_at: AwareDatetime
+
+
+class CompletionEvidence(StrictModel):
+    kind: Literal["engine_acknowledgement"] = "engine_acknowledgement"
+    receipt: EngineReceipt
+    after: WorkloadEvidence
+
+    @property
+    def evidence_hash(self) -> str:
+        return canonical_hash(self.model_dump(mode="json"))
+
+
+class RejectionEvidence(StrictModel):
+    kind: Literal["preflight_rejected"] = "preflight_rejected"
+    operation_id: UUID
+    installation_id: UUID
+    action: Action
+    plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    reason: Literal[
+        "curation_rejected", "resource_preflight_rejected", "engine_preflight_unavailable"
+    ]
+    observed_at: AwareDatetime
+
+    @property
+    def evidence_hash(self) -> str:
+        return canonical_hash(self.model_dump(mode="json"))
+
+
 class OperationView(StrictModel):
     operation_id: UUID
     installation_id: UUID
@@ -214,6 +268,8 @@ class OperationView(StrictModel):
     failure_code: str | None = None
     runtime: RuntimeView | None = None
     logs: str | None = None
+    completion: CompletionEvidence | None = Field(default=None, exclude_if=lambda v: v is None)
+    rejection: RejectionEvidence | None = Field(default=None, exclude_if=lambda v: v is None)
 
 
 class DeploymentProvider(Protocol):

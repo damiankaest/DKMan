@@ -233,11 +233,164 @@
             }
           }
         }
+      },
+      "post": {
+        "summary": "Reconcile Evidence",
+        "operationId": "reconcileDeploymentEvidence",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Operation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
+      "CompletionEvidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "engine_acknowledgement",
+            "title": "Kind",
+            "default": "engine_acknowledgement"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/EngineReceipt"
+          },
+          "after": {
+            "$ref": "#/components/schemas/WorkloadEvidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "receipt",
+          "after"
+        ],
+        "title": "CompletionEvidence"
+      },
+      "ContainerEvidence": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "app",
+              "database"
+            ],
+            "title": "Service"
+          },
+          "container_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Container Id"
+          },
+          "image_id": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Image Id"
+          },
+          "runtime_plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Runtime Plan Hash"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "created",
+              "running",
+              "paused",
+              "restarting",
+              "removing",
+              "exited",
+              "dead"
+            ],
+            "title": "Status"
+          },
+          "health": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "starting",
+                  "unhealthy"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          },
+          "volumes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1,
+            "title": "Volumes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service",
+          "container_id",
+          "image_id",
+          "runtime_plan_hash",
+          "status",
+          "started_at",
+          "finished_at",
+          "volumes"
+        ],
+        "title": "ContainerEvidence"
+      },
       "DeploymentCommand": {
         "properties": {
           "action": {
@@ -405,6 +558,67 @@
           "installation_id"
         ],
         "title": "DeploymentPlan"
+      },
+      "EngineReceipt": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Operation Id"
+          },
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "start",
+                  "stop",
+                  "restart"
+                ]
+              },
+              {
+                "type": "string",
+                "const": "install"
+              }
+            ],
+            "title": "Action"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "before": {
+            "$ref": "#/components/schemas/WorkloadEvidence"
+          },
+          "acknowledged_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Acknowledged At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_id",
+          "installation_id",
+          "action",
+          "plan_hash",
+          "before",
+          "acknowledged_at"
+        ],
+        "title": "EngineReceipt"
       },
       "HTTPValidationError": {
         "properties": {
@@ -592,6 +806,26 @@
               }
             ],
             "title": "Logs"
+          },
+          "completion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompletionEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rejection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RejectionEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -642,6 +876,73 @@
           "version"
         ],
         "title": "PlanRequest"
+      },
+      "RejectionEvidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "preflight_rejected",
+            "title": "Kind",
+            "default": "preflight_rejected"
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Operation Id"
+          },
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "discover",
+              "pull",
+              "install",
+              "deploy",
+              "start",
+              "stop",
+              "restart",
+              "status",
+              "logs",
+              "remove",
+              "remove_data"
+            ],
+            "title": "Action"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "curation_rejected",
+              "resource_preflight_rejected",
+              "engine_preflight_unavailable"
+            ],
+            "title": "Reason"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_id",
+          "installation_id",
+          "action",
+          "plan_hash",
+          "reason",
+          "observed_at"
+        ],
+        "title": "RejectionEvidence"
       },
       "RuntimeView": {
         "properties": {
@@ -727,6 +1028,30 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkloadEvidence": {
+        "properties": {
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "containers": {
+            "items": {
+              "$ref": "#/components/schemas/ContainerEvidence"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Containers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observed_at",
+          "containers"
+        ],
+        "title": "WorkloadEvidence"
       }
     },
     "securitySchemes": {

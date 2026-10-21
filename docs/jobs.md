@@ -17,6 +17,7 @@ Envelopebindung sowie die Installationsbesonderheiten stehen unten.
 | `GET /jobs/{id}/approval` | gleiche Sichtbarkeit; 404 bei Job ohne Approval |
 | `POST /approvals/{id}/decision` | Admin; Operator nur eigene aktuell berechtigte Runtimejobs; vollständige erwartete Bindung plus `approve`/`reject` |
 | `POST /jobs/{id}/run` | aktuell aktions-/ressourcenberechtigtes anforderndes Subject; Executor passend zum gespeicherten Plan |
+| `POST /jobs/{id}/reconcile` | ursprünglich anforderndes Subject mit aktuellen Aktions-/Ressourcenrechten; nur belegter Abschluss, keine Runtimewiederholung |
 | `POST /jobs/{id}/cancel` | Admin oder Operator für eigene aktuell berechtigte Runtimejobs; nur vor Claim; wiederholter Abbruch idempotent |
 
 Anlagebeispiel (JSON-Body):
@@ -123,7 +124,8 @@ Service und Healthbeobachtung atomar mit `succeeded`. Bei Transportverlust/Crash
 `POST /jobs/{id}/reconcile` liest ausschließlich die bestehende Operation. Nur ihr
 belegter erfolgreicher Abschluss kann den Job nachträglich abschließen. Ein gesunder
 Container bei weiterhin unsicherem Adaptermarker oder eine 404 reicht nicht aus.
-Der spätere Workflow zum sicheren Auflösen solcher Sperren bleibt P2-006.
+Seit P2-006 kann ein dauerhafter Enginebeleg einen unsicheren Marker belegt abschließen;
+fehlende Belege bleiben gesperrt (Abschnitt unten).
 
 ## Migration und Verifikation
 
@@ -169,7 +171,7 @@ den **gesamten unveränderten installierten Deploymentplan**. Dieser vollständi
 Hash bindet Job, Approval, Delegation und Adapterresultat. Das optionale `lifecycle`-
 Commandfeld wird bei alten Commands weggelassen; bestehende v1-Planhashes und
 Journalfingerprints bleiben unverändert. Keine neue DB-/Journalmigration erforderlich;
-Core bleibt auf 0003, Adapter auf Journalrevision 2.
+Stand P2-005: Core auf 0003, Adapter auf Journalrevision 2; P2-006 ergänzt Adapterrevision 3.
 
 Mutation: Risiko `reversible`, zwingende einmalige Freigabe, 15 Minuten ab Planung.
 Die vorhandenen sechs Bindungsfelder müssen exakt zurückgegeben werden. Admins dürfen
@@ -188,7 +190,7 @@ Erfolg erfordert passende Aktion, ID, Ressource, vollständigen Hash, abgeschlos
 Adapterstatus und eine Messung nach Ausführungsbeginn. Stop erwartet `stopped`, Start
 und Restart `running` mit Container-ID. Der aktuelle gesunde Zustand allein ist kein
 Restartnachweis. Ein unsicherer Adaptermarker oder fehlendes Resultat bleibt gesperrt.
-P2-006 ergänzt den umfassenden belegten Abschluss unsicherer Operationen.
+Der inzwischen implementierte Belegabschluss aus P2-006 steht im Abschnitt unten.
 
 `GET /installations/{id}/status` misst read-only mit Beobachtungszeit, festem `reason`
 und gegebenenfalls `blocked_job_id`. Engine-/Transportfehler ergeben `unknown` und
@@ -205,3 +207,19 @@ gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließl
 der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
 Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
 weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.
+
+## Belegter Abgleich · P2-006
+
+Core `POST /jobs/{id}/reconcile` ruft nun den expliziten **POST**-Abgleich des Adapters
+mit `reconcile`-Delegation auf. Docker bleibt dabei vollständig lesend. Ein bereits
+gespeichertes abgeschlossenes Legacyresultat wird weiterhin akzeptiert. Neue Enginebelege
+werden zusätzlich in Core aktionsspezifisch geprüft; Nachweisart und SHA-256 stehen als
+`evidence_kind`/`evidence_hash` in `Job.result` und im Hub. Der ursprüngliche Job und dessen
+verbrauchte Freigabe bleiben erhalten. Keine zweite Mutation und kein Zurücksetzen der Lease.
+
+Auch `failed` kann nachträglich sicher abschließen: ausschließlich mit dem gebundenen
+Nichtausführungsnachweis des Adapters aus Kuration/lesendem Preflight. Ein HTTP-Fehler oder
+ein fehlender Adapterdatensatz ist kein solcher Nachweis. Bei Beleglücken bleibt der Job
+unklar und die Installation reserviert. Die Codes `execution_receipt_missing` bzw.
+`execution_evidence_incomplete` werden begrenzt übernommen; keine Providertexte.
+Vollständige Belegbedingungen und Crashgrenzen: [ADR 0011](architecture-decisions/0011-evidence-based-runtime-reconciliation.md).

@@ -197,6 +197,12 @@ def test_real_adapter_lifecycle_persistence_isolation_and_uncertain_recovery(tmp
             ),
         )
         assert plan == expected
+        forbidden = plan.model_copy(update={"image": "sha256:" + "f" * 64})
+        denied = execute(forbidden, "install")
+        assert denied.state == "failed" and denied.rejection.reason == "curation_rejected"
+        assert not docker(
+            "ps", "-aq", "--filter", f"label=io.dkman.installation={plan.installation_id}"
+        )
         installed = execute(plan, "install")
         assert installed.state == "succeeded" and installed.runtime.state == "running"
         container_id = installed.runtime.container_id
@@ -289,9 +295,9 @@ def test_real_adapter_lifecycle_persistence_isolation_and_uncertain_recovery(tmp
             "io.dkman.managed=false",
             healthy_image,
         )
-        with pytest.raises(AdapterUnavailable) as collision:
-            execute(foreign, "install")
-        assert collision.value.__cause__.code == 409
+        collision = execute(foreign, "install")
+        assert collision.state == "failed"
+        assert collision.rejection.reason == "resource_preflight_rejected"
         assert json.loads(docker("container", "inspect", sentinel))[0]["Id"] == sentinel
     finally:
         # Only UUIDs created in this test; never prune or inspect another project's resources.

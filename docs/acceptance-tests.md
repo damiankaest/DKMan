@@ -368,3 +368,43 @@ Der tatsächliche Main-Engine-Nachweis ist separat dauerhaft als
 P2-005 ist abgeschlossen; der anschließende reine Dokumentationscommit überspringt
 CI ausdrücklich. Die oben genannten Zielhost-/Windows-/OIDC-Betriebs-/Restoregates
 und P2-006 bleiben offen.
+
+
+## P2-006 · Belegter Abschluss und reale Fehlermatrix
+
+[PR #12](https://github.com/damiankaest/DKMan/pull/12), Runtimecommit `99aaeed34192cf49abf7331f1a44ca1880acd17e`:
+[CI 39566266737](https://github.com/damiankaest/DKMan/actions/runs/39566266737) vollständig
+erfolgreich; alle fünf Joblogs selbst gelesen. 214 Backendtests mit PostgreSQL 17,
+12 UI-Tests, zwei ältere Browserchecks mit Testantworten, echter Docker-Adaptertest
+(95,71 s), echte OIDC-/Notes-Journey (1,9 min) und nachfolgende Daten-/DB-Rollenprobe.
+Keine 429-Antwort. Erwartete Ausfallantworten sind Teil der Probe.
+
+| Reale Probe | Tatsächlicher Nachweis |
+| --- | --- |
+| Nicht kuratiertes Image / freies Imagefeld | Adapter lehnt gültigen fremden Digest dauerhaft vor Mutation ab, kein Container; Core-Payload mit freiem Imagefeld 422 |
+| Rolle / Ressourcenscope | echtes Operator-Konto mit Appnutzung ohne Betriebsscope 404; Member-Logzugriff 403; keine Runtimeänderung |
+| Notes-DB down | reale DB gestoppt, Notes-Daten-API 503 mit festem Text, gemessen `unhealthy`, Öffnen-Link verborgen; Daten nach Start identisch |
+| Core-DB down | echter PostgreSQL-Prozess gestoppt, Run/Ready 503 und Live 200; nach Wiederverbindung derselbe Job noch `queued`, danach einmaliger genehmigter Run |
+| Prozessabsturz nach Belegcommit | echte Composeaktion, durable Enginebestätigung, Adapterprozess beendet vor Abschlusscommit; nach Restart/Reload derselbe unklare Job, belegt abgeschlossen, Nachweishash im Hub |
+| Prozessabsturz vor Belegcommit | echte Composeaktion bereits erfolgt, keine dauerhafte Bestätigung; gesunde Runtime bleibt `reconciliation_required`, Code `execution_receipt_missing`, anderer Key/Mutation 409 |
+| Kein versteckter Retry | Enginevergleich vor/nach Reconcile identisch einschließlich aller Startzeitpunkte; Daten/Container-/Image-/Volumenidentität erhalten |
+
+Vollständige Matrix und Testgrenzen: [runtime-failure-matrix.md](runtime-failure-matrix.md).
+Dauerhafter tatsächlicher Engine-/Operations-/Core-Nachweis:
+[p2-006-runtime.json](evidence/p2-006-runtime.json). Artefakt `12330397133` heruntergeladen;
+SHA-256 `fe9ca201c785cfeea00ddec541afa392d8366e03f4ae2e322c5c639b956d4a12` bestätigt;
+Completionbindung und unveränderte Enginezustände zusätzlich geprüft. Engine-lokale
+Image-IDs sind keine Registry-Pullreferenzen für andere Hosts.
+
+Lokal: `uv sync --frozen`, Ruff/Format/Mypy, `uv run pytest -q` (203 bestanden / 12
+explizite PostgreSQL-/Docker-Skips), `uv build`, Wheelinhalt und HTTP-Smoke erfolgreich.
+Hub npm ci, Typgenerierung ohne Drift, Lint/Build/12 UI-Tests bestanden. Lokaler
+Playwrightstart wegen fehlender Chromium-Binary blockiert; beide Checks in CI bestanden.
+Bestehende Migrationen/Lockfiles unverändert; neue explizite Adaptermigration 0003 und
+Legacyreplay-/Upgradeprüfung. Core bleibt auf Alembicrevision 0003.
+
+Nicht abgenommen: Windows/VM/Zielhoststart und Autostart, volle OIDC-Betriebsmatrix,
+koordinierter Runtime-Backup/Restore sowie Docker-Daemon-Ausfall auf dem Zielhost.
+Tests verwenden echte Prozesse und Dockeraktionen, Prozessabbrüche aber ausschließlich
+einen separat gemounteten CI-Entrypoint. Produktionsimage/-overlay enthält keinen
+Faultschalter. Unklarheit ohne Beleg bleibt bewusst blockiert. Main-CI nach Integration folgt.

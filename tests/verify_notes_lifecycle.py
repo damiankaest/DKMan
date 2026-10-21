@@ -54,8 +54,17 @@ def checkpoint(installation: UUID, phase: str) -> None:
                 assert item["status"] == "exited"
             else:
                 assert item["status"] == "running" and item["health"] == "healthy"
-                previous = evidence["start"] if phase == "restart" else before
-                assert item["started_at"] > previous[service]["started_at"]
+                previous_phase = {
+                    "restart": "start",
+                    "reconciled_restart": "restart",
+                    "unproven_restart": "reconciled_restart",
+                    "after_reconcile": "unproven_restart",
+                }.get(phase, "before")
+                previous = evidence[previous_phase]
+                if phase == "after_reconcile":
+                    assert item["started_at"] == previous[service]["started_at"]
+                else:
+                    assert item["started_at"] > previous[service]["started_at"]
     evidence[phase] = observation
     path.write_text(json.dumps(evidence, indent=2) + "\n")
     print(f"PASS: {phase} actual app/database identity, state and volume evidence")
@@ -64,6 +73,17 @@ def checkpoint(installation: UUID, phase: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("installation", type=UUID)
-    parser.add_argument("phase", choices=["before", "stop", "start", "restart"])
+    parser.add_argument(
+        "phase",
+        choices=[
+            "before",
+            "stop",
+            "start",
+            "restart",
+            "reconciled_restart",
+            "unproven_restart",
+            "after_reconcile",
+        ],
+    )
     args = parser.parse_args()
     checkpoint(args.installation, args.phase)

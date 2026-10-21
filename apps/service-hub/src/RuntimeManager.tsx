@@ -131,7 +131,8 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
         {own && job.state === 'waiting_approval' && <><label className="approval-check"><input type="checkbox" disabled={busy} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Ich gebe diese Runtimeaktion für diese Installation frei.</label><button disabled={busy || !confirmed || !approval} onClick={decide}>Runtimeplan freigeben</button></>}
         {own && job.state === 'queued' && <button className="primary" disabled={busy} onClick={() => execute('run')}>Runtimeaktion ausführen</button>}
         {own && ['waiting_approval','queued'].includes(job.state) && <button disabled={busy} onClick={() => execute('cancel')}>Runtimeplan abbrechen</button>}
-        {own && job.state === 'reconciliation_required' && <><p>Der Ausgang bleibt unklar. Ein gesunder Container allein belegt keinen erfolgreichen Restart. Es wird keine Mutation wiederholt.</p><button disabled={busy} onClick={() => execute('reconcile')}>Runtimeergebnis abgleichen</button></>}
+        {own && job.state === 'reconciliation_required' && <><p>Der Ausgang bleibt unklar. Der Abgleich prüft einen gespeicherten Enginebeleg und den Zustand aller Container. Ohne ausreichenden Nachweis bleibt die Installation gesperrt. Es wird keine Mutation wiederholt.</p><button disabled={busy} onClick={() => execute('reconcile')}>Runtimeergebnis abgleichen</button></>}
+        {typeof job.result?.evidence_hash === 'string' && <p>Abschlussnachweis: <code>{job.result.evidence_hash}</code></p>}
         {job.failure_code && <p>Fehlercode: {job.failure_code}</p>}
         <p>Job: <code>{job.id}</code></p><ol aria-label="Runtime-Jobverlauf">{events.map(item => <li key={item.sequence}>{item.kind} · {new Date(item.created_at).toLocaleTimeString('de-DE')}</li>)}</ol>
       </article>}

@@ -117,8 +117,8 @@ Bei Transportverlust/Timeout `reconciliation_required` erhalten. „Runtimeergeb
 abgleichen“ liest ausschließlich die bereits gespeicherte Adapteroperation. Aktuell
 gesunde Container belegen keinen erfolgreichen Restart. Fehlende/unsichere Resultate
 sperren weitere Mutationen und den Öffnen-Link. Weder Journal löschen noch neue Keys,
-Force-Retry oder pauschales Entsperren verwenden. Belegter weiterer Abschluss folgt
-P2-006. Laufende Jobs nicht per DB-Update auf Erfolg setzen.
+Force-Retry oder pauschales Entsperren verwenden. Belegter Abschluss ist seit
+P2-006 implementiert; siehe den Abschnitt unten. Laufende Jobs nicht per DB-Update auf Erfolg setzen.
 
 Stop/Start verändert keine Containerdefinition und löscht keine Daten. Lifecycle setzt
 vollständig vorhandene Container voraus. Fehlende Container sind ein Diagnosefall,
@@ -131,3 +131,25 @@ P2-005 ist über PR #11 in `main` (`07e18c5`) integriert; Main-CI `39431777779` 
 vollständig erfolgreich, einschließlich echter OIDC-/Notes-Lifecycleprobe. Der genaue
 Mainnachweis steht in [p2-005-main-runtime.json](evidence/p2-005-main-runtime.json).
 Das ist eine isolierte CI-Abnahme und keine Zielhost-/Restorefreigabe.
+
+## Abgleich im Betrieb · P2-006
+
+Bei unklarem Auftrag im Hub „Runtimeergebnis abgleichen“ wählen. Es wird ausschließlich
+beobachtet. Ein vollständiger Enginebeleg kann den ursprünglichen Auftrag und genau seine
+Sperre abschließen; der Hub zeigt den Nachweishash. Fehlender Beleg oder abweichende
+Container bleiben gesperrt. `execution_receipt_missing` bedeutet fehlende dauerhafte
+Befehlsbestätigung, `execution_evidence_incomplete` einen unzureichenden Zustands-/Transitionsnachweis.
+Neuen Key, manuelle SQL-Erfolgsmarkierung oder Journallöschung nicht als Reparatur verwenden.
+Ein leeres Journal kann vorhandene Runtime nicht übernehmen. Host-/Dockeradministratoren
+müssen außerhalb des Adaptervertrags vorgenommene Änderungen gesondert untersuchen.
+
+Adapterupdate von Journal 2 auf 3 benötigt eine kontrollierte Wartung und explizite
+Journalmigration (derselbe `adapter-migrate`-Dienst im Runtime-Overlay). Keine Anwendung
+alter Adapterversionen auf das neue Journal. Bestehende Plan-/Operationsdaten bleiben
+erhalten; alte unklare Operationen ohne Beleg bleiben unklar. Die Basis-Upgrade- und
+Backupskripte sind weiterhin **kein** koordinierter Runtime-Wartungs-/Restoreweg.
+
+Der reale Fehlertest verwendet ausschließlich wegwerfbare CI-Container. Sein
+`tests/notes-faults.compose.yaml` und der dort gemountete Prozess-Faultentrypoint gehören
+**nicht** zur Zielhost-Konfiguration. Produktionsstart verwendet nur die beiden Dateien
+`compose.yaml` und `runtime.yaml` aus `infrastructure/compose/`.

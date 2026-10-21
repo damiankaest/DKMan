@@ -9,11 +9,11 @@ function setup(resume = false, authorized = true, holdStatus = false) {
   const statusGate = new Promise<void>(resolve => {releaseStatus = resolve;});
   let state = resume ? 'reconciliation_required' : '';
   const binding = {id:'approval',subject:'operator',action:'deployment.stop',resource_type:'app_installation',resource_id:'app',plan_hash:'c'.repeat(64),expires_at:'2026-10-20T20:00:00Z'};
-  const job = () => ({id:'job',requested_by:'operator',action:'deployment.stop',resource_id:'app',state,plan_hash:binding.plan_hash,plan:{action:'stop',subject:'operator',resource_id:'app',runtime:{image:'sha256:aaa',database_image:'sha256:bbb'}},failure_code:null});
+  const job = () => ({id:'job',requested_by:'operator',action:'deployment.stop',resource_id:'app',state,plan_hash:binding.plan_hash,plan:{action:'stop',subject:'operator',resource_id:'app',runtime:{image:'sha256:aaa',database_image:'sha256:bbb'}},failure_code:null,result:state === 'succeeded' ? {evidence_hash:'e'.repeat(64),evidence_kind:'engine_acknowledgement'} : null});
   const fetcher = vi.fn(async (path: string, init: RequestInit) => {
     if (path.endsWith('/stop')) state = 'waiting_approval';
     if (path.endsWith('/decision')) state = 'queued';
-    if (path.endsWith('/run')) state = 'succeeded';
+    if (path.endsWith('/run') || path.endsWith('/reconcile')) state = 'succeeded';
     if (path.endsWith('/status') && holdStatus && state === 'waiting_approval') await statusGate;
     const body = path.endsWith('/runtime/installations') ? (authorized ? [{id:'app',name:'Notes'}] : [])
       : path.endsWith('/status') ? {installation_id:'app',state:state === 'succeeded' ? 'stopped' : 'running',observed_at:new Date().toISOString(),blocked_job_id: state && state !== 'succeeded' ? 'job' : null}
@@ -71,4 +71,15 @@ it('does not offer container controls when no runtime scope is granted',async ()
   setup(false,false);
   await screen.findByText(/Keine für deinen Runtimebetrieb/);
   expect(screen.queryByRole('button',{name:'Container starten'})).toBeNull();
+});
+
+it('shows the durable completion proof after reconciliation without dispatching a runtime action',async () => {
+  const {fetcher} = setup(true);
+  const reconcile = await screen.findByRole('button',{name:'Runtimeergebnis abgleichen'});
+  fireEvent.click(reconcile);
+  await screen.findByText('e'.repeat(64));
+  await screen.findByRole('heading',{name:/Erfolgreich abgeschlossen/});
+  const writes = fetcher.mock.calls.filter(([,init]) => init.method === 'POST');
+  expect(writes.map(([path]) => path)).toEqual(['/api/v1/jobs/job/reconcile']);
+  await waitFor(() => expect(screen.getByRole('button',{name:'Container starten'})).toBeEnabled());
 });

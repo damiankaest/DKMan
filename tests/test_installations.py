@@ -71,8 +71,9 @@ class TestTransport:
             raise AdapterUnavailable("private transport exception must not enter job result")
         return result
 
-    def operation(self, operation_id, token):
-        assert verify_delegation(token, KEY).action == "operation.read"
+    def operation(self, operation_id, token, *, reconcile=False):
+        assert verify_delegation(token, KEY).action == "reconcile"
+        assert reconcile is True
         self.reads.append(operation_id)
         if self.read_error:
             raise AdapterUnavailable()

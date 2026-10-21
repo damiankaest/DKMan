@@ -80,8 +80,9 @@ class LifecycleTransport:
             raise AdapterUnavailable("password=private provider error")
         return result
 
-    def operation(self, operation_id, token):
-        assert verify_delegation(token, KEY).action == "operation.read"
+    def operation(self, operation_id, token, *, reconcile=False):
+        assert verify_delegation(token, KEY).action == "reconcile"
+        assert reconcile is True
         self.reads.append(operation_id)
         if self.fail_read:
             raise AdapterUnavailable("secret provider error")
@@ -360,3 +361,94 @@ def test_delayed_healthy_observation_cannot_overwrite_newer_stop(client, install
         db.commit()
         assert db.get(ServiceInstance, installed[0]).status == "stopped"
     assert client.get("/api/v1/apps").json()[0]["route"] is None
+
+
+@pytest.mark.parametrize(
+    "defect", [None, "missing", "operation", "hash", "action", "time", "resource"]
+)
+def test_only_bound_durable_non_execution_proof_can_close_a_rejection(
+    client, installed, engine, monkeypatch, defect
+):
+    from dkman.deployments.contracts import RejectionEvidence
+
+    job = submit(client, installed).json()
+
+    def rejected(operation_id, command, token):
+        grant = verify_delegation(token, KEY)
+        with Session(engine) as db:
+            running = db.get(Job, str(operation_id))
+            assert running.state == "running" and running.execution_started_at
+            assert db.get(ApprovalRequest, str(grant.approval_id)).state == "consumed"
+        proof = RejectionEvidence(
+            operation_id=operation_id,
+            installation_id=command.plan.installation_id,
+            action=command.action,
+            plan_hash=command.plan_hash,
+            reason="curation_rejected",
+            observed_at=utcnow(),
+        )
+        if defect in {"operation", "hash", "action", "time", "resource"}:
+            proof = proof.model_copy(
+                update={
+                    "operation": {"operation_id": uuid4()},
+                    "hash": {"plan_hash": "f" * 64},
+                    "action": {"action": "restart"},
+                    "time": {"observed_at": utcnow() - timedelta(days=1)},
+                    "resource": {"installation_id": uuid4()},
+                }[defect]
+            )
+        return OperationView(
+            operation_id=operation_id,
+            installation_id=command.plan.installation_id,
+            action=command.action,
+            plan_hash=command.plan_hash,
+            state="failed",
+            created_at=utcnow(),
+            finished_at=utcnow(),
+            failure_code="curation_rejected",
+            rejection=None if defect == "missing" else proof,
+        )
+
+    monkeypatch.setattr(installed[1], "execute", rejected)
+    result = execute(client, job).json()
+    assert result["state"] == ("failed" if defect is None else "reconciliation_required")
+    assert installed[1].calls == []
+    assert submit(client, installed, "restart", "next").status_code == (
+        202 if defect is None else 409
+    )
+    if defect is None:
+        assert len(result["result"]["evidence_hash"]) == 64
+        assert result["result"]["evidence_kind"] == "preflight_rejected"
+    with Session(engine) as db:
+        assert db.scalar(select(func.count()).select_from(AppInstallation)) == 1
+
+
+def test_reconciliation_rechecks_current_scope_after_external_io(
+    client, installed, engine, as_user, monkeypatch
+):
+    from dkman.models import PermissionGrant
+
+    operator(client, installed, as_user)
+    job = submit(client, installed, "restart").json()
+    installed[1].lose = True
+    assert execute(client, job).json()["state"] == "reconciliation_required"
+    original_read = installed[1].operation
+
+    def revoke_during_read(*args, **kwargs):
+        result = original_read(*args, **kwargs)
+        with Session(engine) as db:
+            grant = db.scalar(
+                select(PermissionGrant).where(
+                    PermissionGrant.installation_id == installed[0],
+                    PermissionGrant.permission == "app.operate",
+                )
+            )
+            db.delete(grant)
+            db.commit()
+        return result
+
+    monkeypatch.setattr(installed[1], "operation", revoke_during_read)
+    assert client.post(f"/api/v1/jobs/{job['id']}/reconcile").status_code == 404
+    with Session(engine) as db:
+        assert db.get(Job, job["id"]).state == "reconciliation_required"
+    assert installed[1].calls == ["restart"]

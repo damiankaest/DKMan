@@ -304,7 +304,9 @@ def test_valid_digest_still_requires_curation_and_exact_resources(adapter, plan)
     for overrides in [{"image": "sha256:" + "b" * 64}, {"memory_mb": 256}, {"data_path": None}]:
         changed = DeploymentPlan.model_validate({**plan.model_dump(), **overrides})
         response, _, _ = submit(client, changed)
-        assert response.status_code == 409
+        assert response.status_code == 200
+        assert response.json()["state"] == "failed"
+        assert response.json()["rejection"]["reason"] == "curation_rejected"
     assert not engine.calls
 
 
@@ -730,7 +732,9 @@ def test_lifecycle_cannot_create_an_installation(adapter, plan):
             mode="json"
         ),
     )
-    assert result.status_code == 409 and engine.calls == []
+    assert result.status_code == 200 and result.json()["state"] == "failed"
+    assert result.json()["rejection"]["reason"] == "resource_preflight_rejected"
+    assert engine.calls == []
 
 
 def test_read_operations_share_locks_but_exclude_mutations(adapter, plan, monkeypatch):
