@@ -2,6 +2,7 @@
 name: dkman-adapter
 services:
   adapter-migrate:
+    labels: {io.dkman.managed: 'true'}
     image: dkman/deployment-adapter:0.1.0
     build: {context: ../.., dockerfile: infrastructure/deployment-adapter/Dockerfile}
     command: [python, -m, dkman.deployment_adapter.journal, --state-root, /var/lib/dkman-adapter]
@@ -13,6 +14,7 @@ services:
     mem_limit: 256m
 
   deployment-adapter:
+    labels: {io.dkman.managed: 'true'}
     image: dkman/deployment-adapter:0.1.0
     build: {context: ../.., dockerfile: infrastructure/deployment-adapter/Dockerfile}
     restart: unless-stopped

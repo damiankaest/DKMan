@@ -8,13 +8,17 @@ from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 from uuid import UUID
 
 from dkman.deployments.auth import Delegation
 from dkman.deployments.contracts import (
     DeploymentCommand,
     DeploymentPlan,
+    EngineReceipt,
     OperationView,
+    RejectionEvidence,
+    WorkloadEvidence,
     canonical_hash,
 )
 
@@ -41,7 +45,12 @@ def migrate(root: Path) -> None:
             db.executescript(
                 (Path(__file__).parent / "migrations/0002_single_use_approvals.sql").read_text()
             )
-        elif version != 2:
+            version = 2
+        if version == 2:
+            db.executescript(
+                (Path(__file__).parent / "migrations/0003_execution_receipts.sql").read_text()
+            )
+        elif version != 3:
             raise ValueError("Unknown adapter journal revision")
 
 
@@ -51,7 +60,7 @@ class Journal:
         if root.is_symlink() or (root / "operations.sqlite3").is_symlink():
             raise ValueError("Symlinks are forbidden for adapter state")
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] != 2:
+            if db.execute("PRAGMA user_version").fetchone()[0] != 3:
                 raise ValueError("Run the explicit adapter journal migration")
         for name in ["locks", "plans", "docker-config"]:
             path = self.root / name
@@ -109,6 +118,153 @@ class Journal:
             if row is None:
                 raise AdapterError("operation_not_found", 404)
             return DeploymentCommand.model_validate_json(row[0])
+
+    def require_subject(self, operation_id: UUID, subject: str) -> None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT subject FROM operations WHERE operation_id=?", (str(operation_id),)
+            ).fetchone()
+            if row is None or row[0] != subject:
+                raise AdapterError("operation_subject_mismatch", 403)
+
+    def record_receipt(self, receipt: EngineReceipt) -> None:
+        """Only called after the exact Compose command returned exit zero; never inferred."""
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT result,command FROM operations WHERE operation_id=? AND state='running'",
+                (str(receipt.operation_id),),
+            ).fetchone()
+            if row is None:
+                raise AdapterError("operation_ownership_lost")
+            item = OperationView.model_validate_json(row[0])
+            command = DeploymentCommand.model_validate_json(row[1])
+            if (
+                receipt.installation_id != item.installation_id
+                or receipt.action != command.action
+                or receipt.plan_hash != command.plan_hash
+                or not item.created_at <= receipt.before.observed_at <= receipt.acknowledged_at
+            ):
+                raise AdapterError("receipt_binding_mismatch")
+            db.execute(
+                "INSERT INTO execution_receipts VALUES (?,?,?)",
+                (
+                    str(receipt.operation_id),
+                    receipt.model_dump_json(),
+                    canonical_hash(receipt.model_dump(mode="json")),
+                ),
+            )
+
+    def receipt(self, operation_id: UUID) -> EngineReceipt | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT receipt,receipt_hash FROM execution_receipts WHERE operation_id=?",
+                (str(operation_id),),
+            ).fetchone()
+            if row is None:
+                return None
+            receipt = EngineReceipt.model_validate_json(row[0])
+            if canonical_hash(receipt.model_dump(mode="json")) != row[1]:
+                raise AdapterError("receipt_integrity_mismatch")
+            return receipt
+
+    def resolve(self, operation_id: UUID, after: WorkloadEvidence) -> OperationView:
+        from dkman.deployments.evidence import prove_completion
+
+        item = self.get(operation_id)
+        if item is None or item.state != "reconciliation_required":
+            raise AdapterError("operation_not_uncertain")
+        receipt = self.receipt(operation_id)
+        if receipt is None:
+            return item
+        command = self.stored_command(operation_id)
+        try:
+            completion, runtime = prove_completion(
+                command, operation_id, item.created_at, receipt, after
+            )
+        except ValueError:
+            return item.model_copy(update={"failure_code": "execution_evidence_incomplete"})
+        result = item.model_copy(
+            update={
+                "state": "succeeded",
+                "failure_code": None,
+                "finished_at": datetime.now(UTC),
+                "runtime": runtime,
+                "completion": completion,
+            }
+        )
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            blocked = db.execute(
+                "SELECT blocked_by FROM resources WHERE installation_id=?",
+                (str(item.installation_id),),
+            ).fetchone()
+            if blocked is None or blocked[0] != str(operation_id):
+                raise AdapterError("resource_fence_changed")
+            changed = db.execute(
+                "UPDATE operations SET state='succeeded',result=? WHERE operation_id=? "
+                "AND state='reconciliation_required'",
+                (result.model_dump_json(), str(operation_id)),
+            )
+            if changed.rowcount != 1:
+                raise AdapterError("operation_ownership_lost")
+            # The original plan and all volumes stay unchanged.
+            db.execute(
+                "UPDATE resources SET blocked_by=NULL WHERE installation_id=? AND blocked_by=?",
+                (str(item.installation_id), str(operation_id)),
+            )
+        return result
+
+    def reject(
+        self,
+        command: DeploymentCommand,
+        grant: Delegation,
+        reason: Literal[
+            "curation_rejected", "resource_preflight_rejected", "engine_preflight_unavailable"
+        ],
+    ) -> OperationView:
+        rejection = RejectionEvidence(
+            operation_id=grant.jti,
+            installation_id=command.plan.installation_id,
+            action=command.action,
+            plan_hash=command.plan_hash,
+            reason=reason,
+            observed_at=datetime.now(UTC),
+        )
+        result = OperationView(
+            operation_id=grant.jti,
+            installation_id=command.plan.installation_id,
+            action=command.action,
+            plan_hash=command.plan_hash,
+            state="failed",
+            created_at=rejection.observed_at,
+            finished_at=rejection.observed_at,
+            failure_code=reason,
+            rejection=rejection,
+        )
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if grant.exp <= int(time.time()):
+                raise AdapterError("delegation_expired_before_execution", 401)
+            # Rejections never own or release a resource fence.
+            db.execute(
+                "INSERT INTO operations VALUES (?,?,?,?,?,?,?)",
+                (
+                    str(grant.jti),
+                    str(command.plan.installation_id),
+                    grant.sub,
+                    self.fingerprint(command, grant),
+                    command.model_dump_json(),
+                    "failed",
+                    result.model_dump_json(),
+                ),
+            )
+            if grant.approval_id is not None:
+                db.execute(
+                    "INSERT INTO consumed_approvals VALUES (?,?)",
+                    (str(grant.approval_id), str(grant.jti)),
+                )
+        return result
 
     def current_plan(self, installation_id: UUID) -> DeploymentPlan | None:
         with self.connect() as db:

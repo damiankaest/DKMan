@@ -1,0 +1,9 @@
+# TEST ONLY: used on explicitly disposable GitHub runners. Never for target-host setup.
+services:
+  deployment-adapter:
+    command: [python, /ci/adapter_fault_entrypoint.py]
+    environment:
+      GITHUB_ACTIONS: 'true'
+      DKMAN_DISPOSABLE_DOCKER_TEST: '1'
+    volumes:
+      - ../../tests/adapter_fault_entrypoint.py:/ci/adapter_fault_entrypoint.py:ro

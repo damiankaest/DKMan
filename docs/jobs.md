@@ -205,3 +205,19 @@ gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließl
 der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
 Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
 weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.
+
+## Belegter Abgleich · P2-006
+
+Core `POST /jobs/{id}/reconcile` ruft nun den expliziten **POST**-Abgleich des Adapters
+mit `reconcile`-Delegation auf. Docker bleibt dabei vollständig lesend. Ein bereits
+gespeichertes abgeschlossenes Legacyresultat wird weiterhin akzeptiert. Neue Enginebelege
+werden zusätzlich in Core aktionsspezifisch geprüft; Nachweisart und SHA-256 stehen als
+`evidence_kind`/`evidence_hash` in `Job.result` und im Hub. Der ursprüngliche Job und dessen
+verbrauchte Freigabe bleiben erhalten. Keine zweite Mutation und kein Zurücksetzen der Lease.
+
+Auch `failed` kann nachträglich sicher abschließen: ausschließlich mit dem gebundenen
+Nichtausführungsnachweis des Adapters aus Kuration/lesendem Preflight. Ein HTTP-Fehler oder
+ein fehlender Adapterdatensatz ist kein solcher Nachweis. Bei Beleglücken bleibt der Job
+unklar und die Installation reserviert. Die Codes `execution_receipt_missing` bzw.
+`execution_evidence_incomplete` werden begrenzt übernommen; keine Providertexte.
+Vollständige Belegbedingungen und Crashgrenzen: [ADR 0011](architecture-decisions/0011-evidence-based-runtime-reconciliation.md).

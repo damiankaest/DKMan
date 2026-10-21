@@ -13,7 +13,15 @@ from sqlalchemy.orm import Session
 from dkman.access import household
 from dkman.auth import Principal, current_principal
 from dkman.database import get_session
-from dkman.deployment_api import Key, catalog, credential, record_runtime, uncertain
+from dkman.deployment_api import (
+    Key,
+    accept_rejection,
+    catalog,
+    completion_result,
+    credential,
+    record_runtime,
+    uncertain,
+)
 from dkman.deployments.contracts import (
     DeploymentCommand,
     DeploymentPlan,
@@ -275,6 +283,12 @@ def verified_lifecycle(db: Session, job: Job, request: Request, actor: Principal
 
 def accept_lifecycle(db: Session, job: Job, result: OperationView, actor: Principal) -> Job:
     plan = LifecyclePlan.model_validate(job.plan)
+    if accept_rejection(db, job, result, actor):
+        return job
+    try:
+        proof_result = completion_result(job, result)
+    except ValueError:
+        return uncertain(db, job, actor)
     expected = "stopped" if plan.action == "stop" else "running"
     item = db.get(AppInstallation, job.resource_id)
     if (
@@ -298,13 +312,18 @@ def accept_lifecycle(db: Session, job: Job, result: OperationView, actor: Princi
         or utc(result.finished_at) < utc(job.execution_started_at)
         or utc(result.runtime.observed_at) < utc(job.execution_started_at)
     ):
-        return uncertain(db, job, actor)
+        return uncertain(db, job, actor, result.failure_code)
     # Update only existing metadata; a lifecycle never materializes a new installation.
     item.desired_state = expected
     record_runtime(db, item.id, result.runtime)
     job.state = "succeeded"
     job.failure_code = None
-    job.result = {"installation_id": item.id, "operation_id": job.id, "state": expected}
+    job.result = {
+        "installation_id": item.id,
+        "operation_id": job.id,
+        "state": expected,
+        **proof_result,
+    }
     job.finished_at = utcnow()
     job.lease_token = None
     job.lease_expires_at = None

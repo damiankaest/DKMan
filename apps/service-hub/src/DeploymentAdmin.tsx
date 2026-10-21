@@ -107,6 +107,7 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
       {['waiting_approval','queued'].includes(job.state) && <button className="quiet" disabled={busy} onClick={() => {void action(async () => {await details(await api.request<Job>(`/api/v1/jobs/${job.id}/cancel`,'POST')); key.current = null;});}}>Plan abbrechen</button>}
       {job.state === 'reconciliation_required' && <><p>Die Installation wird nicht erneut gesendet. Prüfe das gespeicherte Ergebnis beim Deployment-Adapter.</p><button disabled={busy} onClick={() => {void action(async () => {const next = await api.request<Job>(`/api/v1/jobs/${job.id}/reconcile`,'POST'); await details(next); if(next.state === 'succeeded') onInstalled();});}}>Ergebnis abgleichen</button></>}
       {job.state === 'succeeded' && <p>Notes ist installiert. Unter „Meine Apps“ öffnen; weitere Personen über die App-Freigaben berechtigen.</p>}
+      {typeof job.result?.evidence_hash === 'string' && <p>Abschlussnachweis: <code>{job.result.evidence_hash}</code></p>}
       {job.failure_code && <p className="muted">Fehlercode: {job.failure_code}</p>}
       <details><summary>Jobverlauf</summary><p><code>{job.id}</code></p><ol>{events.map(event => <li key={event.sequence}>{event.kind} · {new Date(event.created_at).toLocaleTimeString('de-DE')}</li>)}</ol></details>
     </article>}

@@ -434,3 +434,28 @@ bereits belegt. Die restliche Fehlermatrix (verbotene Images, Rechte, DB-Ausfäl
 einen belastbaren Abschluss dauerhaft unsicherer Adapteroperationen ergänzen. Aktuelle
 Health allein, insbesondere nach möglichem Restart, reicht weiterhin nicht. Keine
 pauschale Entsperrung, keine Journallöschung und kein Blind-Retry als Wiederanlaufweg.
+
+## P2-006 · Implementierung und lokale Vorprüfung · 21.10.2026
+
+Ausgang `main` `29ce123`, letzter Runtimecommit `07e18c5`; Main-CI `39431777779`
+und alle fünf Jobs eigenständig geprüft. Lokaler isolierter Checkout stimmt mit dem
+Remote-Quellstand überein (historischer Bundle bleibt ausschließlich remote erhalten;
+PowerShell-Zeilenenden lokal normalisiert). Keine fremden Dependencyänderungen übernommen.
+
+Implementiert: explizite Adaptermigration 0003 für dauerhafte Enginebelege, bindungs- und
+aktionsspezifischer Abgleich unter exklusiver Ressourcensperre, erneute Core-Belegprüfung,
+gebundene Nichtausführungsnachweise, Hub-Nachweishash. Kein Docker-Retry, keine pauschale
+Entsperrung. Gesunde Runtime ohne Beleg bleibt gesperrt. Bestehende Plan-/Journalverträge
+und Coremigrationen bleiben kompatibel; Details ADR 0011.
+
+Lokal bisher Ruff/Format/Mypy, Paketbuild und HTTP-Smoke bestanden; 199 Backendtests
+bestanden, 12 explizite PostgreSQL-/Docker-Skips ohne lokale Dienste. Hub npm ci,
+Typgenerierung, Lint, Produktionsbuild und zunächst 11 UI-Tests bestanden. Zusätzliche
+UI-/Statusregression und Endprüfung folgen. Reale CI-Abnahme steht vor Push noch aus.
+
+Neue echte CI-Fehlermatrix: unberechtigte Runtime-/Imageanfragen, Notes- und Core-DB-Ausfall,
+Adapterprozessabbruch nach und vor Enginebeleg. Alle Logins/Engineaktionen bleiben echt;
+Abbrüche stammen ausschließlich aus einem separat gemounteten Testentrypoint. Belegbare
+Auflösung erlaubt Wiederanlauf, fehlender Beleg hält trotz gesunder Container die Sperre.
+Windows-/VM-Abnahme, volle OIDC-Betriebsmatrix und koordinierter Runtime-Backup/Restore
+bleiben offen. Windowsanleitung ergänzt den Weg vom Preflight bis zur Notes-Testinstallation.

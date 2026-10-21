@@ -30,6 +30,7 @@ from dkman.deployments.contracts import (
     build_plan,
     validate_plan,
 )
+from dkman.deployments.evidence import prove_completion
 from dkman.job_schemas import JobView
 from dkman.jobs import (
     approval_for,
@@ -279,9 +280,13 @@ def verified_plan(db: Session, job: Job, settings: Settings) -> DeploymentPlan:
     return plan
 
 
-def uncertain(db: Session, job: Job, actor: Principal) -> Job:
+def uncertain(db: Session, job: Job, actor: Principal, code: str | None = None) -> Job:
     job.state = "reconciliation_required"
-    job.failure_code = "execution_outcome_unknown"
+    job.failure_code = (
+        code
+        if code in {"execution_receipt_missing", "execution_evidence_incomplete"}
+        else "execution_outcome_unknown"
+    )
     job.lease_token = None
     job.lease_expires_at = None
     event(db, job, "reconciliation_required", actor.subject)
@@ -331,10 +336,90 @@ def record_runtime(db: Session, installation_id: str, runtime: RuntimeView) -> S
     return service
 
 
+def accept_rejection(db: Session, job: Job, result: OperationView, actor: Principal) -> bool:
+    proof = result.rejection
+    if (
+        digest(job.plan) != job.plan_hash
+        or result.state != "failed"
+        or proof is None
+        or result.completion is not None
+        or result.operation_id != UUID(job.id)
+        or str(result.installation_id) != job.resource_id
+        or f"deployment.{result.action}" != job.action
+        or result.plan_hash != job.plan_hash
+        or proof.operation_id != result.operation_id
+        or proof.installation_id != result.installation_id
+        or proof.action != result.action
+        or proof.plan_hash != result.plan_hash
+        or result.failure_code != proof.reason
+        or result.finished_at is None
+        or job.execution_started_at is None
+        or utc(proof.observed_at) < utc(job.execution_started_at)
+        or utc(result.finished_at) < utc(proof.observed_at)
+        or result.runtime is not None
+    ):
+        return False
+    job.state = "failed"
+    job.failure_code = proof.reason
+    job.result = {
+        "operation_id": job.id,
+        "evidence_hash": proof.evidence_hash,
+        "evidence_kind": proof.kind,
+    }
+    job.finished_at = utcnow()
+    job.lease_token = None
+    job.lease_expires_at = None
+    event(db, job, "preflight_rejected", actor.subject)
+    db.commit()
+    return True
+
+
+def completion_result(job: Job, outcome: OperationView) -> dict[str, str]:
+    if outcome.completion is None:
+        return {}  # Completed historical v1 operations remain compatible.
+    runtime = (
+        DeploymentPlan.model_validate(job.plan) if job.action == "deployment.install" else None
+    )
+    from dkman.deployments.contracts import LifecyclePlan
+
+    command = (
+        DeploymentCommand(action="install", plan=runtime)
+        if runtime
+        else DeploymentCommand(
+            action=LifecyclePlan.model_validate(job.plan).action,
+            plan=LifecyclePlan.model_validate(job.plan).runtime,
+            lifecycle=LifecyclePlan.model_validate(job.plan),
+        )
+    )
+    if job.execution_started_at is None:
+        raise ValueError("Execution marker missing")
+    evidence, measured = prove_completion(
+        command,
+        UUID(job.id),
+        utc(job.execution_started_at),
+        outcome.completion.receipt,
+        outcome.completion.after,
+    )
+    if measured != outcome.runtime:
+        raise ValueError("Completion observation mismatch")
+    return {"evidence_hash": evidence.evidence_hash, "evidence_kind": evidence.kind}
+
+
 def accept_outcome(db: Session, job: Job, outcome: OperationView, actor: Principal) -> Job:
     plan = DeploymentPlan.model_validate(job.plan)
+    if accept_rejection(db, job, outcome, actor):
+        return job
+    try:
+        proof_result = completion_result(job, outcome)
+    except ValueError:
+        return uncertain(db, job, actor)
     if (
-        str(outcome.operation_id) != job.id
+        plan.plan_hash != job.plan_hash
+        or plan.context is None
+        or plan.context.subject != job.requested_by
+        or job.action != "deployment.install"
+        or job.resource_id != str(plan.installation_id)
+        or str(outcome.operation_id) != job.id
         or str(outcome.installation_id) != job.resource_id
         or outcome.action != "install"
         or outcome.plan_hash != job.plan_hash
@@ -344,8 +429,11 @@ def accept_outcome(db: Session, job: Job, outcome: OperationView, actor: Princip
         or outcome.runtime.state != "running"
         or not outcome.runtime.container_id
         or outcome.finished_at is None
+        or job.execution_started_at is None
+        or utc(outcome.finished_at) < utc(job.execution_started_at)
+        or utc(outcome.runtime.observed_at) < utc(job.execution_started_at)
     ):
-        return uncertain(db, job, actor)
+        return uncertain(db, job, actor, outcome.failure_code)
     assert plan.context is not None
     if db.get(AppInstallation, job.resource_id) is None:
         db.add(
@@ -362,7 +450,7 @@ def accept_outcome(db: Session, job: Job, outcome: OperationView, actor: Princip
     record_runtime(db, job.resource_id, outcome.runtime)
     job.state = "succeeded"
     job.failure_code = None
-    job.result = {"installation_id": job.resource_id, "operation_id": job.id}
+    job.result = {"installation_id": job.resource_id, "operation_id": job.id, **proof_result}
     job.finished_at = utcnow()
     job.lease_token = None
     job.lease_expires_at = None
@@ -425,10 +513,10 @@ def reconcile_job(
     ):
         raise HTTPException(409, "Job does not require installation reconciliation")
     # Do not resend a mutation, even when the adapter returns 404.
-    token = credential(request.app.state.settings, actor, job, "operation.read")
+    token = credential(request.app.state.settings, actor, job, "reconcile")
     db.commit()
     try:
-        outcome = request.app.state.deployment_client.operation(job_id, token)
+        outcome = request.app.state.deployment_client.operation(job_id, token, reconcile=True)
     except (AdapterUnavailable, ValidationError):
         raise HTTPException(503, "Operation outcome remains unknown; no retry was sent") from None
     job = locked_job(db, str(job_id))

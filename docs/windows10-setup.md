@@ -126,3 +126,38 @@ Wartung/ESU bzw. spätere unterstützte Hostplattform eigenständig vorsehen.
 - https://docs.docker.com/compose/install/linux/
 - https://www.keycloak.org/server/hostname
 - https://www.keycloak.org/server/reverseproxy
+
+## Heutiger Einstieg: erst Hostabnahme, dann Notes
+
+Den Windows-Rechner kannst du bereits für Schritt 1 (lesender Preflight) starten.
+Für Änderungen zuerst Ausgabe, freie Ressourcen, vorhandene Dienste und gewählte Linux-
+VM prüfen. Keine bestehende Minecraft-Umgebung übernehmen oder Ports freiräumen. Der
+Zeitpunkt für den Stackstart ist **nach grüner P2-006-Main-CI und dieser Hostprüfung**;
+der Entwicklungsabschluss ist keine bereits ausgeführte Windows-/VM-Abnahme.
+
+In einer eigens dafür freigegebenen Ubuntu-VM den aktuellen geprüften `main` über deine
+GitHub-Berechtigung klonen. Keine Tokens in Befehlszeilen oder Ausgaben teilen. Basisstack
+zunächst wie in Schritt 4 starten, Doctor/Erstlogin/Passwortwechsel durchführen. Für den
+Notes-Quellbuild zusätzlich `uv` nach offizieller Anleitung bereitstellen und im Checkout
+`uv sync --frozen` ausführen. Keine alten CI-Image-IDs als Registryreferenzen verwenden.
+
+Danach die in [Notes](notes.md) dokumentierten Dry-runs für Adapterkonfiguration und
+Quellbuild lesen. Mit eigener Freigabe die dort genannten `ADAPTER_CONFIG`-/`BUILD_NOTES`-
+Befehle ausführen. Beim frischen Realm ist der Notes-OIDC-Client bereits enthalten; bei
+vorhandenem Realm zuerst die dokumentierte Clientkonfiguration prüfen. Erst dann:
+
+```bash
+export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
+docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml config --quiet
+# Nur im freigegebenen isolierten Testsystem nach Lesen des Plans:
+docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml up -d --build --wait --wait-timeout 300
+bash scripts/linux/doctor.sh
+```
+
+Diese genaue Produktions-Dateiauswahl hat keine CI-Faultsteuerung. Sie migriert ein
+frisches Adapterjournal explizit über `adapter-migrate`; vorhandene Runtime benötigt den
+kontrollierten Wartungsablauf aus [operations.md](operations.md). Im Hub Notes planen,
+konkret freigeben, installieren, öffnen, Testnotiz anlegen und Stop/Start/Restart prüfen.
+Danach VM-/Windows-Neustart/Autostart und echten Mehrbenutzerbetrieb abnehmen. Bis zum
+koordinierten Runtime-Backup/Restore ausschließlich entbehrliche Testdaten einsetzen;
+die bisherigen Backups sichern Notesdaten und Adapterjournal weiterhin nicht vollständig.

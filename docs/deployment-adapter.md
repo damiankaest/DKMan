@@ -136,3 +136,29 @@ gewartet, danach ein fester Busy-Fehler ausgegeben. Wiederholt wird ausschließl
 der Sperrversuch vor dem Adapter-Ausführungsmarker, niemals ein Provideraufruf.
 Delegationsablauf wird nach Sperrerwerb/Preflight erneut geprüft. Recovery verwendet
 weiterhin exklusiven, nicht wartenden Sperrerwerb und respektiert aktive Leser/Worker.
+
+## Dauerhafte Enginebelege · P2-006
+
+Explizite Journalrevision **3**, neue Migration `0003_execution_receipts.sql`. Erst nach
+kontrolliertem Adapterstopp und abgestimmter Sicherung ausführen; der Service migriert
+weiterhin nicht automatisch. Alte Migrationen und gespeicherte Command-/Planhashes bleiben
+unverändert. Ein v2-Journal wird ohne explizite Migration abgelehnt.
+
+Nach erfolgreicher Compose-Rückkehr wird der an Operation/Aktion/Ressource/Hash gebundene
+Enginebeleg separat synchron committed. Ein Crash danach, vor dem Operationsabschluss,
+kann durch `POST /v1/operations/{id}/reconcile` belegt aufgelöst werden. Neustart verlangt
+nachweislich neue Startzeitpunkte aller ursprünglichen Container; aktuelle Health allein
+reicht nicht. Derselbe Ressourcensperrmechanismus schützt Abgleich und Ausführung. Es gibt
+keinen Provider-Retry und keine neue Runtime. Der bisherige GET bleibt beobachtend.
+
+Install/Start/Stop/Restart können eine persistierte `failed`-Operation mit gebundenem
+Nichtausführungsnachweis ausgeben, wenn Kuration oder rein lesender Preflight vor dem
+Marker ablehnen. HTTP 200 enthält dann ausdrücklich `state=failed`, niemals Erfolg.
+Andere Fehler und Ausführung mit möglicher Wirkung bleiben unklar. Rejection löst keine
+fremde Ressourcensperre und verbrauchte Approval-IDs bleiben einmalig gebunden.
+
+Kein Beleg nach Crash **vor** dessen Commit: `execution_receipt_missing`. Geänderte/
+unvollständige Container oder fehlende Transition: `execution_evidence_incomplete`.
+Diese Fälle bleiben blockiert, auch nach Adapterneustart oder aktuell gesunder Runtime.
+Die Prüfsumme ist Integritätserkennung innerhalb der vertrauenswürdigen Adaptergrenze.
+Keine vollständigen Inspect-Daten/Environments im Journal oder API-Nachweis. Siehe ADR 0011.
