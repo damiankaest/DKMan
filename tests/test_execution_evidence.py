@@ -14,6 +14,7 @@ from test_deployment_adapter import (
     adapter,
     catalog,
     plan,
+    submit,
     token,
 )
 
@@ -317,3 +318,50 @@ def test_stopped_database_with_cached_healthy_state_never_reports_ready(
         ],
     )
     assert provider.status(notes).state == "unhealthy"
+
+
+def test_reconciliation_rechecks_delegation_expiry_after_engine_observation(
+    adapter, plan, monkeypatch
+):
+    client, app, _, _, _ = adapter
+    item, _, _, after = uncertain_operation(app.state.journal, plan)
+    raw = token(plan, item.operation_id, "reconcile")
+    grant = verify_delegation(raw, SECRET)
+
+    class Expired:
+        @staticmethod
+        def now(tz):
+            return datetime.fromtimestamp(grant.exp + 1, tz)
+
+    def slow_evidence(self, plan):
+        monkeypatch.setattr("dkman.deployment_adapter.main.datetime", Expired)
+        return after
+
+    monkeypatch.setattr(TestProvider, "evidence", slow_evidence)
+    response = client.post(
+        f"/v1/operations/{item.operation_id}/reconcile", headers={"Authorization": "Bearer " + raw}
+    )
+    assert response.status_code == 401
+    assert app.state.journal.get(item.operation_id).state == "reconciliation_required"
+
+
+def test_rejection_preserves_an_existing_uncertainty_fence_and_cannot_reuse_approval(adapter, plan):
+    client, app, _, _, _ = adapter
+    blocked, _, _, _ = uncertain_operation(app.state.journal, plan, acknowledge=False)
+    invalid = plan.model_copy(update={"image": "sha256:" + "f" * 64})
+    first, _, raw = submit(client, invalid)
+    assert first.json()["state"] == "failed"
+    grant = verify_delegation(raw, SECRET)
+    replacement = token(invalid, uuid4(), "install", approval_id=grant.approval_id)
+    denied, _, _ = submit(
+        client,
+        invalid,
+        credential=replacement,
+        operation_id=verify_delegation(replacement, SECRET).jti,
+    )
+    assert denied.status_code == 409 and denied.json()["detail"] == "approval_already_consumed"
+    with app.state.journal.connect() as db:
+        assert db.execute("SELECT blocked_by FROM resources").fetchone()[0] == str(
+            blocked.operation_id
+        )
+    assert app.state.journal.get(blocked.operation_id).state == "reconciliation_required"

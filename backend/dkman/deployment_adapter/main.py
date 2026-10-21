@@ -330,6 +330,9 @@ def create_app(
                         "failure_code": "execution_receipt_missing",
                     }
                 )
-            return journal.resolve(operation_id, provider.evidence(command.plan))
+            after = provider.evidence(command.plan)
+            if value.exp <= int(datetime.now(UTC).timestamp()):
+                raise HTTPException(401, "Delegation expired before evidence commit")
+            return journal.resolve(operation_id, after)
 
     return app

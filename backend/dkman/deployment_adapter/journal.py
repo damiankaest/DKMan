@@ -242,28 +242,40 @@ class Journal:
             failure_code=reason,
             rejection=rejection,
         )
-        with self.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
-            if grant.exp <= int(time.time()):
-                raise AdapterError("delegation_expired_before_execution", 401)
-            # Rejections never own or release a resource fence.
-            db.execute(
-                "INSERT INTO operations VALUES (?,?,?,?,?,?,?)",
-                (
-                    str(grant.jti),
-                    str(command.plan.installation_id),
-                    grant.sub,
-                    self.fingerprint(command, grant),
-                    command.model_dump_json(),
-                    "failed",
-                    result.model_dump_json(),
-                ),
-            )
-            if grant.approval_id is not None:
+        try:
+            with self.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                if grant.exp <= int(time.time()):
+                    raise AdapterError("delegation_expired_before_execution", 401)
+                if (
+                    grant.approval_id is not None
+                    and db.execute(
+                        "SELECT operation_id FROM consumed_approvals WHERE approval_id=?",
+                        (str(grant.approval_id),),
+                    ).fetchone()
+                    is not None
+                ):
+                    raise AdapterError("approval_already_consumed")
+                # Rejections never own or release a resource fence.
                 db.execute(
-                    "INSERT INTO consumed_approvals VALUES (?,?)",
-                    (str(grant.approval_id), str(grant.jti)),
+                    "INSERT INTO operations VALUES (?,?,?,?,?,?,?)",
+                    (
+                        str(grant.jti),
+                        str(command.plan.installation_id),
+                        grant.sub,
+                        self.fingerprint(command, grant),
+                        command.model_dump_json(),
+                        "failed",
+                        result.model_dump_json(),
+                    ),
                 )
+                if grant.approval_id is not None:
+                    db.execute(
+                        "INSERT INTO consumed_approvals VALUES (?,?)",
+                        (str(grant.approval_id), str(grant.jti)),
+                    )
+        except sqlite3.IntegrityError as error:
+            raise AdapterError("operation_id_conflict") from error
         return result
 
     def current_plan(self, installation_id: UUID) -> DeploymentPlan | None:

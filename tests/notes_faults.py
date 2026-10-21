@@ -74,6 +74,27 @@ def inject(action: str, installation: UUID, operation: UUID | None = None) -> No
             "import pathlib,sys; pathlib.Path('/tmp/dkman-ci-fault.json').write_text(sys.argv[1])",
             raw,
         )
+    elif action == "evidence":
+        assert operation is not None
+        raw = docker(
+            "exec",
+            service("deployment-adapter"),
+            "python",
+            "-c",
+            "import json,sys; from pathlib import Path; from uuid import UUID; "
+            "from dkman.deployment_adapter.journal import Journal; "
+            "j=Journal(Path('/var/lib/dkman-adapter')); oid=UUID(sys.argv[1]); "
+            "o=j.get(oid); r=j.receipt(oid); "
+            "assert o.action in {'install','start','stop','restart'} and o.logs is None; "
+            "print(json.dumps({'operation':o.model_dump(mode='json'), "
+            "'receipt':r.model_dump(mode='json') if r else None}))",
+            str(operation),
+        )
+        destination = ROOT / ".local/notes-operation-evidence.json"
+        saved = json.loads(destination.read_text()) if destination.exists() else {}
+        saved[str(operation)] = json.loads(raw)
+        assert saved[str(operation)]["operation"]["installation_id"] == str(installation)
+        destination.write_text(json.dumps(saved, indent=2) + "\n")
     elif action == "adapter-ready":
         wait_healthy(service("deployment-adapter"))
         ids = docker("ps", "-aq", "--filter", f"label=io.dkman.installation={installation}").split()
@@ -112,6 +133,7 @@ if __name__ == "__main__":
             "before_receipt",
             "after_receipt",
             "adapter-ready",
+            "evidence",
         ],
     )
     parser.add_argument("installation", type=UUID)

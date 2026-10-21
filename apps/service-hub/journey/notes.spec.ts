@@ -226,6 +226,7 @@ test('real OIDC, approved installation and operator lifecycle with unchanged Not
   expect(completedRecovery.result.evidence_hash).toMatch(/^[a-f0-9]{64}$/);
   await expect(recoveryRuntime.getByText(completedRecovery.result.evidence_hash,{exact:true})).toBeVisible();
   faultResults.acknowledged_crash = completedRecovery;
+  fault('evidence',completedRecovery.id);
   engineEvidence('reconciled_restart');
   expect(await notesSnapshot()).toEqual(baseline);
 
@@ -250,6 +251,7 @@ test('real OIDC, approved installation and operator lifecycle with unchanged Not
   expect((await observedAmbiguity.json()).blocked_job_id).toBe(ambiguous.id);
   engineEvidence('after_reconcile');
   faultResults.unacknowledged_crash = unresolvedJob;
+  fault('evidence',unresolvedJob.id);
   writeFileSync('../../.local/notes-fault-results.json',JSON.stringify(faultResults,null,2));
   // Revoke only operator scope; app.use still works, runtime controls disappear.
   await grantRow.getByRole('button',{name:'Betriebsfreigabe entziehen'}).click();

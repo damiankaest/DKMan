@@ -421,3 +421,34 @@ def test_only_bound_durable_non_execution_proof_can_close_a_rejection(
         assert result["result"]["evidence_kind"] == "preflight_rejected"
     with Session(engine) as db:
         assert db.scalar(select(func.count()).select_from(AppInstallation)) == 1
+
+
+def test_reconciliation_rechecks_current_scope_after_external_io(
+    client, installed, engine, as_user, monkeypatch
+):
+    from dkman.models import PermissionGrant
+
+    operator(client, installed, as_user)
+    job = submit(client, installed, "restart").json()
+    installed[1].lose = True
+    assert execute(client, job).json()["state"] == "reconciliation_required"
+    original_read = installed[1].operation
+
+    def revoke_during_read(*args, **kwargs):
+        result = original_read(*args, **kwargs)
+        with Session(engine) as db:
+            grant = db.scalar(
+                select(PermissionGrant).where(
+                    PermissionGrant.installation_id == installed[0],
+                    PermissionGrant.permission == "app.operate",
+                )
+            )
+            db.delete(grant)
+            db.commit()
+        return result
+
+    monkeypatch.setattr(installed[1], "operation", revoke_during_read)
+    assert client.post(f"/api/v1/jobs/{job['id']}/reconcile").status_code == 404
+    with Session(engine) as db:
+        assert db.get(Job, job["id"]).state == "reconciliation_required"
+    assert installed[1].calls == ["restart"]
