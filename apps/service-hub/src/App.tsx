@@ -6,6 +6,7 @@ import './styles.css';
 import { AccessAdmin } from './AccessAdmin';
 import { DeploymentAdmin } from './DeploymentAdmin';
 import { RuntimeManager } from './RuntimeManager';
+import { AppPlanning } from './AppPlanning';
 
 const labels: Record<AppItem['status'], string> = {
   healthy: 'Bereit', starting: 'Startet', degraded: 'Eingeschränkt',
@@ -21,7 +22,7 @@ export function App({ auth }: { auth: AuthSession }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(auth.authenticated);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'apps' | 'admin'>('apps');
+  const [tab, setTab] = useState<'apps' | 'admin' | 'planning'>('apps');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,6 +86,7 @@ export function App({ auth }: { auth: AuthSession }) {
         <a className="brand" href="/" aria-label="DKMan Startseite"><span className="logo">DK</span> DKMan<span className="brand-label">SERVICEHUB</span></a>
         <nav aria-label="Hauptnavigation">
           <button className={tab === 'apps' ? 'active' : ''} onClick={() => setTab('apps')}>Meine Apps</button>
+          {user?.roles.some(role => ['admin','developer','member'].includes(role)) && <button className={tab === 'planning' ? 'active' : ''} onClick={() => setTab('planning')}>App planen</button>}
           {user?.roles.some(role => ['admin','operator'].includes(role)) && <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>Verwaltung</button>}
         </nav>
         {auth.authenticated ? <button className="quiet" onClick={logout}>Abmelden</button> : <button className="primary" onClick={login}>Anmelden</button>}
@@ -104,7 +106,7 @@ export function App({ auth }: { auth: AuthSession }) {
             </p>
             <p className="muted">{health ? `Datenbank: ${health.database === 'ready' ? 'erreichbar' : 'nicht erreichbar'}` : 'Health-Prüfung nicht erreichbar'}</p>
             {health && <time dateTime={health.checked_at}>Geprüft: {new Date(health.checked_at).toLocaleTimeString('de-DE')}</time>}
-            <span className="milestone">0.1 · Fundament</span>
+            <span className="milestone">0.1 · Apps und Planung</span>
           </aside>
         </section>
 
@@ -131,7 +133,7 @@ export function App({ auth }: { auth: AuthSession }) {
                 </div>
               </article>)}</div>}
           </section>
-        ) : (
+        ) : tab === 'planning' && user ? <AppPlanning api={api} subject={user.subject} admin={user.roles.includes('admin')} /> : (
           <section>
             {user && <RuntimeManager api={api} subject={user.subject} onChanged={() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app,status:'unknown',route:null}))));}} />}
             {user?.roles.includes('admin') && <>
@@ -145,7 +147,7 @@ export function App({ auth }: { auth: AuthSession }) {
           </section>
         )}
 
-        <section className="roadmap"><div><span className="section-number">ALS NÄCHSTES</span><h2>Von der Idee zur eigenen App.</h2><p>Kuratierter App-Katalog und sichere Deployments. Danach: DKMan-Chat, Planungswizard und Forge.</p></div><span className="planned">In Entwicklung</span></section>
+        <section className="roadmap"><div><span className="section-number">DEINE NÄCHSTEN MÖGLICHKEITEN</span><h2>Von der Idee zur eigenen App.</h2><p>Unter „App planen“ kannst du Ideen und Planversionen speichern. Als Nächstes folgen Chat, Planungswizard und anschließend Forge für Build und Vorschau.</p></div><span className="planned">Schritt für Schritt</span></section>
       </main>
       <footer><span>DKMan <span className="muted">/ Private by design</span></span><span className="muted">Core · Registry · Identity</span></footer>
     </div>

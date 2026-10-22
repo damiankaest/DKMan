@@ -127,6 +127,7 @@ jobs:
             .local/notes-faults.json
             .local/notes-fault-results.json
             .local/notes-operation-evidence.json
+            .local/planning-journey.json
       - name: Show sanitized startup state on failure
         if: failure()
         run: |

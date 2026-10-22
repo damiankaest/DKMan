@@ -1,5 +1,87 @@
 # Ausgeführte Prüfungen · 19.10.2026
 
+## P3-001 · Abschließende CI-Abnahme · 22.10.2026
+
+Korrigierter Code `a41bc151156a044b36a1e03529bec773d9313fa6`:
+[PR-CI 39731623907](https://github.com/damiankaest/DKMan/actions/runs/39731623907)
+und [Branch-CI 39731620032](https://github.com/damiankaest/DKMan/actions/runs/39731620032)
+vollständig erfolgreich. Alle fünf PR-Jobs und ihre relevanten Logs selbst geprüft.
+
+| Job | Tatsächlich abgenommen |
+| --- | --- |
+| backend | **232 bestanden, 1 Dockerguard-Skip**; PostgreSQL 17 einschließlich drei neuer Planungskonkurrenztests; Migration 0004 Upgrade/Drift/Downgrade/Reupgrade; Ruff/Format/mypy, HTTP-Smoke, PowerShell und Vertragsdrift |
+| frontend | Lint/Build, **15 UI-Tests**, **4 Desktop-/Handy-Browserprüfungen** einschließlich Reload/Wiederöffnung; Vertragsgenerierung und Produktions-Audit erfolgreich |
+| adapter-smoke | **1 echter Docker-Integrationstest** in 95,15 Sekunden; bestehende Runtime-/Datenerhalt-/Fehlerregression erfolgreich |
+| container-smoke | Images gebaut, Migration Exit 0, PostgreSQL/Core/Keycloak/Hub healthy; Seed registriert zwei Verträge; Doctor bestätigt aktuelle Revision/Proxy/OIDC und anonyme Zugriffssperre |
+| notes-journey | **2 echte Journeys bestanden** in 2,2 Minuten: bisherige OIDC-/Notes-/Lifecycle-/Fehlermatrix und neue persistente Planung mit drei echten Keycloak-Konten |
+
+Die Planungsjourney legt per Member-UI eine Idee an, lädt den Browser neu und öffnet
+dieselben gespeicherten Requirements. Adminfreigabe durchläuft die echte Jobgrenze;
+danach unveränderte Appinstallationen. Revision 2 besitzt keine geerbte Freigabe,
+Revision 1 behält Dokument/Hash/Nachweis; fremde Direktabfragen werden 404.
+Keine Auth-Overrides oder HTTP-Testantworten in diesen beiden echten Journeys.
+
+Der CI-Artefaktdownload `12406095247` wurde anhand seines gemeldeten SHA-256
+`c722bebceb164ec911614d624301a583e0ff656c5487576d05124df22a513664` geprüft.
+Der enthaltene echte Planungsnachweis mit Request-/Plan-/Job-IDs und Versionshashes
+liegt dauerhaft unter [evidence/p3-001-planning.json](evidence/p3-001-planning.json).
+Keine produktiven Schlüssel oder Benutzerdaten darin. Der anschließende reine
+Nachweiscommit verändert keinen geprüften Programmcode und überspringt CI ausdrücklich.
+
+Keine fernbediente Windowsaktualisierung, keine neue App generiert. Zielhost-
+Neustart/Autostart/Mehrgeräte/Restore bleiben eigene Gates. Nächste Entwicklung P3-002.
+
+## P3-001 · Lokale Prüfung · 22.10.2026
+
+Ausgangspunkt: Remote-`main` `b44afcd`; letzter ausführbarer Main-CI-Lauf
+`39567571003` für `6c749e2` selbst erfolgreich kontrolliert. Neuer isolierter
+Workspace, Quellstand mit 185 Repositorydateien gegen GitHub-Blobhashes geprüft.
+Kein Docker-Daemon und kein Windows-Zielhostzugriff im Workspace.
+
+| Prüfung | Tatsächliches Ergebnis |
+| --- | --- |
+| Dependencies | `uv sync --frozen`; im Hub `npm ci --ignore-scripts --no-audit --no-fund` erfolgreich; Lockfiles unverändert |
+| Python | Ruff Check/Format und `uv run mypy` (38 Quelldateien) erfolgreich |
+| Backend | `uv run pytest -q`: **218 bestanden, 15 übersprungen**; 14 PostgreSQL-Tests ohne lokale Testdatenbank und 1 ausschließlich auf wegwerfbarem Docker-Runner zulässige Probe |
+| Planung | 15 neue API-/Persistenz-/Fehlertests bestanden; 3 neue echte PostgreSQL-Konkurrenztests lokal ausdrücklich übersprungen |
+| Migration | PostgreSQL/WASM: Upgrade auf `0004_app_planning`, 18 Tabellen, FK-Negativprobe, Downgrade und erneutes Upgrade erfolgreich; ersetzt keinen PostgreSQL-17-Netzwerktest |
+| Backendpaket/Prozess | `uv build` erfolgreich; echter Uvicorn-Smoke: Live 200, Ready ohne DB 503, anonymes Me 401 |
+| Hub | Lint, TypeScript-/Produktionsbuild und **15 UI-Tests** erfolgreich |
+| Browser | **4 Playwright-Prüfungen** erfolgreich: abgemeldeter Hub und neue Planung jeweils Desktop/Handy; gespeicherter Entwurf, kein horizontaler Überlauf; Screenshots visuell geprüft |
+| Verträge | OpenAPI exportiert, TypeScript generiert; erneuter Export/Generierung ohne Hashdrift; `git diff --check` erfolgreich |
+
+Planungstests prüfen Eigentümer-/Rollen-/Haushaltsisolation und Widerruf, strenge
+Anforderungsdaten, Idempotenz/Schlüsselkonflikte, unveränderte historische Dokumente,
+veraltete erwartete Revisionen, gebundene Freigabe, aktuelles Dokument beim Abschluss,
+keinen Appinstallationsdatensatz durch Planfreigabe, atomaren Rollback bei Create/
+Revision/Abschluss sowie Persistenz in neuem Appprozess und konservative Recovery.
+Die UI-Tests prüfen zusätzlich denselben Requestschlüssel nach Transportfehler,
+einen neuen Schlüssel für eine absichtlich weitere Idee und die genaue Approvalbindung.
+
+Browserprüfungen verwenden ausdrücklich HTTP-/Auth-Testantworten. Der normale
+Playwrightdownload liefert lokal weiterhin ein ungültiges Archiv. Stattdessen
+Chromium 153.0.0 aus `@sparticuz/chromium` für Tests entpackt und über
+`DKMAN_TEST_BROWSER=/tmp/chromium FONTCONFIG_PATH=/tmp/fonts npm run test:e2e`
+verwendet. Browserartefakte und temporäre Pakete sind keine Projektabhängigkeiten.
+
+Die neue `journey/planning.spec.ts` prüft dagegen im echten CI-Stack mit drei
+Keycloak-Konten Plananlage/-wiederaufnahme, Adminfreigabe, separate neue Version,
+fremden Direktzugriff und unveränderte Appinstallationen. Vollständige CI-Abnahme
+einschließlich PostgreSQL-17-Konkurrenz/Migration, Notes- und Dockerregression ist
+zum Zeitpunkt dieses lokalen Nachweises noch ausstehend.
+
+Der erste PR-Lauf `39730755621` bestätigte Backend (232 bestanden / 1 Dockerguard),
+Frontend, Adapter und Basisstack, fand aber im neuen Planungsjourney eine instabile
+Labelauflösung nach Wiederöffnung vorbefüllter Textareas. Der gespeicherte Inhalt
+war im Browser vorhanden. Labels und Controls sind nun über separate `htmlFor`/`id`
+verbunden; der lokale Desktop-/Handytest reproduziert zusätzlich Reload und erneutes
+Öffnen. Danach erneut 15 UI-Tests, vier Browserprüfungen, Lint und Build erfolgreich.
+Ein neuer vollständiger CI-Lauf muss diesen korrigierten Stand abnehmen.
+
+Damian bestätigt am 22.10.2026 den erfolgreichen lokalen DKMan-Start. Dies ist kein
+von hier ausgeführter Windows-/Neustart-/Autostart-/Mehrgeräte-/Restoretest.
+Die historischen Abnahmen und deren damalige Grenzen folgen unten.
+
 Die ursprünglichen lokalen Prüfungen wurden im isolierten Work-Workspace ausgeführt,
 **nicht auf Damians Windows-Rechner**. Ergänzende GitHub-CI-Prüfungen stehen unten.
 Python 3.12.14, Node 24.19.0. Kein Docker-Daemon, kein Windows-Hostzugriff.

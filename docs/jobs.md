@@ -1,5 +1,11 @@
 # Jobs und Freigaben · P2-001
 
+P3-001 ergänzt die implementierte Metadatenaktion `app_plan.approve` für Admins:
+Planfreigabe anfordern, sechs unveränderte Bindungsfelder bestätigen und über
+`/jobs/{id}/run` abschließen. Ergebnis `effect: plan_recorded`, keine Installation.
+Core-Readiness verlangt seit dieser Ergänzung `0004_app_planning`; die historischen
+Migrationsangaben unten beschreiben den jeweiligen P2-Stand. Vertrag: [planning.md](planning.md).
+
 `registry.validate` prüft eine registrierte Manifestrevision erneut; ihr Erfolg
 bedeutet **Manifest gültig**. Seit P2-004 existiert zusätzlich `deployment.install`
 mit eigenem typisierten Planner, isoliertem Adapter und Hub-Oberfläche. Die folgenden

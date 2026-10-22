@@ -21,6 +21,7 @@ from dkman.deployments.client import HttpDeploymentClient
 from dkman.health import readiness
 from dkman.job_api import router as job_router
 from dkman.job_recovery import recover_once, recovery_loop
+from dkman.planning_api import router as planning_router
 from dkman.runtime_api import router as runtime_router
 from dkman.schemas import HealthView
 
@@ -123,4 +124,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(job_router)
     app.include_router(deployment_router)
     app.include_router(runtime_router)
+    app.include_router(planning_router)
     return app
