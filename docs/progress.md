@@ -2,7 +2,7 @@
 
 ## Aktueller Stand
 
-P3-002 ist implementiert und wird geprüft: **DKMan Chat** mit sichtbarem Regelmodus,
+P3-002 ist abgeschlossen und geprüft: **DKMan Chat** mit sichtbarem Regelmodus,
 lesender App-/Registry-/Jobsuche, Requirements- und gebundenen Runtime-/Installations-
 vorschlägen. Der austauschbare Provider enthält einen tatsächlichen optionalen
 HTTPS-Chat-Completions-Adapter. Kein Modell kann Freigaben oder Ausführung auslösen.
@@ -13,9 +13,14 @@ Lokale Prüfungen: uv sync, Ruff/Format/mypy, **285 Backendtests bestanden / 15 
 (14 PostgreSQL, 1 Docker), uv build und HTTP-Smoke; Hub npm ci/Lint/Build,
 **19 UI-Tests und 6 Browserchecks** bestanden. Desktop-/Handyscreenshots visuell geprüft.
 Die 67 neuen Backendtests betreffen Dispatcher, Modellvertrag, Isolation, Rechtewiderruf,
-strenge Ausgabevalidierung und keine Mutation durch Chat. Echte PostgreSQL-/Docker-/
-OIDC-Abnahme folgt in GitHub CI; noch kein Ergebnis dafür behauptet. Kein bezahlter
-Modellaufruf, kein Zielhostupgrade. Der folgende P3-001-Abschnitt bleibt historisch.
+strenge Ausgabevalidierung und keine Mutation durch Chat. Code `a27f8b1` besteht
+[PR-CI 39748544251](https://github.com/damiankaest/DKMan/actions/runs/39748544251)
+und [Branch-CI 39748531267](https://github.com/damiankaest/DKMan/actions/runs/39748531267)
+vollständig: **299 Backendtests**, 19 UI-Tests, 6 Browserchecks, **3 echte OIDC-Journeys**,
+echte Dockerprobe und Basisstack-Smoke. Auch die optionale Modell-Compose-Konfiguration
+ist erfolgreich geprüft. [PR #14](https://github.com/damiankaest/DKMan/pull/14) wird
+mit diesem Prüfnachweis integriert: `docs/evidence/p3-002-chat.json`.
+Kein bezahlter Modellaufruf, kein Zielhostupgrade. Der folgende P3-001-Abschnitt ist historisch.
 
 P3-001 ist abgeschlossen und geprüft: **App planen** im Hub, persistente eigene AppRequests,
 unveränderliche manuelle Planrevisionen und hashgebundene Planfreigaben über den
