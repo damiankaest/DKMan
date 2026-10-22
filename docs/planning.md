@@ -3,8 +3,9 @@
 Im Hub führt **App planen** zu einer manuellen, persistenten Planung. Member und
 Developer können eigene Ideen anlegen und weiterentwickeln; Admins können alle Ideen
 verwalten. Ziele, Funktionen, Entitäten, Ansichten, Abnahmekriterien und Anforderungen
-an den Betrieb bleiben in der Core-Datenbank gespeichert. Chat, Modellprovider und
-automatische Dienstvorschläge gehören zu P3-002/P3-003 und sind hier nicht simuliert.
+an den Betrieb bleiben in der Core-Datenbank gespeichert. Der [DKMan Chat](chat.md)
+aus P3-002 kann einen Entwurf in dieses Formular übernehmen. Der geführte Wizard und
+automatische Dienstvorschläge folgen mit P3-003.
 
 ## Bedienung
 

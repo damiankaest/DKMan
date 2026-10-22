@@ -1,0 +1,15 @@
+# Explicit operator opt-in. Add after compose.yaml and, if used, runtime.yaml.
+# Core already has outbound HTTPS through edge. No additional port or host access.
+services:
+  core:
+    environment:
+      DKMAN_CHAT_PROVIDER: openai_compatible
+      DKMAN_CHAT_API_URL: '${DKMAN_CHAT_API_URL:?Set the trusted HTTPS chat/completions endpoint}'
+      DKMAN_CHAT_MODEL: '${DKMAN_CHAT_MODEL:?Set a model supporting Chat Completions JSON mode}'
+      DKMAN_CHAT_PROVIDER_LABEL: '${DKMAN_CHAT_PROVIDER_LABEL:-Konfigurierter Modellanbieter}'
+    secrets:
+      - chat-model-api-key
+
+secrets:
+  chat-model-api-key:
+    file: ../../.local/secrets/chat-model-api-key

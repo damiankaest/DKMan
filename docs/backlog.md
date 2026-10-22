@@ -24,7 +24,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P2-005 | P0 / 2 | P2-004 | abgeschlossen und geprüft: PR #11 in main (07e18c5); PR-CI 39430552396 und Main-CI 39431777779 vollständig erfolgreich: 184 Backendtests, 11 UI-Tests, 2 Browserchecks, echter Adaptertest und echte OIDC-/Notes-Lifecycle-Journey mit identischen Daten/Containern/Volumes; konkreter dauerhafter Mainnachweis unter docs/evidence/p2-005-main-runtime.json |
 | P2-006 | P0 / 2 | P2-005,P1-004 | abgeschlossen und geprüft: PR #12 als 6c749e2 in main; PR-CI 39566266737 und Main-CI 39567571003 vollständig erfolgreich; dauerhafte Enginebelege, gebundene Nichtausführungsnachweise, reale Image-/Rechte-/DB-/Crashmatrix; 214 Backend-/12 UI-Tests, echte OIDC-/Dockerprobe; dauerhafter Mainnachweis docs/evidence/p2-006-main-runtime.json |
 | P3-001 | P1 / 3 | P2-006 | abgeschlossen und geprüft: PR #13 als efde76d in main; Code a41bc15, PR-CI 39731623907 und Branch-CI 39731620032 vollständig grün; Main-Tree identisch geprüft; AppRequest als Workflowanker, unveränderliche Requirements-/Planrevisionen, manuelle Hub-Planung und konkrete Planfreigabe über Job/Event/Approval; 232 Backend-/15 UI-/4 Browsertests, zwei echte OIDC-Journeys und Dockerproben; Nachweis docs/evidence/p3-001-planning.json; App-Erzeugung folgt mit P4 |
-| P3-002 | P1 / 3 | P3-001 | Intent-/Tool-Dispatcher + austauschbarer Modellprovider; regelbasierter Modus offen gekennzeichnet |
+| P3-002 | P1 / 3 | P3-001 | abgeschlossen und geprüft: PR #14, Code a27f8b1; PR-CI 39748544251 und Branch-CI 39748531267 vollständig erfolgreich; sichtbarer DKMan Chat, berechtigter lesender Dispatcher, geprüfte Planungsvorschläge, Regeln und optionaler echter HTTPS-Modelladapter; 299 Backend-/19 UI-/6 Browserchecks, 3 echte OIDC-Journeys; docs/evidence/p3-002-chat.json; kein bezahlter Modellaufruf oder Zielhostupgrade |
 | P3-003 | P1 / 3 | P3-002 | Garten-Wizard sammelt Requirements und schlägt berechtigte vorhandene Dienste vor; genehmigbarer Plan |
 | P4-001 | P1 / 4 | P3-003 | CodingProvider, deterministischer Generator, drei getestete Vorlagen; isolierte Workspaces |
 | P4-002 | P1 / 4 | P4-001 | echte Checks und Image-Build im isolierten Worker; BuildArtifact mit Digest, Fehlerlogs |
@@ -36,8 +36,8 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächster Entwicklungseinstieg nach P3-001: P3-002 (Intent-/Tool-Dispatcher
-und austauschbarer Modellprovider). Damian hat am 22.10.2026 den erfolgreichen lokalen
+Nächster Entwicklungseinstieg nach P3-002: P3-003 (geführter Requirements-Wizard
+mit berechtigten Dienstvorschlägen). Damian hat am 22.10.2026 den erfolgreichen lokalen
 DKMan-Start bestätigt. Die weiteren Zielhostprüfungen aus P0-007 bleiben separat offen;
 Basisstack aktualisieren gemäß planning.md, Notes gemäß windows10-setup.md/notes.md.
 Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und koordinierter

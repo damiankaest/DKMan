@@ -1,4 +1,49 @@
-# Ausgeführte Prüfungen · 19.10.2026
+# Ausgeführte Prüfungen · Stand 22.10.2026
+
+## P3-002 · Abschließende CI-Abnahme · 22.10.2026
+
+Code `a27f8b18c81136a8bf40e3325d99d83ddca19bba` besteht
+[PR-CI 39748544251](https://github.com/damiankaest/DKMan/actions/runs/39748544251)
+und [Branch-CI 39748531267](https://github.com/damiankaest/DKMan/actions/runs/39748531267)
+mit allen fünf Jobs. **299 Backendtests / 1 expliziter Docker-Guard-Skip**, 19 UI-Tests,
+6 Browserchecks, 3 echte OIDC-Journeys, eine echte Docker-Adapterprobe und der
+vollständige Basisstack-Smoke sind erfolgreich. PostgreSQL-/Migrations-/Konkurrenz-
+prüfungen und Vertragsdrift bleiben grün. Der optionale Modell-Compose-Zusatz besteht
+seine Konfigurationsprobe ohne Anbieteraufruf.
+
+Die neue Chat-Journey verwendet drei echte Keycloak-Nutzer und den produktiven Core:
+Entwurf erst prüfen/bearbeiten, dann persistent speichern und nach Reload lesen;
+realen wartenden und danach abgebrochenen Job mit Ereignissen abfragen; fremden
+Job/Request verbergen; nur berechtigte Registrydaten; kuratierte Installationsdefinition
+korrekt vorwählen; keine neuen Jobs/Installationen durch Chatvorschläge. Notes-
+Daten-/Rollen-/Lifecycle-/Fehlermatrix und die bestehende Planfreigabejourney bleiben grün.
+Der HTTP-Modellvertrag ist kontrolliert getestet, kein bezahlter Modellaufruf.
+
+Dauerhafter Nachweis: `docs/evidence/p3-002-chat.json`, inklusive gelesener Job-IDs und
+Artefaktmetadaten. PR-Artefakt `12412528288` enthält `.local/chat-journey.json`;
+ZIP-SHA-256 `7a5349ffc96e6b86b5d1751399a8d05add273346dbe45fd83e3ca5f0d653816f`.
+Kein Zielhostupgrade. P3-003 und P4 bleiben offen.
+
+### Lokale Prüfungen
+
+`uv sync --frozen`, Ruff/Format/mypy, `uv build` und HTTP-Smoke erfolgreich.
+Pytest **285 bestanden / 15 Skips** (14 PostgreSQL, 1 Dockerguard); davon 67 neue
+Dispatcher-/Providerprüfungen. Hub npm ci, Lint, Build und **19 UI-Tests** erfolgreich.
+**6 Playwright-Prüfungen** erfolgreich: Hub, manuelle Planung und Chat→Entwurf→geprüftes
+Speichern jeweils Desktop/Handy, kein horizontaler Überlauf; Screenshots visuell geprüft.
+Lokaler Browser: separat bereitgestelltes Chromium 153, keine Produktionsabhängigkeit.
+
+Geprüft: OIDC-Pflicht, serverbestimmte Identität/Provider, begrenzte Eingaben, gleiche
+Sichtbarkeit wie Apps/Registry, keine erfundene Health, eigene Jobereignisse, keine
+Mutation durch Runtime-/Installationsvorschläge, gespeicherte Anforderung erst nach
+expliziter Formularprüfung, fremde/erfundene Ziele und Rechtewiderruf nach Modell-I/O.
+HTTP-Vertrag: JSON-Modus, minimale berechtigte Kontextdaten, begrenzte Antwort,
+Truncation/Refusal/Toolcalls abgewiesen, feste Fehlercodes, kein Retry, HTTPS ohne
+Credentials/Redirects, reguläre begrenzte Secretdatei, maximal zwei parallele Calls.
+Echte Anbieteraufrufe und Zielhostprüfungen nicht ausgeführt. Die zusätzliche reale
+OIDC-Chat-Journey und optionale Compose-Konfigurationsprobe sind oben separat belegt.
+
+Die folgenden P3-001-/P2-Abschnitte sind historische Nachweise.
 
 ## P3-001 · Abschließende CI-Abnahme · 22.10.2026
 

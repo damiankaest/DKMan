@@ -759,6 +759,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Config */
+        get: operations["getChatConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["dispatchChatIntent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -853,6 +887,71 @@ export interface components {
             method: string;
             /** Path */
             path: string;
+        };
+        /** ChatEvent */
+        ChatEvent: {
+            /** Sequence */
+            sequence: number;
+            /** Kind */
+            kind: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatInput */
+        ChatInput: {
+            /** Message */
+            message: string;
+        };
+        /** ChatJob */
+        ChatJob: {
+            /** Id */
+            id: string;
+            /** Action */
+            action: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Events */
+            events: components["schemas"]["ChatEvent"][];
+        };
+        /** ChatView */
+        ChatView: {
+            provider: components["schemas"]["ProviderView"];
+            /**
+             * Intent
+             * @enum {string}
+             */
+            intent: "help" | "apps.search" | "registry.search" | "jobs.status" | "app.draft" | "runtime.start" | "runtime.stop" | "runtime.restart" | "catalog.install";
+            /** Summary */
+            summary: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Apps */
+            apps?: components["schemas"]["AppView"][];
+            /** Registry */
+            registry?: components["schemas"]["RegistryMatch"][];
+            /** Jobs */
+            jobs?: components["schemas"]["ChatJob"][];
+            /** Proposal */
+            proposal?: components["schemas"]["DraftProposal"] | components["schemas"]["RuntimeProposal"] | components["schemas"]["InstallProposal"] | null;
         };
         /** CuratedImage */
         CuratedImage: {
@@ -978,6 +1077,16 @@ export interface components {
             installation_id: string;
             context?: components["schemas"]["InstallationContext"] | null;
         };
+        /** DraftProposal */
+        DraftProposal: {
+            /**
+             * Kind
+             * @default app.draft
+             * @constant
+             */
+            kind: "app.draft";
+            requirements: components["schemas"]["Requirements"];
+        };
         /** GrantView */
         GrantView: {
             /** Id */
@@ -1045,6 +1154,21 @@ export interface components {
              * Format: uuid
              */
             household_id: string;
+        };
+        /** InstallProposal */
+        InstallProposal: {
+            /**
+             * Kind
+             * @default catalog.install
+             * @constant
+             */
+            kind: "catalog.install";
+            /** Definition Id */
+            definition_id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
         };
         /** InstallationContext */
         InstallationContext: {
@@ -1324,6 +1448,31 @@ export interface components {
             /** Display Name */
             display_name: string;
         };
+        /** ProviderView */
+        ProviderView: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "rules" | "external";
+            /** Label */
+            label: string;
+            /** Notice */
+            notice: string;
+        };
+        /** RegistryMatch */
+        RegistryMatch: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+            /** Description */
+            description: string;
+            /** Capabilities */
+            capabilities: string[];
+        };
         /** RequestInput */
         RequestInput: {
             /** Household Id */
@@ -1433,6 +1582,24 @@ export interface components {
              * @constant
              */
             max_bytes: 8192;
+        };
+        /** RuntimeProposal */
+        RuntimeProposal: {
+            /**
+             * Kind
+             * @default runtime
+             * @constant
+             */
+            kind: "runtime";
+            /** Installation Id */
+            installation_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "start" | "stop" | "restart";
         };
         /** RuntimeStatusView */
         RuntimeStatusView: {
@@ -3037,6 +3204,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getChatConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+        };
+    };
+    dispatchChatIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatView"];
                 };
             };
             /** @description Validation Error */

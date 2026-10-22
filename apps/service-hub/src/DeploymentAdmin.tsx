@@ -9,11 +9,11 @@ type Event = components['schemas']['JobEventView'];
 
 const states: Record<string, string> = {waiting_approval:'Wartet auf Freigabe',queued:'Freigegeben',claimed:'Wird vorbereitet',running:'Installation läuft',succeeded:'Installiert',failed:'Fehlgeschlagen',cancelled:'Abgebrochen',expired:'Freigabe abgelaufen',reconciliation_required:'Ausgang unklar – Abgleich erforderlich'};
 
-export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; subject: string; onInstalled: () => void}) {
+export function DeploymentAdmin({api, subject, onInstalled, initialDefinition}: {api: ApiClient; subject: string; onInstalled: () => void; initialDefinition?: string}) {
   const [images, setImages] = useState<Curated[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [household, setHousehold] = useState('');
-  const [definition, setDefinition] = useState('');
+  const [definition, setDefinition] = useState(initialDefinition ?? '');
   const [job, setJob] = useState<Job | null>(null);
   const [approval, setApproval] = useState<Approval | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
@@ -36,10 +36,11 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
       api.get<Curated[]>('/api/v1/deployments/catalog'), api.get<Household[]>('/api/v1/households'), api.get<Job[]>('/api/v1/jobs'),
     ]);
     setImages(curated); setHouseholds(groups);
-    setDefinition(current => current || curated[0]?.definition_id || '');
+    setDefinition(current => curated.some(item => item.definition_id === current) ? current : initialDefinition ? '' : curated[0]?.definition_id || '');
+    if (initialDefinition && !curated.some(item => item.definition_id === initialDefinition)) setError('Der vorgeschlagene Build ist nicht mehr kuratiert. Bitte lade den Stand erneut.');
     const recent = jobs.find(item => item.action === 'deployment.install' && item.requested_by === subject);
     if (recent) await details(recent);
-  }, [api, details, subject]);
+  }, [api, details, subject, initialDefinition]);
 
   useEffect(() => {void load().catch((cause: Error) => setError(cause.message));}, [load]);
 
@@ -83,7 +84,7 @@ export function DeploymentAdmin({api, subject, onInstalled}: {api: ApiClient; su
     <p className="muted">Prüfe den Plan, erteile die zeitlich begrenzte Freigabe und starte anschließend die Installation.</p>
     {error && <p role="alert" className="error">{error}</p>}
     {images.length === 0 ? <p>Aktuell ist kein gebautes App-Image kuratiert.</p> : <div className="install-controls">
-      <div><label htmlFor="deploy-app">App</label><select id="deploy-app" value={definition} onChange={event => {setDefinition(event.target.value); key.current = null;}}>{images.map(image => <option key={image.definition_id} value={image.definition_id}>{image.definition_id === 'demo-notes' ? 'Notes' : image.definition_id} · {image.version}</option>)}</select></div>
+      <div><label htmlFor="deploy-app">App</label><select id="deploy-app" value={definition} onChange={event => {setDefinition(event.target.value); key.current = null;}}><option value="">App auswählen</option>{images.map(image => <option key={image.definition_id} value={image.definition_id}>{image.definition_id === 'demo-notes' ? 'Notes' : image.definition_id} · {image.version}</option>)}</select></div>
       <div><label htmlFor="deploy-household">Haushalt</label><select id="deploy-household" value={household} onChange={event => {setHousehold(event.target.value); key.current = null;}}><option value="">Haushalt auswählen</option>{households.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></div>
       <button className="primary" disabled={busy || !household || !definition} onClick={plan}>Plan erstellen</button>
     </div>}

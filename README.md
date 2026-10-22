@@ -9,9 +9,11 @@ ist enthalten. Der Docker-Stack und der Windows-Host sind in dieser Sitzung noch
 nicht am Zielhost abgenommen. **Notes-Quellapp, isolierter Deployment-Adapter und
 genehmigte Installation und autorisierter Runtime-Lifecycle über den Hub sind implementiert.**
 P3-001 ergänzt **App planen**: manuelle Anforderungen, gespeicherte Planversionen
-und konkrete Planfreigaben. Chat/Wizard und Forge folgen später.
+und konkrete Planfreigaben. P3-002 ergänzt **DKMan Chat** mit offengelegtem Regelmodus,
+berechtigter App-/Registry-Suche, Jobereignissen, Anforderungsentwürfen und einer
+optionalen echten Modellanbindung. Wizard und Forge folgen später.
 Einstieg: [App planen und Basisstack aktualisieren](docs/planning.md),
-[Notes und offene Host-Gates](docs/notes.md).
+[Chat und optionaler Modellprovider](docs/chat.md), [Notes und offene Host-Gates](docs/notes.md).
 
 ## Start in vorbereiteter Linux-Docker-Umgebung
 

@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "repository": "damiankaest/DKMan",
+  "ticket": "P3-002",
+  "commit": "a27f8b18c81136a8bf40e3325d99d83ddca19bba",
+  "code_tree": "e284e3a88b06bf345b2e70c23abfbc0e8dcc11dc",
+  "pull_request": 14,
+  "ci_run_id": 39748544251,
+  "ci_url": "https://github.com/damiankaest/DKMan/actions/runs/39748544251",
+  "branch_ci_run_id": 39748531267,
+  "conclusion": "success",
+  "artifact_id": 12412528288,
+  "artifact_sha256": "7a5349ffc96e6b86b5d1751399a8d05add273346dbe45fd83e3ca5f0d653816f",
+  "checks": {
+    "backend_passed": 299,
+    "backend_docker_guard_skipped": 1,
+    "local_backend_passed": 285,
+    "local_postgres_and_docker_skipped": 15,
+    "new_dispatcher_provider_checks": 67,
+    "ui_passed": 19,
+    "browser_fixture_passed": 6,
+    "real_oidc_journeys_passed": 3,
+    "real_docker_probe_passed": 1,
+    "optional_model_compose_config": "success",
+    "contract_drift": "none",
+    "base_stack_smoke": "success"
+  },
+  "jobs": [
+    {
+      "id": 119722990802,
+      "name": "adapter-smoke",
+      "conclusion": "success"
+    },
+    {
+      "id": 119722990916,
+      "name": "container-smoke",
+      "conclusion": "success"
+    },
+    {
+      "id": 119722990940,
+      "name": "backend",
+      "conclusion": "success"
+    },
+    {
+      "id": 119722990993,
+      "name": "frontend",
+      "conclusion": "success"
+    },
+    {
+      "id": 119722991070,
+      "name": "notes-journey",
+      "conclusion": "success"
+    }
+  ],
+  "chat_journey": {
+    "test": "apps/service-hub/journey/chat.spec.ts",
+    "mode": "rules",
+    "assertions": [
+      "real OIDC identities for admin, member and outsider",
+      "chat draft does not create a request before review",
+      "reviewed and edited requirements persist after browser reload",
+      "actual job state and ordered events without exposing job plan",
+      "foreign job and request return 404",
+      "unauthorized registry metadata is hidden",
+      "curated install proposal preselects the correct definition",
+      "chat does not create jobs or installations",
+      "cancelled job is reported as cancelled"
+    ],
+    "artifact_path": ".local/chat-journey.json",
+    "proof_basis": "Passing real-stack Playwright assertions and workflow logs; artifact index and SHA-256 independently retrieved."
+  },
+  "provider_probe": {
+    "transport": "controlled HTTP contract, no paid model call",
+    "verified": [
+      "bounded minimal authorized context",
+      "JSON response validation and closed intent allowlist",
+      "fresh permissions after external I/O",
+      "no redirects, no URL credentials, HTTPS only",
+      "bounded regular non-symlink secret file",
+      "fixed errors without upstream bodies or credentials",
+      "no automatic retry or silent rules fallback"
+    ]
+  },
+  "limitations": [
+    "No actual external model/provider compatibility test",
+    "No target-host upgrade or Windows restart/restore acceptance",
+    "P3-003 guided wizard and P4 Forge remain separate"
+  ]
+}

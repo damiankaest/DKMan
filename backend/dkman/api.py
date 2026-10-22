@@ -178,6 +178,6 @@ def platform(principal: User, response: Response, request: Request) -> dict[str,
     response.headers["Cache-Control"] = "no-store"
     return {
         "version": "0.1.0",
-        "milestone": "curated-installation",
+        "milestone": "intent-planning",
         "deployment": "enabled" if request.app.state.settings.deployment_enabled else "disabled",
     }

@@ -1,7 +1,8 @@
 from functools import cached_property
 from pathlib import Path
+from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -23,6 +24,14 @@ class Settings(BaseSettings):
     deployment_enabled: bool = False
     deployment_catalog_file: Path = Path("/etc/dkman-adapter/catalog.json")
     deployment_secret_file: Path = Path("/run/secrets/adapter-delegation-key")
+    chat_provider: Literal["rules", "openai_compatible"] = "rules"
+    chat_api_url: str = ""
+    chat_model: str = Field(default="", max_length=120)
+    chat_provider_label: str = Field(
+        default="Konfigurierter Modellanbieter", min_length=1, max_length=80
+    )
+    chat_api_key_file: Path = Path("/run/secrets/chat-model-api-key")
+    chat_timeout_seconds: float = Field(default=10, ge=1, le=20)
 
     @cached_property
     def sqlalchemy_url(self) -> str | URL:

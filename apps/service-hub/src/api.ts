@@ -20,6 +20,12 @@ export class ApiClient {
       cache: 'no-store',
     });
     if (!response.ok) {
+      if (path.startsWith('/api/v1/chat') && [502,503].includes(response.status)) {
+        const body = await response.json().catch(() => ({})) as {detail?: string};
+        const messages: Record<string,string> = {chat_provider_not_configured:'Der Modellanbieter ist noch nicht vollständig konfiguriert. Bitte prüfe die Serverkonfiguration.',chat_provider_busy:'Der Modellanbieter ist ausgelastet. Bitte versuche es gleich noch einmal.',chat_provider_unavailable:'Der Modellanbieter ist momentan nicht erreichbar. Deine Nachricht wurde nicht ausgeführt.',chat_provider_invalid_response:'Der Modellanbieter hat keine gültige Antwort geliefert. Bitte versuche es erneut.',chat_provider_invalid_intent:'Die Modellantwort entspricht keinem erlaubten Auftrag. Bitte formuliere den Auftrag erneut.'};
+        throw new Error(messages[body.detail ?? ''] ?? 'Der Chat ist momentan nicht erreichbar.');
+      }
+      if (response.status === 404) throw new Error('Der angefragte Eintrag ist nicht vorhanden oder nicht für dich freigegeben.');
       if (response.status === 401) throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
       if (response.status === 403) throw new Error('Für diese Aktion fehlen dir die Rechte.');
       if (response.status === 429) throw new Error('Zu viele Anfragen. Warte einen Moment und lade den Stand erneut.');

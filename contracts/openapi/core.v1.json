@@ -2362,6 +2362,78 @@
           }
         }
       }
+    },
+    "/api/v1/chat/config": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Config",
+        "operationId": "getChatConfig",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Chat",
+        "operationId": "dispatchChatIntent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2637,6 +2709,187 @@
           "path"
         ],
         "title": "CapabilityView"
+      },
+      "ChatEvent": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting_approval",
+              "queued",
+              "claimed",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "expired",
+              "reconciliation_required"
+            ],
+            "title": "State"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sequence",
+          "kind",
+          "state",
+          "created_at"
+        ],
+        "title": "ChatEvent"
+      },
+      "ChatInput": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatInput"
+      },
+      "ChatJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting_approval",
+              "queued",
+              "claimed",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "expired",
+              "reconciliation_required"
+            ],
+            "title": "State"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ChatEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "state",
+          "updated_at",
+          "events"
+        ],
+        "title": "ChatJob"
+      },
+      "ChatView": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderView"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "help",
+              "apps.search",
+              "registry.search",
+              "jobs.status",
+              "app.draft",
+              "runtime.start",
+              "runtime.stop",
+              "runtime.restart",
+              "catalog.install"
+            ],
+            "title": "Intent"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AppView"
+            },
+            "type": "array",
+            "title": "Apps"
+          },
+          "registry": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryMatch"
+            },
+            "type": "array",
+            "title": "Registry"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/ChatJob"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftProposal"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeProposal"
+              },
+              {
+                "$ref": "#/components/schemas/InstallProposal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "intent",
+          "summary",
+          "observed_at"
+        ],
+        "title": "ChatView"
       },
       "CuratedImage": {
         "properties": {
@@ -2926,6 +3179,24 @@
         ],
         "title": "DeploymentPlan"
       },
+      "DraftProposal": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "app.draft",
+            "title": "Kind",
+            "default": "app.draft"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/Requirements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirements"
+        ],
+        "title": "DraftProposal"
+      },
       "GrantView": {
         "properties": {
           "id": {
@@ -3086,6 +3357,35 @@
           "household_id"
         ],
         "title": "InstallInput"
+      },
+      "InstallProposal": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "catalog.install",
+            "title": "Kind",
+            "default": "catalog.install"
+          },
+          "definition_id": {
+            "type": "string",
+            "title": "Definition Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "definition_id",
+          "name",
+          "version"
+        ],
+        "title": "InstallProposal"
       },
       "InstallationContext": {
         "properties": {
@@ -3743,6 +4043,69 @@
         ],
         "title": "ProfileView"
       },
+      "ProviderView": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "external"
+            ],
+            "title": "Mode"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "label",
+          "notice"
+        ],
+        "title": "ProviderView"
+      },
+      "RegistryMatch": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "capabilities"
+        ],
+        "title": "RegistryMatch"
+      },
       "RequestInput": {
         "properties": {
           "household_id": {
@@ -4016,6 +4379,40 @@
           "text"
         ],
         "title": "RuntimeLogsView"
+      },
+      "RuntimeProposal": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "runtime",
+            "title": "Kind",
+            "default": "runtime"
+          },
+          "installation_id": {
+            "type": "string",
+            "title": "Installation Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "stop",
+              "restart"
+            ],
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "installation_id",
+          "name",
+          "action"
+        ],
+        "title": "RuntimeProposal"
       },
       "RuntimeStatusView": {
         "properties": {
