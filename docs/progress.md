@@ -11,6 +11,12 @@ Der korrigierte Code `a41bc15` besteht PR-CI `39731623907` und Branch-CI
 zwei echte OIDC-Journeys, echter Adaptertest und Basisstack-Smoke. Dauerhafter
 Nachweis: `docs/evidence/p3-001-planning.json`. Nächste Entwicklung: **P3-002**.
 
+[PR #13](https://github.com/damiankaest/DKMan/pull/13) ist als `efde76d` in `main`
+integriert. Der Main-Tree `5f33184` wurde selbst mit dem geprüften PR-Tree abgeglichen
+und ist identisch. Der zusätzliche [Main-Lauf 39732646116](https://github.com/damiankaest/DKMan/actions/runs/39732646116)
+läuft beim Schreiben dieses Nachweises noch; für ihn wird kein Ergebnis behauptet.
+Der folgende reine Integrationsnachweis verändert keinen Programmcode (`[skip ci]`).
+
 Lokale P3-Prüfung: `uv sync --frozen`, Ruff/Format/mypy, `uv build`, HTTP-Smoke,
 Vertragsdrift erfolgreich. Vollständiges Pytest: 218 bestanden / 15 explizite Skips
 (14 ohne PostgreSQL, 1 Dockerguard); 15 neue Planungstests erfolgreich. Hub npm ci,

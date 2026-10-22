@@ -31,6 +31,11 @@ Nachweiscommit verändert keinen geprüften Programmcode und überspringt CI aus
 Keine fernbediente Windowsaktualisierung, keine neue App generiert. Zielhost-
 Neustart/Autostart/Mehrgeräte/Restore bleiben eigene Gates. Nächste Entwicklung P3-002.
 
+Integration: [PR #13](https://github.com/damiankaest/DKMan/pull/13) als `efde76d`
+in `main`. Main-Tree `5f33184f1f93a9c0b8f0d97bb519b98e6d22a086` ist mit dem
+geprüften PR-Tree identisch. Zusätzlicher Main-CI-Lauf `39732646116` beim Schreiben
+dieses Nachweises noch laufend; keine vorweggenommene Main-CI-Erfolgsaussage.
+
 ## P3-001 · Lokale Prüfung · 22.10.2026
 
 Ausgangspunkt: Remote-`main` `b44afcd`; letzter ausführbarer Main-CI-Lauf
