@@ -39,6 +39,14 @@ fremden Direktzugriff und unveränderte Appinstallationen. Vollständige CI-Abna
 einschließlich PostgreSQL-17-Konkurrenz/Migration, Notes- und Dockerregression ist
 zum Zeitpunkt dieses lokalen Nachweises noch ausstehend.
 
+Der erste PR-Lauf `39730755621` bestätigte Backend (232 bestanden / 1 Dockerguard),
+Frontend, Adapter und Basisstack, fand aber im neuen Planungsjourney eine instabile
+Labelauflösung nach Wiederöffnung vorbefüllter Textareas. Der gespeicherte Inhalt
+war im Browser vorhanden. Labels und Controls sind nun über separate `htmlFor`/`id`
+verbunden; der lokale Desktop-/Handytest reproduziert zusätzlich Reload und erneutes
+Öffnen. Danach erneut 15 UI-Tests, vier Browserprüfungen, Lint und Build erfolgreich.
+Ein neuer vollständiger CI-Lauf muss diesen korrigierten Stand abnehmen.
+
 Damian bestätigt am 22.10.2026 den erfolgreichen lokalen DKMan-Start. Dies ist kein
 von hier ausgeführter Windows-/Neustart-/Autostart-/Mehrgeräte-/Restoretest.
 Die historischen Abnahmen und deren damalige Grenzen folgen unten.

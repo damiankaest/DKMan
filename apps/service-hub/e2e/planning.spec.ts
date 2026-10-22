@@ -39,4 +39,8 @@ test('creates and reads a planning draft without overflow on desktop and mobile'
   await page.screenshot({path:test.info().outputPath('planning.png'),fullPage:true});
   await page.getByRole('article',{name:'Gespeicherter App-Plan'}).scrollIntoViewIfNeeded();
   await page.screenshot({path:test.info().outputPath('planning-detail.png')});
+  await page.reload();
+  await page.getByRole('button',{name:'App planen',exact:true}).click();
+  await page.getByRole('button',{name:/Unser Garten.*Version 1/}).click();
+  await expect(page.getByLabel('Funktionen',{exact:true})).toHaveValue('Pflanzen verwalten\nGießen planen\nFotos sammeln');
 });
