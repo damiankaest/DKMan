@@ -7,6 +7,7 @@ import { AccessAdmin } from './AccessAdmin';
 import { DeploymentAdmin } from './DeploymentAdmin';
 import { RuntimeManager } from './RuntimeManager';
 import { AppPlanning } from './AppPlanning';
+import { Chat, type Proposal } from './Chat';
 
 const labels: Record<AppItem['status'], string> = {
   healthy: 'Bereit', starting: 'Startet', degraded: 'Eingeschränkt',
@@ -22,7 +23,14 @@ export function App({ auth }: { auth: AuthSession }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(auth.authenticated);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'apps' | 'admin' | 'planning'>('apps');
+  const [tab, setTab] = useState<'apps' | 'admin' | 'planning' | 'chat'>('apps');
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [chatOpened, setChatOpened] = useState(false);
+
+  function openProposal(next: Proposal) {
+    setProposal(next);
+    setTab(next.kind === 'app.draft' ? 'planning' : 'admin');
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,8 +94,9 @@ export function App({ auth }: { auth: AuthSession }) {
         <a className="brand" href="/" aria-label="DKMan Startseite"><span className="logo">DK</span> DKMan<span className="brand-label">SERVICEHUB</span></a>
         <nav aria-label="Hauptnavigation">
           <button className={tab === 'apps' ? 'active' : ''} onClick={() => setTab('apps')}>Meine Apps</button>
-          {user?.roles.some(role => ['admin','developer','member'].includes(role)) && <button className={tab === 'planning' ? 'active' : ''} onClick={() => setTab('planning')}>App planen</button>}
-          {user?.roles.some(role => ['admin','operator'].includes(role)) && <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>Verwaltung</button>}
+          {user && <button className={tab === 'chat' ? 'active' : ''} onClick={() => {setChatOpened(true);setTab('chat');}}>DKMan Chat</button>}
+          {user?.roles.some(role => ['admin','developer','member'].includes(role)) && <button className={tab === 'planning' ? 'active' : ''} onClick={() => {setProposal(null);setTab('planning');}}>App planen</button>}
+          {user?.roles.some(role => ['admin','operator'].includes(role)) && <button className={tab === 'admin' ? 'active' : ''} onClick={() => {setProposal(null);setTab('admin');}}>Verwaltung</button>}
         </nav>
         {auth.authenticated ? <button className="quiet" onClick={logout}>Abmelden</button> : <button className="primary" onClick={login}>Anmelden</button>}
       </header>
@@ -106,7 +115,7 @@ export function App({ auth }: { auth: AuthSession }) {
             </p>
             <p className="muted">{health ? `Datenbank: ${health.database === 'ready' ? 'erreichbar' : 'nicht erreichbar'}` : 'Health-Prüfung nicht erreichbar'}</p>
             {health && <time dateTime={health.checked_at}>Geprüft: {new Date(health.checked_at).toLocaleTimeString('de-DE')}</time>}
-            <span className="milestone">0.1 · Apps und Planung</span>
+            <span className="milestone">0.1 · Apps, Chat und Planung</span>
           </aside>
         </section>
 
@@ -133,11 +142,11 @@ export function App({ auth }: { auth: AuthSession }) {
                 </div>
               </article>)}</div>}
           </section>
-        ) : tab === 'planning' && user ? <AppPlanning api={api} subject={user.subject} admin={user.roles.includes('admin')} /> : (
+        ) : tab === 'chat' ? null : tab === 'planning' && user ? <AppPlanning api={api} subject={user.subject} admin={user.roles.includes('admin')} initialDraft={proposal?.kind === 'app.draft' ? proposal.requirements : undefined} /> : (
           <section>
-            {user && <RuntimeManager api={api} subject={user.subject} onChanged={() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app,status:'unknown',route:null}))));}} />}
+            {user && <RuntimeManager api={api} subject={user.subject} initialProposal={proposal?.kind === 'runtime' ? proposal : undefined} onChanged={() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app,status:'unknown',route:null}))));}} />}
             {user?.roles.includes('admin') && <>
-            {user && <DeploymentAdmin api={api} subject={user.subject} onInstalled={() => {void api.apps().then(setApps).catch(() => setError('Apps konnten nicht aktualisiert werden.'));}} />}
+            {user && <DeploymentAdmin api={api} subject={user.subject} initialDefinition={proposal?.kind === 'catalog.install' ? proposal.definition_id : undefined} onInstalled={() => {void api.apps().then(setApps).catch(() => setError('Apps konnten nicht aktualisiert werden.'));}} />}
             <AccessAdmin api={api} installations={apps} />
             <span className="section-number">02 / VERWALTUNG</span><h2>Registrierte App-Definitionen</h2>
             <p className="muted">Die Registry beschreibt Apps. Nur separat kuratierte Quellbuilds können installiert werden.</p>
@@ -147,7 +156,8 @@ export function App({ auth }: { auth: AuthSession }) {
           </section>
         )}
 
-        <section className="roadmap"><div><span className="section-number">DEINE NÄCHSTEN MÖGLICHKEITEN</span><h2>Von der Idee zur eigenen App.</h2><p>Unter „App planen“ kannst du Ideen und Planversionen speichern. Als Nächstes folgen Chat, Planungswizard und anschließend Forge für Build und Vorschau.</p></div><span className="planned">Schritt für Schritt</span></section>
+        {auth.authenticated && user && !loading && chatOpened && <div hidden={tab !== 'chat'}><Chat api={api} onProposal={openProposal} /></div>}
+        <section className="roadmap"><div><span className="section-number">DEINE NÄCHSTEN MÖGLICHKEITEN</span><h2>Von der Idee zur eigenen App.</h2><p>Im DKMan Chat bereitest du Ideen vor und findest vorhandene Apps und Aufträge. Unter „App planen“ speicherst du Planversionen. Als Nächstes folgen der geführte Wizard und Forge für Build und Vorschau.</p></div><span className="planned">Schritt für Schritt</span></section>
       </main>
       <footer><span>DKMan <span className="muted">/ Private by design</span></span><span className="muted">Core · Registry · Identity</span></footer>
     </div>

@@ -2,6 +2,21 @@
 
 ## Aktueller Stand
 
+P3-002 ist implementiert und wird geprüft: **DKMan Chat** mit sichtbarem Regelmodus,
+lesender App-/Registry-/Jobsuche, Requirements- und gebundenen Runtime-/Installations-
+vorschlägen. Der austauschbare Provider enthält einen tatsächlichen optionalen
+HTTPS-Chat-Completions-Adapter. Kein Modell kann Freigaben oder Ausführung auslösen.
+Anforderungen werden nach Prüfung über die vorhandene Planung gespeichert; keine
+neue Migration. Bedienung/Grenzen: `chat.md`, ADR 0013. Nächstes Ticket: **P3-003**.
+
+Lokale Prüfungen: uv sync, Ruff/Format/mypy, **285 Backendtests bestanden / 15 Skips**
+(14 PostgreSQL, 1 Docker), uv build und HTTP-Smoke; Hub npm ci/Lint/Build,
+**19 UI-Tests und 6 Browserchecks** bestanden. Desktop-/Handyscreenshots visuell geprüft.
+Die 67 neuen Backendtests betreffen Dispatcher, Modellvertrag, Isolation, Rechtewiderruf,
+strenge Ausgabevalidierung und keine Mutation durch Chat. Echte PostgreSQL-/Docker-/
+OIDC-Abnahme folgt in GitHub CI; noch kein Ergebnis dafür behauptet. Kein bezahlter
+Modellaufruf, kein Zielhostupgrade. Der folgende P3-001-Abschnitt bleibt historisch.
+
 P3-001 ist abgeschlossen und geprüft: **App planen** im Hub, persistente eigene AppRequests,
 unveränderliche manuelle Planrevisionen und hashgebundene Planfreigaben über den
 bestehenden Jobvertrag. Der letzte Schritt hält einen Plan fest und erzeugt keine
@@ -14,7 +29,7 @@ Nachweis: `docs/evidence/p3-001-planning.json`. Nächste Entwicklung: **P3-002**
 [PR #13](https://github.com/damiankaest/DKMan/pull/13) ist als `efde76d` in `main`
 integriert. Der Main-Tree `5f33184` wurde selbst mit dem geprüften PR-Tree abgeglichen
 und ist identisch. Der zusätzliche [Main-Lauf 39732646116](https://github.com/damiankaest/DKMan/actions/runs/39732646116)
-läuft beim Schreiben dieses Nachweises noch; für ihn wird kein Ergebnis behauptet.
+ist inzwischen vollständig erfolgreich abgeschlossen (für P3-002 erneut gelesen).
 Der folgende reine Integrationsnachweis verändert keinen Programmcode (`[skip ci]`).
 
 Lokale P3-Prüfung: `uv sync --frozen`, Ruff/Format/mypy, `uv build`, HTTP-Smoke,

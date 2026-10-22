@@ -14,11 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from dkman.access import router as access_router
 from dkman.api import router
 from dkman.auth import TokenVerifier
+from dkman.chat_api import router as chat_router
 from dkman.config import Settings
 from dkman.deployment_api import router as deployment_router
 from dkman.deployment_health import health_loop
 from dkman.deployments.client import HttpDeploymentClient
 from dkman.health import readiness
+from dkman.intent_provider import make_provider
 from dkman.job_api import router as job_router
 from dkman.job_recovery import recover_once, recovery_loop
 from dkman.planning_api import router as planning_router
@@ -70,6 +72,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.state.settings = settings
     app.state.verifier = TokenVerifier(settings)
     app.state.deployment_client = HttpDeploymentClient()
+    app.state.intent_provider = make_provider(settings)
 
     @app.middleware("http")
     async def request_context(
@@ -125,4 +128,5 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(deployment_router)
     app.include_router(runtime_router)
     app.include_router(planning_router)
+    app.include_router(chat_router)
     return app

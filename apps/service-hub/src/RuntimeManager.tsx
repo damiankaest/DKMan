@@ -13,9 +13,9 @@ const actions: Record<Action, string> = {start:'Container starten',stop:'Contain
 const states: Record<string,string> = {waiting_approval:'Wartet auf Freigabe',queued:'Freigegeben',claimed:'Wird vorbereitet',running:'Auftrag läuft',succeeded:'Erfolgreich abgeschlossen',failed:'Fehlgeschlagen',cancelled:'Abgebrochen',expired:'Freigabe abgelaufen',reconciliation_required:'Ausgang unklar – Abgleich erforderlich'};
 const runtimeStates: Record<string,string> = {running:'Bereit',stopped:'Gestoppt',starting:'Startet',unhealthy:'Gestört',unknown:'Unbekannt',absent:'Container fehlen'};
 
-export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subject: string; onChanged: () => void}) {
+export function RuntimeManager({api, subject, onChanged, initialProposal}: {api: ApiClient; subject: string; onChanged: () => void; initialProposal?: components['schemas']['RuntimeProposal']}) {
   const [installations, setInstallations] = useState<Installation[]>([]);
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(initialProposal?.installation_id ?? '');
   const [status, setStatus] = useState<Status | null>(null);
   const [logs, setLogs] = useState<Logs | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -41,8 +41,9 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
   const refresh = useCallback(async () => {
     const items = await api.get<Installation[]>('/api/v1/runtime/installations');
     setInstallations(items);
-    setSelected(current => items.some(item => item.id === current) ? current : items[0]?.id || '');
-  }, [api]);
+    setSelected(current => items.some(item => item.id === current) ? current : initialProposal ? '' : items[0]?.id || '');
+    if (initialProposal && !items.some(item => item.id === initialProposal.installation_id)) setError('Das Ziel aus dem Chat ist nicht mehr zum Containerbetrieb freigegeben.');
+  }, [api, initialProposal]);
   useEffect(() => {void refresh().catch((cause: Error) => setError(cause.message));}, [refresh]);
   useEffect(() => {
     const current = ++generation.current;
@@ -114,8 +115,9 @@ export function RuntimeManager({api, subject, onChanged}: {api: ApiClient; subje
   return <section className="runtime-manager" aria-label="Runtime verwalten">
     <span className="section-number">CONTAINERBETRIEB</span><h2>Installierte Apps verwalten.</h2>
     <p>„App öffnen“ lädt die Anwendung. Diese Aktionen steuern ihre vorhandenen Container und erhalten alle Daten.</p>
+    {initialProposal && <p className="planning-notice">Chatvorschlag: {actions[initialProposal.action]} für {initialProposal.name} ({initialProposal.installation_id}). Prüfe die Auswahl und erstelle den Plan über die passende Aktion.</p>}
     {error && <p role="alert" className="error">{error}</p>}
-    {installations.length ? <><label htmlFor="runtime-installation">Runtime-Installation</label><select id="runtime-installation" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}>{installations.map(item => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select>
+    {installations.length ? <><label htmlFor="runtime-installation">Runtime-Installation</label><select id="runtime-installation" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}><option value="">Installation auswählen</option>{installations.map(item => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select>
       <p role="status">{status ? runtimeStates[status.state] : 'Status wird ermittelt …'}{status && <> · Gemessen: <time dateTime={status.observed_at}>{new Date(status.observed_at).toLocaleString('de-DE')}</time></>}</p>
       {status?.reason && <p className="muted">Statuscode: {status.reason}</p>}
       {status?.blocked_job_id && <p>Offener Auftrag: <code>{status.blocked_job_id}</code>. Weitere Änderungen bleiben gesperrt.</p>}

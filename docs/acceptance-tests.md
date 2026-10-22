@@ -1,5 +1,27 @@
 # Ausgeführte Prüfungen · 19.10.2026
 
+## P3-002 · lokaler Stand vor GitHub CI
+
+`uv sync --frozen`, Ruff/Format/mypy, `uv build` und HTTP-Smoke erfolgreich.
+Pytest **285 bestanden / 15 Skips** (14 PostgreSQL, 1 Dockerguard); davon 67 neue
+Dispatcher-/Providerprüfungen. Hub npm ci, Lint, Build und **19 UI-Tests** erfolgreich.
+**6 Playwright-Prüfungen** erfolgreich: Hub, manuelle Planung und Chat→Entwurf→geprüftes
+Speichern jeweils Desktop/Handy, kein horizontaler Überlauf; Screenshots visuell geprüft.
+Lokaler Browser: separat bereitgestelltes Chromium 153, keine Produktionsabhängigkeit.
+
+Geprüft: OIDC-Pflicht, serverbestimmte Identität/Provider, begrenzte Eingaben, gleiche
+Sichtbarkeit wie Apps/Registry, keine erfundene Health, eigene Jobereignisse, keine
+Mutation durch Runtime-/Installationsvorschläge, gespeicherte Anforderung erst nach
+expliziter Formularprüfung, fremde/erfundene Ziele und Rechtewiderruf nach Modell-I/O.
+HTTP-Vertrag: JSON-Modus, minimale berechtigte Kontextdaten, begrenzte Antwort,
+Truncation/Refusal/Toolcalls abgewiesen, feste Fehlercodes, kein Retry, HTTPS ohne
+Credentials/Redirects, reguläre begrenzte Secretdatei, maximal zwei parallele Calls.
+Echte Anbieteraufrufe und Zielhostprüfungen nicht ausgeführt. Neue echte OIDC-Chat-
+Journey und optionale Compose-Konfigurationsprobe sind als CI-Gates ergänzt;
+ihre Ergebnisse werden erst nach dem tatsächlichen Lauf ergänzt.
+
+Die folgenden P3-001-/P2-Abschnitte sind historische Nachweise.
+
 ## P3-001 · Abschließende CI-Abnahme · 22.10.2026
 
 Korrigierter Code `a41bc151156a044b36a1e03529bec773d9313fa6`:

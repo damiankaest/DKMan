@@ -92,13 +92,13 @@ function PlanReview({api, plan, subject, onApproved}: {api: ApiClient; plan: Pla
   </div>;
 }
 
-export function AppPlanning({api, subject, admin}: {api: ApiClient; subject: string; admin: boolean}) {
+export function AppPlanning({api, subject, admin, initialDraft}: {api: ApiClient; subject: string; admin: boolean; initialDraft?: Requirements}) {
   const [requests, setRequests] = useState<AppRequest[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selected, setSelected] = useState<AppRequest | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [viewId, setViewId] = useState('');
-  const [fields, setFields] = useState<Fields>(empty);
+  const [fields, setFields] = useState<Fields>(() => initialDraft ? fieldsOf(initialDraft) : empty);
   const [household, setHousehold] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -166,7 +166,7 @@ export function AppPlanning({api, subject, admin}: {api: ApiClient; subject: str
       <div className="planning-content">
         <form onSubmit={save} aria-label={selected ? 'App-Idee weiterentwickeln' : 'Neue App-Idee anlegen'}>
           <h3>{selected ? 'Deine nächste Planversion' : 'Eine neue App-Idee'}</h3>
-          <p className="muted">Manuelle Planung · Chat und geführter Wizard folgen als nächste Schritte.</p>
+          <p className="muted">{initialDraft && !selected ? 'Aus dem Chat übernommen. Bitte prüfe und ergänze den Entwurf vor dem Speichern.' : 'Manuelle Planung · Der geführte Wizard folgt als nächster Schritt.'}</p>
           <div className="planning-field"><label htmlFor="planning-title">Name der App</label><input id="planning-title" required maxLength={120} value={fields.title} disabled={busy} onChange={event => setFields({...fields,title:event.target.value})} placeholder="Zum Beispiel: Unser Garten" /></div>
           <div className="planning-field"><label htmlFor="planning-goal">Was soll die App erreichen?</label><textarea id="planning-goal" required maxLength={4000} value={fields.goal} disabled={busy} onChange={event => setFields({...fields,goal:event.target.value})} placeholder="Was möchtest du damit im Alltag einfacher machen?" /></div>
           <div className="planning-field"><label htmlFor="planning-household">Haushalt</label><select id="planning-household" value={household} disabled={busy || selected !== null} onChange={event => setHousehold(event.target.value)}><option value="">Noch keinem Haushalt zugeordnet</option>{households.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></div>
