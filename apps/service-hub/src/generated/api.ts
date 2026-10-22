@@ -655,6 +655,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Requests */
+        get: operations["listAppRequests"];
+        put?: never;
+        /** Add Request */
+        post: operations["createAppRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Request */
+        get: operations["getAppRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-requests/{request_id}/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Plans */
+        get: operations["listAppPlans"];
+        put?: never;
+        /** Add Revision */
+        post: operations["createAppPlanRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Plan */
+        get: operations["getAppPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-plans/{plan_id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plan Jobs */
+        get: operations["listAppPlanJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-plans/{plan_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Plan */
+        post: operations["requestAppPlanApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1021,7 +1125,7 @@ export interface components {
              */
             state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
             /** Plan */
-            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"];
+            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"] | components["schemas"]["PlanApprovalCommand"];
             /** Plan Hash */
             plan_hash: string;
             /** Requires Approval */
@@ -1136,6 +1240,81 @@ export interface components {
             /** Roles */
             roles: string[];
         };
+        /** PlanApprovalCommand */
+        PlanApprovalCommand: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Action
+             * @default app_plan.approve
+             * @constant
+             */
+            action: "app_plan.approve";
+            /**
+             * Resource Type
+             * @default app_plan
+             * @constant
+             */
+            resource_type: "app_plan";
+            /** Resource Id */
+            resource_id: string;
+            /** Subject */
+            subject: string;
+            /** Request Id */
+            request_id: string;
+            /** Revision */
+            revision: number;
+            /** Content Hash */
+            content_hash: string;
+        };
+        /** PlanApprovalInput */
+        PlanApprovalInput: {
+            /** Content Hash */
+            content_hash: string;
+        };
+        /** PlanDocument */
+        PlanDocument: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Planning Mode
+             * @default manual
+             * @constant
+             */
+            planning_mode: "manual";
+            /** Household Id */
+            household_id: string | null;
+            requirements: components["schemas"]["Requirements"];
+        };
+        /** PlanView */
+        PlanView: {
+            /** Id */
+            id: string;
+            /** Request Id */
+            request_id: string;
+            /** Revision */
+            revision: number;
+            document: components["schemas"]["PlanDocument"];
+            /** Content Hash */
+            content_hash: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Approved Job Id */
+            approved_job_id: string | null;
+        };
         /** ProfileView */
         ProfileView: {
             /** Id */
@@ -1144,6 +1323,58 @@ export interface components {
             subject: string;
             /** Display Name */
             display_name: string;
+        };
+        /** RequestInput */
+        RequestInput: {
+            /** Household Id */
+            household_id?: string | null;
+            requirements: components["schemas"]["Requirements"];
+        };
+        /** RequestView */
+        RequestView: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Requested By */
+            requested_by: string;
+            /** Household Id */
+            household_id: string | null;
+            /** Current Revision */
+            current_revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** Requirements */
+        Requirements: {
+            /** Title */
+            title: string;
+            /** Goal */
+            goal: string;
+            /** Features */
+            features: string[];
+            /** Entities */
+            entities?: string[];
+            /** Screens */
+            screens?: string[];
+            /** Acceptance Checks */
+            acceptance_checks?: string[];
+            /** Deployment Requirements */
+            deployment_requirements?: string[];
+        };
+        /** RevisionInput */
+        RevisionInput: {
+            /** Expected Revision */
+            expected_revision: number;
+            requirements: components["schemas"]["Requirements"];
         };
         /** Runtime */
         Runtime: {
@@ -2540,6 +2771,272 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RuntimeLogsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listAppRequests: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createAppRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAppRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listAppPlans: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createAppPlanRevision: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevisionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAppPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listAppPlanJobs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requestAppPlanApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
                 };
             };
             /** @description Validation Error */

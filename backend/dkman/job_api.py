@@ -150,6 +150,10 @@ def run_validation(job_id: str, db: Db, actor: Runtime, request: Request) -> Job
     runtime_role(actor)
     job = visible_job(db, job_id, actor)
     authorize_job(db, job, actor)
+    if job.action == "app_plan.approve":
+        from dkman.planning import run_plan_approval
+
+        return run_plan_approval(job_id, db, actor)
     if job.action in LIFECYCLE_ACTIONS:
         from dkman.runtime_api import run_lifecycle
 

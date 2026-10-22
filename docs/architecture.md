@@ -88,6 +88,22 @@ Details: [Notes](notes.md), [ADR 0009](architecture-decisions/0009-notes-install
 [ADR 0008](architecture-decisions/0008-isolated-compose-adapter.md).
 Forge bleibt eine eigene, davon getrennte Workspace-/Build-Domäne.
 
+## Persistente App-Planung · P3-001
+
+`planning.py`, `planning_api.py` und `planning_schemas.py` implementieren manuelle
+App-Anforderungen und unveränderliche Requirements-/Planrevisionen. AppRequest ist
+der Planungsworkflow-Anker. Migration 0004 ergänzt genau `app_requests`/`app_plans`;
+Readiness verlangt `0004_app_planning`. Eigentümer verwalten eigene Ideen, Admins
+alle. Eine Haushaltszuordnung verlangt für normale Nutzer aktuelle Mitgliedschaft
+und erteilt anderen Personen keinen Planungs- oder Appzugriff.
+
+Die konkret implementierte Metadatenaktion `app_plan.approve` nutzt die bestehende
+Job-/Approvalzustandsmaschine. Hashbindung und erneute Versionsprüfung verhindern
+Freigabe geänderter oder überholter Inhalte; Entscheidung und Jobabschluss sind
+atomar. Dieser Schritt baut/installiert nichts. Der Hub bietet **App planen**;
+Chat/Provider/Wizard folgen mit P3-002/P3-003. Vertrag und Routen: [planning.md](planning.md),
+[ADR 0012](architecture-decisions/0012-persistent-app-planning.md).
+
 ## Manifest v1alpha1
 
 JSON-Schema und Pydantic prüfen denselben statischen Vertrag. Zusätzliche Regeln

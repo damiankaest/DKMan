@@ -7,8 +7,11 @@ mit Linux-Containern.
 **Stand 0.1.0:** Phase 0 ist implementiert; Registry-/Auth-/Health-Basis aus Phase 1
 ist enthalten. Der Docker-Stack und der Windows-Host sind in dieser Sitzung noch
 nicht am Zielhost abgenommen. **Notes-Quellapp, isolierter Deployment-Adapter und
-genehmigte Installation und autorisierter Runtime-Lifecycle über den Hub sind implementiert.** Chat/Wizard und Forge
-folgen später. Einstieg und offene Host-Gates: [Notes](docs/notes.md).
+genehmigte Installation und autorisierter Runtime-Lifecycle über den Hub sind implementiert.**
+P3-001 ergänzt **App planen**: manuelle Anforderungen, gespeicherte Planversionen
+und konkrete Planfreigaben. Chat/Wizard und Forge folgen später.
+Einstieg: [App planen und Basisstack aktualisieren](docs/planning.md),
+[Notes und offene Host-Gates](docs/notes.md).
 
 ## Start in vorbereiteter Linux-Docker-Umgebung
 
@@ -45,6 +48,9 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
   pro Installation, gemessener Status und maskierte Textlogs; Daten bleiben erhalten.
 - Belegter Abschluss unsicherer Operationen mit dauerhaften Enginebestätigungen;
   reale DB-/Prozessausfallmatrix, keine Wiederholung bei fehlendem Nachweis.
+- App-Ideen im Hub anlegen, nach Browserneustart wieder öffnen, als neue Revisionen
+  weiterentwickeln und als Admin eine konkrete Planversion freigeben. Manuelle Planung;
+  tatsächliche App-Erzeugung folgt mit Forge in P4.
 - CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
   OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 
@@ -103,6 +109,7 @@ konfigurierten Proxy-Origin, dafür bevorzugt den Compose-Stack verwenden.
 | Architekturentscheidungen | [docs/architecture-decisions/](docs/architecture-decisions/) |
 | Tickets mit Abhängigkeiten | [docs/backlog.md](docs/backlog.md) |
 | Runtime-Fehlermatrix | [docs/runtime-failure-matrix.md](docs/runtime-failure-matrix.md) |
+| App-Anforderungen, Planversionen und Aktualisierung | [docs/planning.md](docs/planning.md) |
 | Sicherheitsmodell | [docs/security-threat-model.md](docs/security-threat-model.md) |
 | Betrieb und GitHub-Übergabe | [docs/operations.md](docs/operations.md) |
 | Arbeitskonventionen | [AGENTS.md](AGENTS.md) |

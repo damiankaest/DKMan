@@ -193,3 +193,35 @@ class DeploymentTarget(Record, Base):
     job_id: Mapped[str] = mapped_column(ForeignKey("jobs.id"), unique=True)
     household_id: Mapped[str] = mapped_column(ForeignKey("households.id"))
     definition_id: Mapped[str] = mapped_column(ForeignKey("app_definitions.id"))
+
+
+class AppRequest(Record, Base):
+    __tablename__ = "app_requests"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_app_request_key"),
+        CheckConstraint("current_revision >= 1", name="ck_app_request_revision"),
+    )
+    requested_by: Mapped[str] = mapped_column(String(255), index=True)
+    household_id: Mapped[str | None] = mapped_column(ForeignKey("households.id"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    current_revision: Mapped[int] = mapped_column(default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    request_hash: Mapped[str] = mapped_column(String(64))
+
+
+class AppPlan(Record, Base):
+    __tablename__ = "app_plans"
+    __table_args__ = (
+        UniqueConstraint("request_id", "revision", name="uq_app_plan_revision"),
+        UniqueConstraint("request_id", "created_by", "idempotency_key", name="uq_app_plan_key"),
+        CheckConstraint("revision >= 1", name="ck_app_plan_revision"),
+    )
+    request_id: Mapped[str] = mapped_column(ForeignKey("app_requests.id"), index=True)
+    revision: Mapped[int] = mapped_column()
+    document: Mapped[dict[str, Any]] = mapped_column(JSON)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    created_by: Mapped[str] = mapped_column(String(255))
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    approved_job_id: Mapped[str | None] = mapped_column(ForeignKey("jobs.id"), unique=True)

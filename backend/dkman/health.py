@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from dkman.models import utcnow
 from dkman.schemas import HealthView
 
-SCHEMA_REVISION = "0003_deployment_targets"
+SCHEMA_REVISION = "0004_app_planning"
 
 
 def readiness(engine: Engine) -> HealthView:

@@ -1,5 +1,48 @@
 # Ausgeführte Prüfungen · 19.10.2026
 
+## P3-001 · Lokale Prüfung · 22.10.2026
+
+Ausgangspunkt: Remote-`main` `b44afcd`; letzter ausführbarer Main-CI-Lauf
+`39567571003` für `6c749e2` selbst erfolgreich kontrolliert. Neuer isolierter
+Workspace, Quellstand mit 185 Repositorydateien gegen GitHub-Blobhashes geprüft.
+Kein Docker-Daemon und kein Windows-Zielhostzugriff im Workspace.
+
+| Prüfung | Tatsächliches Ergebnis |
+| --- | --- |
+| Dependencies | `uv sync --frozen`; im Hub `npm ci --ignore-scripts --no-audit --no-fund` erfolgreich; Lockfiles unverändert |
+| Python | Ruff Check/Format und `uv run mypy` (38 Quelldateien) erfolgreich |
+| Backend | `uv run pytest -q`: **218 bestanden, 15 übersprungen**; 14 PostgreSQL-Tests ohne lokale Testdatenbank und 1 ausschließlich auf wegwerfbarem Docker-Runner zulässige Probe |
+| Planung | 15 neue API-/Persistenz-/Fehlertests bestanden; 3 neue echte PostgreSQL-Konkurrenztests lokal ausdrücklich übersprungen |
+| Migration | PostgreSQL/WASM: Upgrade auf `0004_app_planning`, 18 Tabellen, FK-Negativprobe, Downgrade und erneutes Upgrade erfolgreich; ersetzt keinen PostgreSQL-17-Netzwerktest |
+| Backendpaket/Prozess | `uv build` erfolgreich; echter Uvicorn-Smoke: Live 200, Ready ohne DB 503, anonymes Me 401 |
+| Hub | Lint, TypeScript-/Produktionsbuild und **15 UI-Tests** erfolgreich |
+| Browser | **4 Playwright-Prüfungen** erfolgreich: abgemeldeter Hub und neue Planung jeweils Desktop/Handy; gespeicherter Entwurf, kein horizontaler Überlauf; Screenshots visuell geprüft |
+| Verträge | OpenAPI exportiert, TypeScript generiert; erneuter Export/Generierung ohne Hashdrift; `git diff --check` erfolgreich |
+
+Planungstests prüfen Eigentümer-/Rollen-/Haushaltsisolation und Widerruf, strenge
+Anforderungsdaten, Idempotenz/Schlüsselkonflikte, unveränderte historische Dokumente,
+veraltete erwartete Revisionen, gebundene Freigabe, aktuelles Dokument beim Abschluss,
+keinen Appinstallationsdatensatz durch Planfreigabe, atomaren Rollback bei Create/
+Revision/Abschluss sowie Persistenz in neuem Appprozess und konservative Recovery.
+Die UI-Tests prüfen zusätzlich denselben Requestschlüssel nach Transportfehler,
+einen neuen Schlüssel für eine absichtlich weitere Idee und die genaue Approvalbindung.
+
+Browserprüfungen verwenden ausdrücklich HTTP-/Auth-Testantworten. Der normale
+Playwrightdownload liefert lokal weiterhin ein ungültiges Archiv. Stattdessen
+Chromium 153.0.0 aus `@sparticuz/chromium` für Tests entpackt und über
+`DKMAN_TEST_BROWSER=/tmp/chromium FONTCONFIG_PATH=/tmp/fonts npm run test:e2e`
+verwendet. Browserartefakte und temporäre Pakete sind keine Projektabhängigkeiten.
+
+Die neue `journey/planning.spec.ts` prüft dagegen im echten CI-Stack mit drei
+Keycloak-Konten Plananlage/-wiederaufnahme, Adminfreigabe, separate neue Version,
+fremden Direktzugriff und unveränderte Appinstallationen. Vollständige CI-Abnahme
+einschließlich PostgreSQL-17-Konkurrenz/Migration, Notes- und Dockerregression ist
+zum Zeitpunkt dieses lokalen Nachweises noch ausstehend.
+
+Damian bestätigt am 22.10.2026 den erfolgreichen lokalen DKMan-Start. Dies ist kein
+von hier ausgeführter Windows-/Neustart-/Autostart-/Mehrgeräte-/Restoretest.
+Die historischen Abnahmen und deren damalige Grenzen folgen unten.
+
 Die ursprünglichen lokalen Prüfungen wurden im isolierten Work-Workspace ausgeführt,
 **nicht auf Damians Windows-Rechner**. Ergänzende GitHub-CI-Prüfungen stehen unten.
 Python 3.12.14, Node 24.19.0. Kein Docker-Daemon, kein Windows-Hostzugriff.

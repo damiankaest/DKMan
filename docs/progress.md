@@ -2,6 +2,25 @@
 
 ## Aktueller Stand
 
+P3-001 ist implementiert: **App planen** im Hub, persistente eigene AppRequests,
+unveränderliche manuelle Planrevisionen und hashgebundene Planfreigaben über den
+bestehenden Jobvertrag. Der letzte Schritt hält einen Plan fest und erzeugt keine
+App; Chat/Provider und Wizard folgen mit P3-002/P3-003, Build/Preview mit P4.
+Lokale Prüfungen stehen am Ende; die neue echte CI-Journey wurde ergänzt und muss
+vor Abschluss erfolgreich laufen. Nächster Entwicklungsschritt nach Abnahme: P3-002.
+
+Lokale P3-Prüfung: `uv sync --frozen`, Ruff/Format/mypy, `uv build`, HTTP-Smoke,
+Vertragsdrift erfolgreich. Vollständiges Pytest: 218 bestanden / 15 explizite Skips
+(14 ohne PostgreSQL, 1 Dockerguard); 15 neue Planungstests erfolgreich. Hub npm ci,
+Lint/Build, 15 UI-Tests und 4 Browserchecks erfolgreich. PostgreSQL/WASM migriert
+0004 mit 18 Tabellen auf/ab/erneut auf; ersetzt keine Zielversions-/Netzwerkprobe.
+Details und Grenzen: `acceptance-tests.md`, `planning.md`, ADR 0012.
+
+Damian meldet am 22.10.2026, dass DKMan auf seinem Rechner erfolgreich läuft.
+Das ist eine Nutzerbestätigung des Starts. Nicht ferngeprüfte Neustart-, Autostart-,
+Mehrgeräte- und Restoreabnahmen bleiben separat offen. Der folgende P2-Verlauf ist
+der historische, unveränderte Nachweis der davor abgeschlossenen Pakete.
+
 Phase-0-Code ist implementiert. Backend, Frontend und vollständiger Compose-Smoke
 sind in GitHub Actions erfolgreich geprüft. Die Windows-Zielhost-Abnahme und der
 interaktive Login am Zielhost bleiben offen. Die neue echte CI-Journey prüft bereits
@@ -25,8 +44,8 @@ P2-005 ist über PR #11 als `07e18c5` integriert; Main-CI `39431777779` vollstä
 erfolgreich. P2-006 ist über PR #12 als `6c749e2` integriert und abgeschlossen:
 sichere Belegauflösung und echte Fehlermatrix; PR-CI 39566266737 und Main-CI
 39567571003 vollständig erfolgreich.
-Nächster gemeinsamer Schritt P0-007 (Windows-/VM-Testinstallation), nächste Entwicklung
-P3-001. Konkrete Nachweise stehen am Ende.
+P2-Übergabe: nächster gemeinsamer Schritt P0-007 (Windows-/VM-Testinstallation),
+damals nächste Entwicklung P3-001. Aktuelle P3-Fortsetzung und Nachweise stehen am Ende.
 
 Das private Repository ist `https://github.com/damiankaest/DKMan`.
 Der geprüfte Phase-0-Stand wurde über die GitHub-API importiert. Der ursprüngliche
