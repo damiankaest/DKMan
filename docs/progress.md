@@ -18,8 +18,13 @@ strenge Ausgabevalidierung und keine Mutation durch Chat. Code `a27f8b1` besteht
 und [Branch-CI 39748531267](https://github.com/damiankaest/DKMan/actions/runs/39748531267)
 vollständig: **299 Backendtests**, 19 UI-Tests, 6 Browserchecks, **3 echte OIDC-Journeys**,
 echte Dockerprobe und Basisstack-Smoke. Auch die optionale Modell-Compose-Konfiguration
-ist erfolgreich geprüft. [PR #14](https://github.com/damiankaest/DKMan/pull/14) wird
-mit diesem Prüfnachweis integriert: `docs/evidence/p3-002-chat.json`.
+ist erfolgreich geprüft. [PR #14](https://github.com/damiankaest/DKMan/pull/14) ist
+als `a671c64` in `main` integriert. Der Main-Tree `9471b5e` stimmt exakt mit dem
+geprüften Stand einschließlich seiner reinen Nachweisdokumentation überein.
+Dauerhafter Nachweis: `docs/evidence/p3-002-chat.json`. Der zusätzliche
+[Main-Lauf 39749924394](https://github.com/damiankaest/DKMan/actions/runs/39749924394)
+läuft beim Festhalten dieses Integrationsnachweises noch; dafür wird kein Ergebnis
+behauptet. Der folgende Dokumentationscommit verändert keinen Programmcode (`[skip ci]`).
 Kein bezahlter Modellaufruf, kein Zielhostupgrade. Der folgende P3-001-Abschnitt ist historisch.
 
 P3-001 ist abgeschlossen und geprüft: **App planen** im Hub, persistente eigene AppRequests,

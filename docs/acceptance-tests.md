@@ -24,6 +24,12 @@ Artefaktmetadaten. PR-Artefakt `12412528288` enthält `.local/chat-journey.json`
 ZIP-SHA-256 `7a5349ffc96e6b86b5d1751399a8d05add273346dbe45fd83e3ca5f0d653816f`.
 Kein Zielhostupgrade. P3-003 und P4 bleiben offen.
 
+PR #14 ist als `a671c643acad7d5a37afce3a2af4ac4d6902565f` in `main` integriert.
+Der gelesene Main-Tree `9471b5e9c851b52e37a59155c8729ded2d9a3518` ist identisch
+mit dem geprüften PR-Stand einschließlich der anschließenden vier reinen Nachweisdateien.
+Main-CI `39749924394` läuft beim Schreiben noch; kein Ergebnis dafür behauptet.
+Der folgende reine Integrationsnachweis verändert keinen Programmcode.
+
 ### Lokale Prüfungen
 
 `uv sync --frozen`, Ruff/Format/mypy, `uv build` und HTTP-Smoke erfolgreich.

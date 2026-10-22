@@ -85,5 +85,16 @@
     "No actual external model/provider compatibility test",
     "No target-host upgrade or Windows restart/restore acceptance",
     "P3-003 guided wizard and P4 Forge remain separate"
-  ]
+  ],
+  "integration": {
+    "merged_pull_request": 14,
+    "main_commit": "a671c643acad7d5a37afce3a2af4ac4d6902565f",
+    "reviewed_head": "0665e6222cfa522b0c980bcc2bd6a9ee1be9b35d",
+    "reviewed_tree": "9471b5e9c851b52e37a59155c8729ded2d9a3518",
+    "main_tree_matches_reviewed_tree": true,
+    "main_ci_run_id": 39749924394,
+    "main_ci_status_at_recording": "in_progress",
+    "main_ci_result_not_claimed": true,
+    "followup": "Documentation-only integration metadata; no program changes."
+  }
 }
