@@ -2,12 +2,14 @@
 
 ## Aktueller Stand
 
-P3-001 ist implementiert: **App planen** im Hub, persistente eigene AppRequests,
+P3-001 ist abgeschlossen und geprüft: **App planen** im Hub, persistente eigene AppRequests,
 unveränderliche manuelle Planrevisionen und hashgebundene Planfreigaben über den
 bestehenden Jobvertrag. Der letzte Schritt hält einen Plan fest und erzeugt keine
 App; Chat/Provider und Wizard folgen mit P3-002/P3-003, Build/Preview mit P4.
-Lokale Prüfungen stehen am Ende; die neue echte CI-Journey wurde ergänzt und muss
-vor Abschluss erfolgreich laufen. Nächster Entwicklungsschritt nach Abnahme: P3-002.
+Der korrigierte Code `a41bc15` besteht PR-CI `39731623907` und Branch-CI
+`39731620032` vollständig: 232 Backendtests, 15 UI-Tests, vier Browserchecks,
+zwei echte OIDC-Journeys, echter Adaptertest und Basisstack-Smoke. Dauerhafter
+Nachweis: `docs/evidence/p3-001-planning.json`. Nächste Entwicklung: **P3-002**.
 
 Lokale P3-Prüfung: `uv sync --frozen`, Ruff/Format/mypy, `uv build`, HTTP-Smoke,
 Vertragsdrift erfolgreich. Vollständiges Pytest: 218 bestanden / 15 explizite Skips
@@ -91,8 +93,8 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
 1. `AGENTS.md`, diese Datei und `acceptance-tests.md` lesen.
 2. Repository klonen; `uv sync --frozen`, im Hub `npm ci`.
 3. GitHub-Actions-Ergebnisse prüfen; frühere lokale Prüfergebnisse sind keine CI-Abnahme.
-4. P0-007 am freigegebenen Testhost durchführen: Dockerstart und echten OIDC-Flow
-   prüfen, eventuelle Integrationsfehler zuerst schließen.
+4. P0-007: erfolgreichen lokalen Start vom 22.10.2026 berücksichtigen; noch offene
+   Neustart-/Autostart-/Mehrgeräte-/Restoreabnahmen getrennt am Zielhost durchführen.
 5. P1-004 mit zwei echten OIDC-Nutzern abnehmen; API und Hub-Verwaltung sind implementiert.
 6. P2-001/P2-002: `jobs.md`, `deployment-adapter.md`, ADR 0007/0008 und CI-Nachweise lesen.
 7. P2-003/P2-004: `notes.md`, ADR 0009 und die tatsächlichen CI-/Buildnachweise lesen.
@@ -102,8 +104,9 @@ für Testzwecke gelöst. Details, Befehle und Grenzen: `acceptance-tests.md`.
    `docs/evidence/p2-005-runtime.json` lesen. Keine neue Installation durch Lifecycle,
    keine unbewiesene Auflösung unsicherer Jobs. Core/Hub bleiben ohne Dockerzugriff.
 9. P2-006: ADR 0011, runtime-failure-matrix.md und docs/evidence/p2-006-runtime.json lesen.
-   Danach P0-007 am freigegebenen Windows-/VM-Testsystem; nächste Entwicklung P3-001.
-   Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
+10. P3-001: planning.md, ADR 0012 und docs/evidence/p3-001-planning.json lesen.
+    Nächste Entwicklung P3-002; eigene App-Erzeugung folgt mit P4.
+    Zielhost-/Windows-/Restore- und echte Benutzerabnahmen bleiben eigene Gates.
 
 Die nächste Sitzung braucht keinen Architektur-Neustart. Alle späteren Phasen und
 Akzeptanzkriterien stehen bereits im priorisierten `backlog.md`.

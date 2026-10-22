@@ -11,7 +11,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P0-004 | P0 / 0 | 001 | React-Shell, responsiv, Tests/Lint/Build, generierte API-Typen; implementiert |
 | P0-005 | P0 / 0 | 002–004 | Compose, idempotenter Bootstrap, zufällige Secrets, Loopback, Doctor; implementiert, Compose-Smoke in GitHub CI bestanden; Zielhost offen |
 | P0-006 | P0 / 0 | 003–005 | CI mit PostgreSQL, Backend/Frontendprüfungen, Vertragsdrift und Container-Smoke; GitHub-CI vollständig bestanden (Lauf 39296486987) |
-| P0-007 | P0 / 0 | 005 | Frischer Windows-/VM-Checkout: Bootstrap, Neustart, Doctor, Login; noch am Zielhost auszuführen |
+| P0-007 | P0 / 0 | 005 | Erfolgreicher lokaler DKMan-Start am 22.10.2026 vom Nutzer bestätigt; weitere Windows-/VM-Neustart-/Doctor-/Login-/Betriebsabnahmen bleiben separat am Zielhost offen |
 | P1-001 | P0 / 1 | 003,005 | OIDC Code/PKCE, RS256-/Issuer-/Audienceprüfung, Rollen 401/403; implementiert, Live-Flow offen |
 | P1-002 | P0 / 1 | 003 | Manifest-Schema, zwei Beispiele, kaputte/gefährliche Manifeste ablehnen; implementiert |
 | P1-003 | P0 / 1 | 001,002 | Registry-Registrierung, Katalogliste, App-/Service-/Capabilitysichtbarkeit und Audit; implementiert; revisionssicheres Update/Unregister offen |
@@ -23,7 +23,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P2-004 | P0 / 2 | P2-003 | abgeschlossen und geprüft: PR #10 in main, Main-CI 39409720195: UI-Plan → gebundene Freigabe → dauerhafter Job → echte Installation/Proxy/SSO; drei echte OIDC-Nutzer, gemeinsame Daten und Widerruf. 151 Backend-/7 UI-Tests; Zielhost bleibt offen |
 | P2-005 | P0 / 2 | P2-004 | abgeschlossen und geprüft: PR #11 in main (07e18c5); PR-CI 39430552396 und Main-CI 39431777779 vollständig erfolgreich: 184 Backendtests, 11 UI-Tests, 2 Browserchecks, echter Adaptertest und echte OIDC-/Notes-Lifecycle-Journey mit identischen Daten/Containern/Volumes; konkreter dauerhafter Mainnachweis unter docs/evidence/p2-005-main-runtime.json |
 | P2-006 | P0 / 2 | P2-005,P1-004 | abgeschlossen und geprüft: PR #12 als 6c749e2 in main; PR-CI 39566266737 und Main-CI 39567571003 vollständig erfolgreich; dauerhafte Enginebelege, gebundene Nichtausführungsnachweise, reale Image-/Rechte-/DB-/Crashmatrix; 214 Backend-/12 UI-Tests, echte OIDC-/Dockerprobe; dauerhafter Mainnachweis docs/evidence/p2-006-main-runtime.json |
-| P3-001 | P1 / 3 | P2-006 | implementiert: AppRequest als Workflowanker, unveränderliche Requirements-/Planrevisionen, manuelle Hub-Planung und konkrete Planfreigabe über Job/Event/Approval; lokale Prüfungen bestanden, vollständiger CI-Abschluss noch ausstehend; keine App-Erzeugung |
+| P3-001 | P1 / 3 | P2-006 | abgeschlossen und geprüft: PR #13, Code a41bc15, PR-CI 39731623907 und Branch-CI 39731620032 vollständig grün; AppRequest als Workflowanker, unveränderliche Requirements-/Planrevisionen, manuelle Hub-Planung und konkrete Planfreigabe über Job/Event/Approval; 232 Backend-/15 UI-/4 Browsertests, zwei echte OIDC-Journeys und Dockerproben; Nachweis docs/evidence/p3-001-planning.json; App-Erzeugung folgt mit P4 |
 | P3-002 | P1 / 3 | P3-001 | Intent-/Tool-Dispatcher + austauschbarer Modellprovider; regelbasierter Modus offen gekennzeichnet |
 | P3-003 | P1 / 3 | P3-002 | Garten-Wizard sammelt Requirements und schlägt berechtigte vorhandene Dienste vor; genehmigbarer Plan |
 | P4-001 | P1 / 4 | P3-003 | CodingProvider, deterministischer Generator, drei getestete Vorlagen; isolierte Workspaces |
@@ -36,7 +36,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächster Entwicklungseinstieg nach Abnahme von P3-001: P3-002 (Intent-/Tool-Dispatcher
+Nächster Entwicklungseinstieg nach P3-001: P3-002 (Intent-/Tool-Dispatcher
 und austauschbarer Modellprovider). Damian hat am 22.10.2026 den erfolgreichen lokalen
 DKMan-Start bestätigt. Die weiteren Zielhostprüfungen aus P0-007 bleiben separat offen;
 Basisstack aktualisieren gemäß planning.md, Notes gemäß windows10-setup.md/notes.md.

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "repository": "damiankaest/DKMan",
+  "commit": "a41bc151156a044b36a1e03529bec773d9313fa6",
+  "ci_run_id": 39731623907,
+  "ci_url": "https://github.com/damiankaest/DKMan/actions/runs/39731623907",
+  "artifact_id": 12406095247,
+  "artifact_sha256": "c722bebceb164ec911614d624301a583e0ff656c5487576d05124df22a513664",
+  "checks": {
+    "backend_passed": 232,
+    "backend_docker_guard_skipped": 1,
+    "ui_passed": 15,
+    "browser_fixture_passed": 4,
+    "real_oidc_journeys_passed": 2,
+    "real_docker_probe_passed": 1
+  },
+  "planning_journey": {
+    "request_id": "64f1c39e-04ee-4f79-89e3-f5a0ec1bb0d3",
+    "job_id": "5b1f1a92-9fa4-4001-894f-95616c00508f",
+    "state": "succeeded",
+    "result": {
+      "app_plan_id": "50c92d8b-0c48-4669-9ed6-1704872d2515",
+      "revision": 1,
+      "content_hash": "29bf168bee183fb321c991264713cc6bbf409d62a81278bc73dac8816764559e",
+      "approved": true,
+      "effect": "plan_recorded"
+    },
+    "versions": [
+      {
+        "id": "cd3ba2f8-9b4c-47bd-874a-844253dbf3aa",
+        "revision": 2,
+        "content_hash": "18e50765e1684ec7d4585284baea5c4b6dcc627c64d89397047ea0bd899132e2",
+        "approved_job_id": null
+      },
+      {
+        "id": "50c92d8b-0c48-4669-9ed6-1704872d2515",
+        "revision": 1,
+        "content_hash": "29bf168bee183fb321c991264713cc6bbf409d62a81278bc73dac8816764559e",
+        "approved_job_id": "5b1f1a92-9fa4-4001-894f-95616c00508f"
+      }
+    ],
+    "outsider_status": 404,
+    "unchanged_installations": true
+  }
+}

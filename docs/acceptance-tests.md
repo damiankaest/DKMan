@@ -1,5 +1,36 @@
 # Ausgeführte Prüfungen · 19.10.2026
 
+## P3-001 · Abschließende CI-Abnahme · 22.10.2026
+
+Korrigierter Code `a41bc151156a044b36a1e03529bec773d9313fa6`:
+[PR-CI 39731623907](https://github.com/damiankaest/DKMan/actions/runs/39731623907)
+und [Branch-CI 39731620032](https://github.com/damiankaest/DKMan/actions/runs/39731620032)
+vollständig erfolgreich. Alle fünf PR-Jobs und ihre relevanten Logs selbst geprüft.
+
+| Job | Tatsächlich abgenommen |
+| --- | --- |
+| backend | **232 bestanden, 1 Dockerguard-Skip**; PostgreSQL 17 einschließlich drei neuer Planungskonkurrenztests; Migration 0004 Upgrade/Drift/Downgrade/Reupgrade; Ruff/Format/mypy, HTTP-Smoke, PowerShell und Vertragsdrift |
+| frontend | Lint/Build, **15 UI-Tests**, **4 Desktop-/Handy-Browserprüfungen** einschließlich Reload/Wiederöffnung; Vertragsgenerierung und Produktions-Audit erfolgreich |
+| adapter-smoke | **1 echter Docker-Integrationstest** in 95,15 Sekunden; bestehende Runtime-/Datenerhalt-/Fehlerregression erfolgreich |
+| container-smoke | Images gebaut, Migration Exit 0, PostgreSQL/Core/Keycloak/Hub healthy; Seed registriert zwei Verträge; Doctor bestätigt aktuelle Revision/Proxy/OIDC und anonyme Zugriffssperre |
+| notes-journey | **2 echte Journeys bestanden** in 2,2 Minuten: bisherige OIDC-/Notes-/Lifecycle-/Fehlermatrix und neue persistente Planung mit drei echten Keycloak-Konten |
+
+Die Planungsjourney legt per Member-UI eine Idee an, lädt den Browser neu und öffnet
+dieselben gespeicherten Requirements. Adminfreigabe durchläuft die echte Jobgrenze;
+danach unveränderte Appinstallationen. Revision 2 besitzt keine geerbte Freigabe,
+Revision 1 behält Dokument/Hash/Nachweis; fremde Direktabfragen werden 404.
+Keine Auth-Overrides oder HTTP-Testantworten in diesen beiden echten Journeys.
+
+Der CI-Artefaktdownload `12406095247` wurde anhand seines gemeldeten SHA-256
+`c722bebceb164ec911614d624301a583e0ff656c5487576d05124df22a513664` geprüft.
+Der enthaltene echte Planungsnachweis mit Request-/Plan-/Job-IDs und Versionshashes
+liegt dauerhaft unter [evidence/p3-001-planning.json](evidence/p3-001-planning.json).
+Keine produktiven Schlüssel oder Benutzerdaten darin. Der anschließende reine
+Nachweiscommit verändert keinen geprüften Programmcode und überspringt CI ausdrücklich.
+
+Keine fernbediente Windowsaktualisierung, keine neue App generiert. Zielhost-
+Neustart/Autostart/Mehrgeräte/Restore bleiben eigene Gates. Nächste Entwicklung P3-002.
+
 ## P3-001 · Lokale Prüfung · 22.10.2026
 
 Ausgangspunkt: Remote-`main` `b44afcd`; letzter ausführbarer Main-CI-Lauf
