@@ -112,6 +112,13 @@ Image; ein bitgenau reproduzierbarer Rebuild wird nicht behauptet.
 
 ## Prüfungen
 
+P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
+hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte
+verifiziert. Der Quellstand für diesen Build ist ein Testfixture; eine separate echte
+Keycloak-Journey prüft die Berechtigungen und den Widerruf bei einer neueren Planversion.
+Zielhost, interaktiver Workerbetrieb und die Isolation des vom Nutzer gewählten
+Builders wurden nicht abgenommen. Der folgende Abschnitt dokumentiert P4-001.
+
 Lokal bestanden: 308 Backendtests (16 Diensttests übersprungen), Ruff/Format und
 mypy, 24 Hubtests, Lint und Build sowie acht Desktop-/Handy-Browsertests mit expliziten
 HTTP-/Auth-Testdaten. Die drei erzeugten Projekte wurden getrennt installiert und ihre

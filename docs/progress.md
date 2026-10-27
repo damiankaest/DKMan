@@ -5,14 +5,17 @@
 P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
 prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
 OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben
-auf dem Builder. Kein Core-/Hub-Dockerzugriff, Registry-Push oder Deployment. Ein
-dedizierter CI-Job hat alle drei Vorlagen tatsächlich gebaut und deren OCI-Digests
-geprüft ([Lauf 40505338262](https://github.com/damiankaest/DKMan/actions/runs/40505338262),
-Commit `2c927a7`); Gesamt-CI und die Abnahme auf einem eigens isolierten Zielbuilder
-stehen noch aus. Der Builder verwendet dort synthetische Plan-/Quellstanddaten; die
-OIDC-Zugriffsprüfung ist davon getrennt. Nachweis: `evidence/p4-002-buildkit.json`. Die Bedienung
-erfordert aktuell einen Operator und ein gültiges OIDC-Access-Token. Einzelheiten und
-offene Grenzen: `forge.md` und ADR 0014. Nächstes Ticket: P4-003.
+auf dem Builder. Kein Core-/Hub-Dockerzugriff, Registry-Push oder Deployment.
+[PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
+für Code `1fe0b36` ist vollständig erfolgreich: 334 Backendtests (4 Dienst-Skips),
+24 UI-Tests, 8 Browserchecks, 3 echte OIDC-Journeys, Adapter-/Stack-Smoke und
+3 tatsächliche BuildKit-Builds. Der Builder verwendet synthetische Quellstanddaten;
+die OIDC-Zugriffsprüfung ist davon getrennt. Ein vorheriger Branchlauf scheiterte an
+HTTP 429 in einer lesenden Journey-Abfrage; der Test wiederholt solche GETs nun
+begrenzt und prüft weiterhin die finale Antwort. Nachweis des früheren Builderlaufs:
+`evidence/p4-002-buildkit.json`. Zielbuilder-Abnahme steht aus. Die Bedienung erfordert
+aktuell einen Operator und ein gültiges OIDC-Access-Token. Einzelheiten und offene
+Grenzen: `forge.md` und ADR 0014. Nächstes Ticket: P4-003.
 
 Lokal: `uv sync --frozen`, Ruff, Format, mypy und Paketbuild erfolgreich;
 `uv run pytest -q`: 319 bestanden, 19 wegen fehlender PostgreSQL-/Docker-/BuildKit-Dienste
