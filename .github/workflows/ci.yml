@@ -180,14 +180,16 @@ jobs:
     timeout-minutes: 30
     env:
       DKMAN_DISPOSABLE_BUILDKIT_TEST: '1'
-      DKMAN_TEST_BUILDKIT_SOCKET: unix://${{ runner.temp }}/dkman-buildkit/buildkitd.sock
-      DKMAN_BUILD_EVIDENCE_DIR: ${{ runner.temp }}/dkman-forge-evidence
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
+      - name: Configure disposable builder paths
+        run: |
+          echo "DKMAN_TEST_BUILDKIT_SOCKET=unix://$RUNNER_TEMP/dkman-buildkit/buildkitd.sock" >> "$GITHUB_ENV"
+          echo "DKMAN_BUILD_EVIDENCE_DIR=$RUNNER_TEMP/dkman-forge-evidence" >> "$GITHUB_ENV"
       - name: Install verified BuildKit on disposable runner
         run: |
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/buildkit.tar.gz" https://github.com/moby/buildkit/releases/download/v0.34.1/buildkit-v0.34.1.linux-amd64.tar.gz
