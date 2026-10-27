@@ -7,7 +7,9 @@ Apps als manuell zu prüfenden Integrationskandidaten. Anforderungen werden nach
 Übernahme über die vorhandene Planungs-API gespeichert und können dort freigegeben
 werden. Kein automatischer Datenzugriff oder Deployment. Lokale Hubprüfungen:
 `npm ci`, `npm run lint`, `npm run build`, `npm test`: 21 Tests bestanden.
-Browser-/CI- und Zielhostabnahme ausstehend. P4-001 noch nicht wiederaufgebaut.
+Browser-/CI- und Zielhostabnahme ausstehend. P4-001 begonnen: CodingProvider-Vertrag und beschränkte Workspacevorbereitung,
+zehn lokale Tests sowie Ruff und mypy bestanden. Generator und Vorlagen bleiben offen;
+Details: forge.md.
 
 ## Vorheriger Stand
 
