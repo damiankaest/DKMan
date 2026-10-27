@@ -99,3 +99,15 @@ aus [operations.md](operations.md). Kein Zielhost wurde hier fernbedient.
 
 Prüfnachweise: [acceptance-tests.md](acceptance-tests.md). Nächster Entwicklungs-
 schritt: P3-002, sicherer Intent-/Tool-Dispatcher mit austauschbarem Provider.
+
+
+## Geführte Planung
+
+Unter **App planen → Geführte Planung starten** lassen sich Ziel, Funktionen,
+Daten und Ansichten schrittweise eingeben. Ein Gartenbeispiel füllt nur einen leeren
+Entwurf. Der Wizard lädt die für den Nutzer sichtbaren Apps und kann einen
+Prüfauftrag für eine mögliche Integration in die Betriebsanforderungen aufnehmen.
+Die Auswahl begründet keinen Zugriff auf Appdaten und stellt keine Verbindung her.
+**In Planung übernehmen** füllt das bestehende Formular; erst der anschließende
+Speichern-Klick erstellt eine unveränderliche Planrevision. Ein Haushalt kann im
+Formular gewählt werden. Planfreigabe und Installation bleiben getrennte Schritte.
