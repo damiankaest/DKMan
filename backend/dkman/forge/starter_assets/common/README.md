@@ -10,8 +10,10 @@ schema on startup. Configure `DKMAN_INSTALLATION_ID` after an administrator regi
 the application and grants access. API requests use the real bearer token and the
 DKMan Core access check. Never use production database credentials for development.
 
-Frontend: `npm ci`, `npm test`, `npm run build`. Register a public OIDC client and
-allowed redirects with the identity provider. Browser code cannot contain secrets.
+Frontend: `npm ci`, `npm test`, `npm run build`. Register the public OIDC client
+`generated-app`, its exact `/run/<installation-id>/` redirect and the `dkman-api`
+access-token audience with the identity provider. The installation ID is assigned
+when the app is registered. Browser code cannot contain secrets.
 
 The manifest contains a placeholder for the future build artifact and is not a
 valid deployment manifest. An isolated build worker must produce a reviewed digest.
