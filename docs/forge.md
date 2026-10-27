@@ -1,80 +1,62 @@
-# Forge · Beginn P4-001
+# Forge · P4-001
 
-Der CodingProvider-Vertrag nimmt Plan-ID, Inhalts-Hash, Requirements und einen der
-geplanten Vorlagennamen entgegen und liefert begrenzte Quelldaten. Die interne
-Workspacefunktion schreibt diese in ein neues privates UUID-Verzeichnis unter einem
-bereits vorhandenen vertrauenswürdigen Root. Sie validiert Pfade und Größe erneut,
-verweigert Symlink-Roots und berechnet einen Hash über Planbezug und Quelltext.
-Sie führt keinen Quelltext aus und vergibt keine Runtime- oder Deploymentrechte.
+Forge erstellt für freigegebene Planrevisionen reproduzierbare Quellstände. Zur Wahl
+stehen eine Python-API, eine React-SPA und eine Kombination beider Vorlagen. Die
+Vorlagen enthalten gesperrte Abhängigkeiten, Tests, Dockerfiles und eine Anleitung.
+Die API besitzt eine explizite Alembic-Migrationsbasis und prüft den Appzugriff über
+Core. Das Frontend verwendet OIDC mit PKCE und prüft die Installationsfreigabe.
 
-Der Betreiber muss Root und Eltern vor fremdem Schreibzugriff schützen. Die Funktion
-ist keine Sandbox; Planfreigabe und Eigentümerschaft müssen vor späterer Verwendung
-von einer noch zu implementierenden Orchestrierung überprüft werden. Der Quellenhash
-ist keine Autorisierung. Zehn lokale Tests prüfen private getrennte Workspaces,
-Pfadabwehr, Symlinks und nachträgliche Mutation der Eingaben. Ruff und mypy bestanden.
+Der freigegebene Plan wird einschließlich seines Hashes als Daten in `plan.json`
+gespeichert. Anforderungen werden nicht in ausführbaren Code eingefügt und die
+beschriebenen Fachfunktionen nicht automatisch implementiert. Nur ausdrücklich
+aufgelistete Vorlagendateien werden übernommen; lokale Caches und weitere Dateien
+können nicht versehentlich in den Quellstand gelangen. Ein identischer Plan und
+eine identische Vorlage ergeben denselben Quellinhalt und Hash.
 
-Historischer Stand: Damals waren Provider und Plananbindung noch offen.
-Ausführung, Image-Build und Deployment benötigen weiterhin einen isolierten Worker.
+## Quellstand im Hub erstellen
 
-## Deterministischer Starter
+1. Unter **App planen** eine aktuelle Planversion freigeben.
+2. Unter **App-Quellcode vorbereiten** die Quellstände öffnen, eine Vorlage wählen
+   und **Quellstand erstellen** auswählen.
+3. Dateien und Inhalts-Hash prüfen und den Quellstand bei Bedarf als ZIP herunterladen.
 
-`TemplateProvider` erstellt für alle drei geplanten Vorlagentypen deterministisch
-begrenzte Startdateien. Anforderungen und Planbezug stehen ausschließlich als Daten
-in `plan.json`; Freitext wird nicht in ausführbaren Quellcode eingefügt. API-Varianten
-enthalten einen Live-Endpunkt, React-Varianten eine einfache Startkomponente. Dieser historische Starter enthielt noch keine vollständigen Vorlagen; siehe den
-aktuellen Abschnitt unten. Keine App wird dadurch erstellt
-oder ausgeführt. Lokale Prüfung: 13 Forge-Tests, Ruff und mypy erfolgreich.
+Admins können alle zugänglichen Pläne bearbeiten; Developer ihre eigenen Pläne, für
+deren Haushalt sie noch berechtigt sind. Quellstände sind für ihren Eigentümer und
+Admins sichtbar. Ein historischer Quellstand bleibt bei fortbestehender Berechtigung
+lesbar; neue Erzeugung erfordert die aktuelle freigegebene Revision. Planfreigabe,
+Dokumenthash und Berechtigung werden serverseitig geprüft. Beim Abruf werden die
+aktuellen Rechte sowie die Bindung und Integrität des gespeicherten Inhalts geprüft.
+Idempotenzschlüssel verhindern eine doppelte Anlage bei einer Wiederholung.
 
-## Freigegebenen Plan lesen
+Die Quellstände werden als unveränderliche Datenbanksnapshots gespeichert. Migration
+`0005_forge_workspaces` muss vor der Nutzung über die üblichen Migrationsschritte
+ausgeführt werden. Die ZIP-Datei ist reproduzierbar und enthält keine Hostpfade.
+Die Erzeugung startet keinen Container und erstellt keine Appinstallation.
 
-`generation_request_for` leitet die Generator-Eingabe aus einer aktuellen,
-freigegebenen Planrevision ab. Developer sehen nur ihre eigenen zugänglichen Pläne;
-Admins dürfen alle prüfen. Ein erfolgreicher Freigabejob, gebundener Auftrag,
-Ergebniseintrag und Dokumenthash werden überprüft. Geänderte oder überholte Pläne
-werden abgewiesen. Die Funktion ist ein lesender Baustein ohne API, Job oder
-Workspace. Spätere Orchestrierung muss vor einer externen Wirkung Rechte und
-Planstand erneut prüfen; ein Rückgabewert ist keine dauerhafte Ausführungsvollmacht.
-Lokale Prüfungen: zwei Integrationsfälle, Ruff und mypy erfolgreich. Vollständige
-Vorlagen und die persistente sichere Orchestrierung bleiben offen.
+## Worker-Grenze
 
+`materialize_git_workspace` kann einen geprüften Snapshot unter einem vertrauenswürdigen
+Worker-Root in einem eigenen Verzeichnis als frisches Git-Repository materialisieren.
+Git-Hooks, globale Konfiguration und interaktive Netzabfragen sind ausgeschaltet. Der
+Core ruft diese Funktion nicht auf und benötigt keinen Zugriff auf Hostdateien oder
+Docker. Der Worker-Root muss vor fremdem Schreibzugriff geschützt werden; die Funktion
+ist keine Sandbox. Vor späterem Build oder Deployment müssen Berechtigung, Freigabe
+und Inhalts-Hash erneut überprüft werden.
 
-## Ausführbare Vorlagen · Zwischenstand
+Das Manifest enthält bis zu einem geprüften Build absichtlich eine ungültige
+Image-Referenz. P4-002 ergänzt einen isolierten Build-Worker und ein Buildartefakt;
+Preview und Deployment gehören zu P4-003.
 
-P4-001 wird um echte Template-Dateien erweitert: Python-API mit delegierter
-Appzugriffskontrolle, expliziter Migrationsbasis und gesperrten Python-Abhängigkeiten;
-React-SPA mit OIDC/PKCE und Prüfung der Installationsfreigabe; Fullstack kombiniert
-beide. Jede Vorlage enthält gesperrte Abhängigkeiten, Tests und ein Dockerfile.
-Das Manifest enthält bis P4-002 absichtlich eine ungültige Image-Referenz.
-Dieser Checkpoint ist noch kein Abschluss: Die generierten Projekte und die
-Plananbindung müssen separat vollständig geprüft werden. Container- und Deployment-
-Abnahme bleibt P4-002/P4-003.
+## Prüfungen
 
+Lokal bestanden: 308 Backendtests (16 Diensttests übersprungen), Ruff/Format und
+mypy, 24 Hubtests, Lint und Build sowie acht Desktop-/Handy-Browsertests mit expliziten
+HTTP-/Auth-Testdaten. Die drei erzeugten Projekte wurden getrennt installiert und ihre
+Backend- und Frontendtests sowie Frontendbuilds ausgeführt; lokale Migrationstests
+verwenden SQLite. PGlite prüft Migration 0005 einschließlich Downgrade und erneutem
+Upgrade, ersetzt aber keinen Netzwerktest gegen PostgreSQL 17.
 
-## Persistente Quellstände · P4-001
-
-Die aktuelle freigegebene Planversion kann von deren berechtigtem Developer oder
-einem Admin in eine der drei Vorlagen überführt werden. Über den Hub unter
-**App planen → App-Quellcode vorbereiten → Quellstände öffnen** erzeugt
-**Quellstand erstellen** einen unveränderlichen, privaten Datenbanksnapshot. Der
-Planinhalt wird nicht als Code ausgeführt. Nach Speicherung zeigt der Hub Dateien
-und Inhalts-Hash und bietet einen ZIP-Download. Eine neue Version oder entzogene
-Berechtigung verhindert eine neue Erzeugung; auch der Download prüft aktuelle
-Rechte und den gespeicherten Hash. Historische Quellstände bleiben für ihren
-berechtigten Besitzer lesbar. Ein Idempotenzschlüssel verhindert Doppelanlage bei
-Wiederholung. Migration 0005 ist explizit auszuführen.
-
-Die vollständigen Grundgerüste enthalten gesperrte Abhängigkeiten, Tests,
-Dockerfiles und OIDC/PKCE bzw. die bestehende Core-Appzugriffsprüfung. Anforderungen
-stehen ausschließlich als Daten in plan.json. Der Image-Platzhalter im Manifest ist
-absichtlich ungültig: Erzeugung gewährt keine Build- oder Deploymentfreigabe.
-`materialize_git_workspace` erstellt auf einem vertrauenswürdigen Worker-Root ein
-separates Git-Repository ohne Hooks und ohne Netzaufruf. Der Core ruft diese
-Funktion nicht auf und braucht keinen Hostzugriff. Für eine spätere Ausführung im
-isolierten Worker müssen Berechtigung, Freigabe und Hash erneut überprüft werden.
-
-Lokale Zwischenprüfung: 303 Backendtests bestanden, 15 Dienst-Skips; 24 Hubtests,
-Lint und Build; generierte API-/Fullstack-Backendtests und SQLite-Migrationen sowie
-SPA-/Fullstack-Frontendtests und Builds; PGlite-Migrationsroundtrip mit Revision
-0005. GitHub-CI und die abschließende Browser-/Zielhostabnahme stehen noch aus.
-Die Vorlagen sind Grundgerüste: die beschriebenen Fachfunktionen werden nicht
-automatisch implementiert. P4-002 ergänzt isolierte Checks und Image-Build.
+Die GitHub-CI ergänzt PostgreSQL-17-Migrationen, parallele Anfragen und eine echte
+Keycloak-/Core-Journey für die Forge-Erzeugung und den Zugriffsschutz. Der letzte
+Lauf für den aktuellen PR ist maßgeblich. Eine Zielhostabnahme wurde hier nicht
+durchgeführt.

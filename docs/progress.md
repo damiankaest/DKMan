@@ -2,13 +2,14 @@
 
 ## Aktueller Stand
 
-P4-001 in Arbeit: ausführbare Starter für Python-API, React-SPA und Fullstack
-mit gesperrten Abhängigkeiten, Tests, Identity-/Appzugriffsanbindung und
-Migrationsbasis. Freigegebene Planrevisionen können als private unveränderliche
-Quellstände gespeichert und heruntergeladen werden. Lokale Prüfungen: 303 Backend-
-und 24 UI-Tests, 15 Dienst-Skips sowie PGlite-Roundtrip und generierte Projektchecks
-bestanden. GitHub-CI und abschließende Browser-/Zielhostabnahme laufen noch.
-Kein Image-Build, Deployment oder Appfreigabe. Details: forge.md.
+P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) implementiert:
+Starter für Python-API, React-SPA und Fullstack, Berechtigung und Planbindung,
+persistente private Quellstände, ZIP-Download und isolierbare Git-Materialisierung.
+Lokal bestanden 308 Backendtests (16 Dienst-Skips), 24 UI-Tests, acht Browsertests,
+der PGlite-Migrationsroundtrip und die Prüfungen der generierten Projekte. Der PR
+enthält zusätzliche CI-Prüfungen mit PostgreSQL und echter OIDC-Journey; der letzte
+Lauf ist für die Abnahme maßgeblich. Der isolierte Image-Build folgt in P4-002,
+Preview/Deployment in P4-003. Details: forge.md.
 
 ## Vorheriger Stand
 
@@ -17,9 +18,7 @@ Apps als manuell zu prüfenden Integrationskandidaten. Anforderungen werden nach
 Übernahme über die vorhandene Planungs-API gespeichert und können dort freigegeben
 werden. Kein automatischer Datenzugriff oder Deployment. Lokale Hubprüfungen:
 `npm ci`, `npm run lint`, `npm run build`, `npm test`: 21 Tests bestanden.
-Browser-/CI- und Zielhostabnahme ausstehend. P4-001 begonnen: CodingProvider-Vertrag und beschränkte Workspacevorbereitung,
-zehn lokale Tests sowie Ruff und mypy bestanden. Generator und Vorlagen bleiben offen;
-Details: forge.md.
+Dieser Abschnitt beschreibt den früheren Zwischenstand; P4-001 steht oben.
 
 ## Vorheriger Stand
 
