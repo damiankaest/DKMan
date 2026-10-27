@@ -42,7 +42,7 @@ jobs:
       run: {working-directory: apps/service-hub}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '24'}
       - run: uv sync --frozen
       - run: uv run python scripts/generate_adapter_config.py --apply --confirm ADAPTER_CONFIG
@@ -168,7 +168,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: {node-version: '24'}
       - run: uv sync --frozen
       - run: uv run python scripts/check_forge_templates.py
