@@ -38,3 +38,15 @@ Workspace. Spätere Orchestrierung muss vor einer externen Wirkung Rechte und
 Planstand erneut prüfen; ein Rückgabewert ist keine dauerhafte Ausführungsvollmacht.
 Lokale Prüfungen: zwei Integrationsfälle, Ruff und mypy erfolgreich. Vollständige
 Vorlagen und die persistente sichere Orchestrierung bleiben offen.
+
+
+## Ausführbare Vorlagen · Zwischenstand
+
+P4-001 wird um echte Template-Dateien erweitert: Python-API mit delegierter
+Appzugriffskontrolle, expliziter Migrationsbasis und gesperrten Python-Abhängigkeiten;
+React-SPA mit OIDC/PKCE und Prüfung der Installationsfreigabe; Fullstack kombiniert
+beide. Jede Vorlage enthält gesperrte Abhängigkeiten, Tests und ein Dockerfile.
+Das Manifest enthält bis P4-002 absichtlich eine ungültige Image-Referenz.
+Dieser Checkpoint ist noch kein Abschluss: Die generierten Projekte und die
+Plananbindung müssen separat vollständig geprüft werden. Container- und Deployment-
+Abnahme bleibt P4-002/P4-003.

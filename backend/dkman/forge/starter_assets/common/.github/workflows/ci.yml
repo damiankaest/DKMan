@@ -1,0 +1,17 @@
+name: Starter checks
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v5
+        with: {node-version: '24'}
+      - name: Backend
+        run: if test -f backend/pyproject.toml; then cd backend; uv sync --frozen; uv run pytest; fi
+      - name: Frontend
+        run: if test -f web/package.json; then cd web; npm ci --ignore-scripts --no-audit --no-fund; npm test; npm run build; fi

@@ -2,6 +2,14 @@
 
 ## Aktueller Stand
 
+P4-001 in Arbeit: ausführbare Starter für Python-API, React-SPA und Fullstack
+mit gesperrten Abhängigkeiten, Tests, Identity-/Appzugriffsanbindung und
+Migrationsbasis. Vollständige Abnahme der generierten Projekte und sichere persistente
+Plan-/Workspaceanbindung laufen noch. Dies ist ein Zwischenstand, kein Build oder
+Deployment und keine Freigabe für eine generierte App. Details: forge.md.
+
+## Vorheriger Stand
+
 P3-003 Wiederaufbau: vierstufiger Planungswizard mit Gartenbeispiel und sichtbaren
 Apps als manuell zu prüfenden Integrationskandidaten. Anforderungen werden nach
 Übernahme über die vorhandene Planungs-API gespeichert und können dort freigegeben

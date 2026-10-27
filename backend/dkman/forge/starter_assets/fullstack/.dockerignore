@@ -1,0 +1,7 @@
+plan.json
+.env
+.local
+backend/.venv
+backend/__pycache__
+web/node_modules
+web/dist
