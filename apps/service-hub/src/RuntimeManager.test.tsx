@@ -4,7 +4,7 @@ import { ApiClient } from './api';
 import { RuntimeManager } from './RuntimeManager';
 
 afterEach(() => vi.unstubAllGlobals());
-function setup(resume = false, authorized = true, holdStatus = false) {
+function setup(resume = false, authorized = true, holdStatus = false, staleHistory = false) {
   let releaseStatus!: () => void;
   const statusGate = new Promise<void>(resolve => {releaseStatus = resolve;});
   let state = resume ? 'reconciliation_required' : '';
@@ -17,7 +17,7 @@ function setup(resume = false, authorized = true, holdStatus = false) {
     if (path.endsWith('/status') && holdStatus && state === 'waiting_approval') await statusGate;
     const body = path.endsWith('/runtime/installations') ? (authorized ? [{id:'app',name:'Notes'}] : [])
       : path.endsWith('/status') ? {installation_id:'app',state:state === 'succeeded' ? 'stopped' : 'running',observed_at:new Date().toISOString(),blocked_job_id: state && state !== 'succeeded' ? 'job' : null}
-      : path.endsWith('/jobs') ? (state ? [job()] : []) : path.endsWith('/approval') ? binding
+      : path.endsWith('/jobs') ? (state ? [staleHistory && state === 'queued' ? {...job(), id:'older', state:'succeeded'} : job()] : []) : path.endsWith('/approval') ? binding
       : path.endsWith('/events') ? [{sequence:1,kind:'submitted',created_at:new Date().toISOString()}]
       : path.endsWith('/logs') ? {text:'<script>window.pwned=1</script> password=[REDACTED]',max_lines:100,max_bytes:8192}
       : job();
@@ -82,4 +82,18 @@ it('shows the durable completion proof after reconciliation without dispatching 
   const writes = fetcher.mock.calls.filter(([,init]) => init.method === 'POST');
   expect(writes.map(([path]) => path)).toEqual(['/api/v1/jobs/job/reconcile']);
   await waitFor(() => expect(screen.getByRole('button',{name:'Container starten'})).toBeEnabled());
+});
+
+it('keeps the approved job selected even if the job list returns an older job first',async () => {
+  setup(false,true,false,true);
+  const stop = await screen.findByRole('button',{name:'Container stoppen'});
+  await waitFor(() => expect(stop).toBeEnabled());
+  fireEvent.click(stop);
+  const checkbox = await screen.findByRole('checkbox');
+  await waitFor(() => expect(checkbox).toBeEnabled());
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole('button',{name:'Runtimeplan freigeben'}));
+  const execute = await screen.findByRole('button',{name:'Runtimeaktion ausführen'});
+  await waitFor(() => expect(execute).toBeEnabled());
+  expect(screen.getByText('Job:',{exact:false})).toHaveTextContent('job');
 });
