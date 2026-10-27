@@ -33,6 +33,7 @@ pythonpath = ["backend", "."]
 markers = [
   "postgres: requires DKMAN_TEST_DATABASE_URL pointing at a disposable PostgreSQL database",
   "docker: requires an explicitly disposable GitHub Actions Docker runner",
+  "buildkit: requires an explicitly disposable isolated BuildKit worker",
 ]
 
 [tool.ruff]

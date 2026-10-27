@@ -2,14 +2,35 @@
 
 ## Aktueller Stand
 
-P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) implementiert:
+P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
+prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
+OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben
+auf dem Builder. Kein Core-/Hub-Dockerzugriff, Registry-Push oder Deployment.
+[PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
+für Code `1fe0b36` ist vollständig erfolgreich: 334 Backendtests (4 Dienst-Skips),
+24 UI-Tests, 8 Browserchecks, 3 echte OIDC-Journeys, Adapter-/Stack-Smoke und
+3 tatsächliche BuildKit-Builds. Der Builder verwendet synthetische Quellstanddaten;
+die OIDC-Zugriffsprüfung ist davon getrennt. Ein vorheriger Branchlauf scheiterte an
+HTTP 429 in einer lesenden Journey-Abfrage; der Test wiederholt solche GETs nun
+begrenzt und prüft weiterhin die finale Antwort. Nachweis des früheren Builderlaufs:
+`evidence/p4-002-buildkit.json`. Zielbuilder-Abnahme steht aus. Die Bedienung erfordert
+aktuell einen Operator und ein gültiges OIDC-Access-Token. Einzelheiten und offene
+Grenzen: `forge.md` und ADR 0014. Nächstes Ticket: P4-003.
+
+Lokal: `uv sync --frozen`, Ruff, Format, mypy und Paketbuild erfolgreich;
+`uv run pytest -q`: 319 bestanden, 19 wegen fehlender PostgreSQL-/Docker-/BuildKit-Dienste
+übersprungen. Hub: `npm ci`, Lint, Build und 24 UI-Tests erfolgreich. Der lokale
+Playwright-Start scheiterte am fehlenden Chromium; der Download lieferte ein defektes
+Archiv. Der reale BuildKit-Test wurde auf dem separaten CI-Runner bestanden.
+
+P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) in main:
 Starter für Python-API, React-SPA und Fullstack, Berechtigung und Planbindung,
 persistente private Quellstände, ZIP-Download und isolierbare Git-Materialisierung.
 Lokal bestanden 308 Backendtests (16 Dienst-Skips), 24 UI-Tests, acht Browsertests,
 der PGlite-Migrationsroundtrip und die Prüfungen der generierten Projekte. Der PR
-enthält zusätzliche CI-Prüfungen mit PostgreSQL und echter OIDC-Journey; der letzte
-Lauf ist für die Abnahme maßgeblich. Der isolierte Image-Build folgt in P4-002,
-Preview/Deployment in P4-003. Details: forge.md.
+enthält zusätzliche CI-Prüfungen mit PostgreSQL und echter OIDC-Journey;
+[PR-CI 40497813427](https://github.com/damiankaest/DKMan/actions/runs/40497813427)
+war erfolgreich. Preview/Deployment folgen in P4-003. Details: forge.md.
 
 ## Vorheriger Stand
 

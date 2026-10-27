@@ -11,9 +11,12 @@ genehmigte Installation und autorisierter Runtime-Lifecycle über den Hub sind i
 P3-001 ergänzt **App planen**: manuelle Anforderungen, gespeicherte Planversionen
 und konkrete Planfreigaben. P3-002 ergänzt **DKMan Chat** mit offengelegtem Regelmodus,
 berechtigter App-/Registry-Suche, Jobereignissen, Anforderungsentwürfen und einer
-optionalen echten Modellanbindung. Wizard und Forge folgen später.
+optionalen echten Modellanbindung. Der Wizard und Forge-Quellstände sind vorhanden;
+ein manueller BuildKit-Worker ist auf einem CI-Builder getestet; die Zielhostabnahme
+steht noch aus.
 Einstieg: [App planen und Basisstack aktualisieren](docs/planning.md),
-[Chat und optionaler Modellprovider](docs/chat.md), [Notes und offene Host-Gates](docs/notes.md).
+[Chat und optionaler Modellprovider](docs/chat.md), [Forge und Build-Worker](docs/forge.md),
+[Notes und offene Host-Gates](docs/notes.md).
 
 ## Start in vorbereiteter Linux-Docker-Umgebung
 
@@ -50,9 +53,8 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
   pro Installation, gemessener Status und maskierte Textlogs; Daten bleiben erhalten.
 - Belegter Abschluss unsicherer Operationen mit dauerhaften Enginebestätigungen;
   reale DB-/Prozessausfallmatrix, keine Wiederholung bei fehlendem Nachweis.
-- App-Ideen im Hub anlegen, nach Browserneustart wieder öffnen, als neue Revisionen
-  weiterentwickeln und als Admin eine konkrete Planversion freigeben. Manuelle Planung;
-  tatsächliche App-Erzeugung folgt mit Forge in P4.
+- App-Ideen im Hub planen und freigeben; Forge erstellt daraus unveränderliche
+  Quellstände. Der getrennte Build-Worker ist manuell, eine Preview folgt in P4-003.
 - CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
   OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 

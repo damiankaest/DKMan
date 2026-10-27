@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "tested_commit": "2c927a7a938c6df3294cdefb62bb1f90ff108ea4",
+  "workflow_run": "https://github.com/damiankaest/DKMan/actions/runs/40505338262",
+  "job_id": 122193088264,
+  "artifact_url": "https://github.com/damiankaest/DKMan/actions/runs/40505338262/artifacts/12734941325",
+  "artifact_zip_sha256": "8f2885857ae979bc7422614f466a1f08d69b9b7cbbc63132610efb2f8db59ad1",
+  "test": "uv run pytest tests/test_forge_buildkit.py -q",
+  "result": "3 passed in 54.62s",
+  "scope": [
+    "Disposable GitHub Actions BuildKit runner; actual tests and OCI exports for each of three templates",
+    "Input is a synthetic fixture; authorization and OIDC integration are separate checks",
+    "Reports and archive digests verified in the job; target-host isolation and deployment were not tested"
+  ],
+  "reports": {
+    "fullstack-fastapi-react": {
+      "schema_version": 1,
+      "build_id": "63b53867-8942-47e1-bd3c-cbc818783a0f",
+      "workspace_id": "e5a8016c-5f04-4469-9c0e-f7b6a5d8e8e2",
+      "source_hash": "1ed7a2e401608b5c77bb4a238f83c86bfcea66b8859cce07ae74d29682a3f4d0",
+      "plan_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "template": "fullstack-fastapi-react",
+      "state": "succeeded",
+      "stage": "complete",
+      "started_at": "2026-10-27T12:39:13.760730+00:00",
+      "checks": [
+        "api-passed",
+        "web-passed"
+      ],
+      "manifest_digest": "sha256:7de08b89daf044861887784c7eb5f8548f0f50e08fa85d602448025af0ea9e22",
+      "archive_sha256": "a0524eb2cc26abf6d2adf315abab3923cf7d4b21d67badd6b1689b9e58abe118",
+      "archive_size": 75219456,
+      "check_recipe_sha256": "1a8901db40498baae0b00cb2bdc25d949cf9a8b8c68ee8286d4e67ef0f77c7b6",
+      "check_requirements_sha256": "32bddfff9f70a314637f2c2f353bd0e069370a4af51d8ca3dbddbe0ff18d2168",
+      "image_recipe_sha256": "29317dfd638e528491f4ad796728d9510c0273189c7fcc962e9951d9f83e5d4e",
+      "failure_code": null,
+      "logs": "",
+      "finished_at": "2026-10-27T12:39:32.446640+00:00"
+    },
+    "python-api": {
+      "schema_version": 1,
+      "build_id": "c1dfd503-f312-4f47-88dd-8cf0c0bcc1ea",
+      "workspace_id": "cf3c7250-1d44-4c0a-9bb9-85812f736f2b",
+      "source_hash": "f74de886c7fea3978ad9ca0aaca5eb507502d646aed0831ababcf0068bdfbc2b",
+      "plan_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "template": "python-api",
+      "state": "succeeded",
+      "stage": "complete",
+      "started_at": "2026-10-27T12:38:38.000268+00:00",
+      "checks": [
+        "api-passed"
+      ],
+      "manifest_digest": "sha256:27344c849a137a3163f12068402255d4752a511a42b3a5be46a9d5b8edac3c64",
+      "archive_sha256": "933450f059a5c24ac107fbe429fb07f960f66d6f9af7a1966a047577e27bd03a",
+      "archive_size": 75142144,
+      "check_recipe_sha256": "3cf3ad881714a2c9d6afe0eece34dc2a457be2a73196fc4542a2cc88410c6d6e",
+      "check_requirements_sha256": "32bddfff9f70a314637f2c2f353bd0e069370a4af51d8ca3dbddbe0ff18d2168",
+      "image_recipe_sha256": "c7d9f425be1e615897ac424156a44e7a7c6fea10866a8e4e6c2e23c4d2d1cfbc",
+      "failure_code": null,
+      "logs": "",
+      "finished_at": "2026-10-27T12:39:00.088855+00:00"
+    },
+    "react-spa": {
+      "schema_version": 1,
+      "build_id": "0971c679-389f-42b7-9af8-209e1c6fbe67",
+      "workspace_id": "1a67ceb2-e1e6-4640-8c92-b3686dbf8a00",
+      "source_hash": "c411bdaa672ec63d63e7282b406c6931660de5a98dec08be0d91d336cc32633f",
+      "plan_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "template": "react-spa",
+      "state": "succeeded",
+      "stage": "complete",
+      "started_at": "2026-10-27T12:39:00.203655+00:00",
+      "checks": [
+        "web-passed"
+      ],
+      "manifest_digest": "sha256:216cdabfbe62389d472432e4e3b7b70e4f172e607e8871800c6aed638d3cf360",
+      "archive_sha256": "a992c3975faa79172693674078601981539d5e28734647433b9229aa3d5590d5",
+      "archive_size": 25674240,
+      "check_recipe_sha256": "2d2eed88ccf9cd225472c9fac2581c00b8a4551d675e6d9df1c74557de3f8fc8",
+      "check_requirements_sha256": "32bddfff9f70a314637f2c2f353bd0e069370a4af51d8ca3dbddbe0ff18d2168",
+      "image_recipe_sha256": "e0c9dbd92daf03e9e0be898309ab888170d37dc0fdb0e657b3d7a64331558c37",
+      "failure_code": null,
+      "logs": "",
+      "finished_at": "2026-10-27T12:39:13.705024+00:00"
+    }
+  }
+}

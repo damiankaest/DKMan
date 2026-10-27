@@ -114,11 +114,13 @@ def test_membership_revocation_revokes_source_access(client, as_user):
     as_user("alice", ["developer"])
     workspace = generate(client, plan).json()
     assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/archive").status_code == 200
+    assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/build-input").status_code == 200
     as_user("admin", ["admin"])
     assert client.delete(membership).status_code == 204
     as_user("alice", ["developer"])
     assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}").status_code == 404
     assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/archive").status_code == 404
+    assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/build-input").status_code == 404
     assert client.get(f"/api/v1/app-plans/{plan['id']}/workspaces").status_code == 404
     assert generate(client, plan).status_code == 404
 
@@ -129,3 +131,22 @@ def test_distinct_idempotency_keys_create_separate_equal_snapshots(client, as_us
     second = generate(client, plan, "second").json()
     assert first["id"] != second["id"]
     assert first["bundle_hash"] == second["bundle_hash"]
+
+
+def test_build_input_requires_current_authorized_approved_source(client, as_user):
+    item, plan = prepare(client, as_user)
+    workspace = generate(client, plan).json()
+    path = f"/api/v1/forge/workspaces/{workspace['id']}/build-input"
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.json()["workspace_id"] == workspace["id"]
+    assert response.json()["bundle_hash"] == workspace["bundle_hash"]
+    assert response.json()["bundle"]["request"]["content_hash"] == plan["content_hash"]
+    assert response.headers["cache-control"] == "no-store"
+    as_user("bob", ["developer"])
+    assert client.get(path).status_code == 404
+    as_user("alice", ["member"])
+    assert client.get(path).status_code == 404
+    as_user("alice", ["developer"])
+    assert revision(client, item).status_code == 201
+    assert client.get(path).status_code == 409

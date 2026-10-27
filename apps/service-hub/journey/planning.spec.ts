@@ -19,7 +19,17 @@ test('real planning persists revisions, isolates people and records approval wit
   async function api(page: Page, path: string) {
     const authorization = authorizations.get(page);
     expect(authorization).toBeTruthy();
-    return page.request.get(`http://localhost:8080/api/v1${path}`,{headers:{Authorization:authorization!}});
+    const url = `http://localhost:8080/api/v1${path}`;
+    const headers = {Authorization:authorization!};
+    let response = await page.request.get(url,{headers});
+    // The real proxy shares a rate limit across the three browser contexts.
+    // Retry only GETs, and still assert the final authorization response.
+    for (let attempt = 0; response.status() === 429 && attempt < 3; attempt++) {
+      console.log(`Planning GET rate limited; retry ${attempt + 1} of 3`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      response = await page.request.get(url,{headers});
+    }
+    return response;
   }
   async function login(page: Page, name: string) {
     await page.goto('/');
@@ -76,6 +86,14 @@ test('real planning persists revisions, isolates people and records approval wit
   const archive = await api(admin,`/forge/workspaces/${workspace.id}/archive`);
   expect(archive.status()).toBe(200);
   expect(archive.headers()['content-type']).toContain('application/zip');
+  const buildInput = await api(admin,`/forge/workspaces/${workspace.id}/build-input`);
+  expect(buildInput.status()).toBe(200);
+  const source = await buildInput.json();
+  expect(source.workspace_id).toBe(workspace.id);
+  expect(source.bundle_hash).toBe(workspace.bundle_hash);
+  expect(source.bundle.request.content_hash).toBe(initial.content_hash);
+  expect((await api(member,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(404);
+  expect((await api(outsider,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(404);
   expect((await api(member,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
   expect((await api(outsider,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
   await admin.reload();
@@ -95,6 +113,7 @@ test('real planning persists revisions, isolates people and records approval wit
   expect(versions.map((plan:{revision:number}) => plan.revision)).toEqual([2,1]);
   expect(versions[0].approved_job_id).toBeNull();expect(versions[1].approved_job_id).toBe(job.id);
   expect(versions[1].document).toEqual(initial.document);
+  expect((await api(admin,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(409);
   expect((await api(outsider,`/app-requests/${request.id}`)).status()).toBe(404);
   expect((await api(outsider,`/app-plans/${initial.id}`)).status()).toBe(404);
   writeFileSync('../../.local/planning-journey.json',JSON.stringify({request_id:request.id,job_id:job.id,state:job.state,result:job.result,versions:versions.map((plan:{id:string;revision:number;content_hash:string;approved_job_id:string|null}) => ({id:plan.id,revision:plan.revision,content_hash:plan.content_hash,approved_job_id:plan.approved_job_id})),outsider_status:404,workspace_id:workspace.id,workspace_hash:workspace.bundle_hash,workspace_file_count:workspace.files.length,unchanged_installations:true},null,2));
