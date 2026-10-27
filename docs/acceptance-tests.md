@@ -1,4 +1,22 @@
-# Ausgeführte Prüfungen · Stand 22.10.2026
+# Ausgeführte Prüfungen
+
+## P4-001 · Lokale Prüfung und CI im PR
+
+Lokal: `uv run pytest -q` mit 308 bestandenen Tests und 16 übersprungenen
+Diensteprüfungen, Ruff/Format/mypy; Hub-Lint, Build und 24 UI-Tests; acht
+Playwrightprüfungen mit HTTP-/Auth-Testdaten auf Desktop und Handy. Generierte
+API-, SPA- und Fullstack-Projekte wurden in getrennten temporären Git-Workspaces
+installiert und ihre Tests sowie Frontendbuilds ausgeführt. SQLite-Migrationen und
+der PGlite-Roundtrip auf Revision 0005 waren erfolgreich. Ein lokaler Docker- oder
+PostgreSQL-17-Server stand nicht zur Verfügung.
+
+[PR #28](https://github.com/damiankaest/DKMan/pull/28) enthält dafür zusätzliche
+CI-Prüfungen mit echtem PostgreSQL 17 und eine erweiterte Planung-Journey mit echtem
+Keycloak für Forge-Erzeugung, Download und Zugriffsschutz. Ein vorheriger CI-Lauf
+für den Zwischenstand `5436441` war erfolgreich; für den finalen Stand ist der
+letzte PR-Lauf entscheidend. Kein Zielhostupgrade oder Appdeployment durchgeführt.
+
+Die folgenden Abschnitte sind historische Prüfungen früherer Schritte.
 
 ## P3-002 · Abschließende CI-Abnahme · 22.10.2026
 

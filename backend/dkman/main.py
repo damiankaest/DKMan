@@ -19,6 +19,7 @@ from dkman.config import Settings
 from dkman.deployment_api import router as deployment_router
 from dkman.deployment_health import health_loop
 from dkman.deployments.client import HttpDeploymentClient
+from dkman.forge_api import router as forge_router
 from dkman.health import readiness
 from dkman.intent_provider import make_provider
 from dkman.job_api import router as job_router
@@ -128,5 +129,6 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(deployment_router)
     app.include_router(runtime_router)
     app.include_router(planning_router)
+    app.include_router(forge_router)
     app.include_router(chat_router)
     return app

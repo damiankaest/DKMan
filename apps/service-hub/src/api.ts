@@ -36,6 +36,17 @@ export class ApiClient {
     return response.json() as Promise<T>;
   }
 
+  async download(path: string): Promise<Blob> {
+    const token = await this.auth.token();
+    const response = await fetch(path, {headers:{Authorization:`Bearer ${token}`}, credentials:'omit', cache:'no-store'});
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+      if (response.status === 403 || response.status === 404) throw new Error('Dieser Quellstand ist nicht für dich freigegeben.');
+      throw new Error(`Download fehlgeschlagen (HTTP ${response.status}).`);
+    }
+    return response.blob();
+  }
+
   get<T>(path: string, signal?: AbortSignal) { return this.request<T>(path, 'GET', undefined, signal); }
   syncProfile = (signal?: AbortSignal) => this.request('/api/v1/me/profile', 'PUT', undefined, signal);
   me = (signal?: AbortSignal) => this.get<User>('/api/v1/me', signal);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiClient, type Household } from './api';
 import type { components } from './generated/api';
 import { PlanningWizard } from './PlanningWizard';
+import { ForgeWorkspaces } from './ForgeWorkspaces';
 
 type AppRequest = components['schemas']['RequestView'];
 type Plan = components['schemas']['PlanView'];
@@ -93,7 +94,7 @@ function PlanReview({api, plan, subject, onApproved}: {api: ApiClient; plan: Pla
   </div>;
 }
 
-export function AppPlanning({api, subject, admin, initialDraft}: {api: ApiClient; subject: string; admin: boolean; initialDraft?: Requirements}) {
+export function AppPlanning({api, subject, admin, developer = false, initialDraft}: {api: ApiClient; subject: string; admin: boolean; developer?: boolean; initialDraft?: Requirements}) {
   const [requests, setRequests] = useState<AppRequest[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selected, setSelected] = useState<AppRequest | null>(null);
@@ -188,7 +189,8 @@ export function AppPlanning({api, subject, admin, initialDraft}: {api: ApiClient
             return items.length > 0 && <div key={name}><h4>{label}</h4><ul>{items.map((value,index) => <li key={index}>{value}</li>)}</ul></div>;
           })}
           <details><summary>Planreferenz</summary><p>Version {viewed.revision} · Manuell · {new Date(viewed.created_at).toLocaleString('de-DE')}</p><p>Inhalts-Hash: <code>{viewed.content_hash}</code></p></details>
-          {latest && admin && <PlanReview key={viewed.id} api={api} plan={viewed} subject={subject} onApproved={async () => {if (selected) await open(selected);}} />}
+          {(admin || developer) && <ForgeWorkspaces key={`forge-${viewed.id}`} api={api} plan={viewed} current={Boolean(latest)} />}
+          {latest && admin && <PlanReview key={`review-${viewed.id}`} api={api} plan={viewed} subject={subject} onApproved={async () => {if (selected) await open(selected);}} />}
           {latest && !admin && <p className="muted">Eine Person mit Adminrechten kann diese Planversion zur späteren Umsetzung freigeben.</p>}
         </article>}
       </div>

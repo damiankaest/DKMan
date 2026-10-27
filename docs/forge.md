@@ -1,40 +1,62 @@
-# Forge · Beginn P4-001
+# Forge · P4-001
 
-Der CodingProvider-Vertrag nimmt Plan-ID, Inhalts-Hash, Requirements und einen der
-geplanten Vorlagennamen entgegen und liefert begrenzte Quelldaten. Die interne
-Workspacefunktion schreibt diese in ein neues privates UUID-Verzeichnis unter einem
-bereits vorhandenen vertrauenswürdigen Root. Sie validiert Pfade und Größe erneut,
-verweigert Symlink-Roots und berechnet einen Hash über Planbezug und Quelltext.
-Sie führt keinen Quelltext aus und vergibt keine Runtime- oder Deploymentrechte.
+Forge erstellt für freigegebene Planrevisionen reproduzierbare Quellstände. Zur Wahl
+stehen eine Python-API, eine React-SPA und eine Kombination beider Vorlagen. Die
+Vorlagen enthalten gesperrte Abhängigkeiten, Tests, Dockerfiles und eine Anleitung.
+Die API besitzt eine explizite Alembic-Migrationsbasis und prüft den Appzugriff über
+Core. Das Frontend verwendet OIDC mit PKCE und prüft die Installationsfreigabe.
 
-Der Betreiber muss Root und Eltern vor fremdem Schreibzugriff schützen. Die Funktion
-ist keine Sandbox; Planfreigabe und Eigentümerschaft müssen vor späterer Verwendung
-von einer noch zu implementierenden Orchestrierung überprüft werden. Der Quellenhash
-ist keine Autorisierung. Zehn lokale Tests prüfen private getrennte Workspaces,
-Pfadabwehr, Symlinks und nachträgliche Mutation der Eingaben. Ruff und mypy bestanden.
+Der freigegebene Plan wird einschließlich seines Hashes als Daten in `plan.json`
+gespeichert. Anforderungen werden nicht in ausführbaren Code eingefügt und die
+beschriebenen Fachfunktionen nicht automatisch implementiert. Nur ausdrücklich
+aufgelistete Vorlagendateien werden übernommen; lokale Caches und weitere Dateien
+können nicht versehentlich in den Quellstand gelangen. Ein identischer Plan und
+eine identische Vorlage ergeben denselben Quellinhalt und Hash.
 
-Noch offen: deterministischer Provider, drei vollständige Vorlagen, Job- und
-Freigabeanbindung. Ausführung, Tests und Image-Build benötigen später einen isolierten
-Worker. Es gibt noch keinen Forge-Endpunkt und keinen Build-/Deploybutton.
+## Quellstand im Hub erstellen
 
-## Deterministischer Starter
+1. Unter **App planen** eine aktuelle Planversion freigeben.
+2. Unter **App-Quellcode vorbereiten** die Quellstände öffnen, eine Vorlage wählen
+   und **Quellstand erstellen** auswählen.
+3. Dateien und Inhalts-Hash prüfen und den Quellstand bei Bedarf als ZIP herunterladen.
 
-`TemplateProvider` erstellt für alle drei geplanten Vorlagentypen deterministisch
-begrenzte Startdateien. Anforderungen und Planbezug stehen ausschließlich als Daten
-in `plan.json`; Freitext wird nicht in ausführbaren Quellcode eingefügt. API-Varianten
-enthalten einen Live-Endpunkt, React-Varianten eine einfache Startkomponente. Diese
-Dateien sind ausdrücklich keine vollständigen Vorlagen: Paketdefinitionen, Tests,
-OIDC-Anbindung, Datenhaltung und Deployment fehlen. Keine App wird dadurch erstellt
-oder ausgeführt. Lokale Prüfung: 13 Forge-Tests, Ruff und mypy erfolgreich.
+Admins können alle zugänglichen Pläne bearbeiten; Developer ihre eigenen Pläne, für
+deren Haushalt sie noch berechtigt sind. Quellstände sind für ihren Eigentümer und
+Admins sichtbar. Ein historischer Quellstand bleibt bei fortbestehender Berechtigung
+lesbar; neue Erzeugung erfordert die aktuelle freigegebene Revision. Planfreigabe,
+Dokumenthash und Berechtigung werden serverseitig geprüft. Beim Abruf werden die
+aktuellen Rechte sowie die Bindung und Integrität des gespeicherten Inhalts geprüft.
+Idempotenzschlüssel verhindern eine doppelte Anlage bei einer Wiederholung.
 
-## Freigegebenen Plan lesen
+Die Quellstände werden als unveränderliche Datenbanksnapshots gespeichert. Migration
+`0005_forge_workspaces` muss vor der Nutzung über die üblichen Migrationsschritte
+ausgeführt werden. Die ZIP-Datei ist reproduzierbar und enthält keine Hostpfade.
+Die Erzeugung startet keinen Container und erstellt keine Appinstallation.
 
-`generation_request_for` leitet die Generator-Eingabe aus einer aktuellen,
-freigegebenen Planrevision ab. Developer sehen nur ihre eigenen zugänglichen Pläne;
-Admins dürfen alle prüfen. Ein erfolgreicher Freigabejob, gebundener Auftrag,
-Ergebniseintrag und Dokumenthash werden überprüft. Geänderte oder überholte Pläne
-werden abgewiesen. Die Funktion ist ein lesender Baustein ohne API, Job oder
-Workspace. Spätere Orchestrierung muss vor einer externen Wirkung Rechte und
-Planstand erneut prüfen; ein Rückgabewert ist keine dauerhafte Ausführungsvollmacht.
-Lokale Prüfungen: zwei Integrationsfälle, Ruff und mypy erfolgreich. Vollständige
-Vorlagen und die persistente sichere Orchestrierung bleiben offen.
+## Worker-Grenze
+
+`materialize_git_workspace` kann einen geprüften Snapshot unter einem vertrauenswürdigen
+Worker-Root in einem eigenen Verzeichnis als frisches Git-Repository materialisieren.
+Git-Hooks, globale Konfiguration und interaktive Netzabfragen sind ausgeschaltet. Der
+Core ruft diese Funktion nicht auf und benötigt keinen Zugriff auf Hostdateien oder
+Docker. Der Worker-Root muss vor fremdem Schreibzugriff geschützt werden; die Funktion
+ist keine Sandbox. Vor späterem Build oder Deployment müssen Berechtigung, Freigabe
+und Inhalts-Hash erneut überprüft werden.
+
+Das Manifest enthält bis zu einem geprüften Build absichtlich eine ungültige
+Image-Referenz. P4-002 ergänzt einen isolierten Build-Worker und ein Buildartefakt;
+Preview und Deployment gehören zu P4-003.
+
+## Prüfungen
+
+Lokal bestanden: 308 Backendtests (16 Diensttests übersprungen), Ruff/Format und
+mypy, 24 Hubtests, Lint und Build sowie acht Desktop-/Handy-Browsertests mit expliziten
+HTTP-/Auth-Testdaten. Die drei erzeugten Projekte wurden getrennt installiert und ihre
+Backend- und Frontendtests sowie Frontendbuilds ausgeführt; lokale Migrationstests
+verwenden SQLite. PGlite prüft Migration 0005 einschließlich Downgrade und erneutem
+Upgrade, ersetzt aber keinen Netzwerktest gegen PostgreSQL 17.
+
+Die GitHub-CI ergänzt PostgreSQL-17-Migrationen, parallele Anfragen und eine echte
+Keycloak-/Core-Journey für die Forge-Erzeugung und den Zugriffsschutz. Der letzte
+Lauf für den aktuellen PR ist maßgeblich. Eine Zielhostabnahme wurde hier nicht
+durchgeführt.

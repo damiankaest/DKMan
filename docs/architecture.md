@@ -31,8 +31,8 @@ erteilt keine Runtimevollmacht. Globale Rollen kommen ausschließlich aus OIDC.
 Das Schema umfasst außerdem Nutzer, Haushalte, Mitgliedschaften, Healthbeobachtungen
 und Auditereignisse. Registrierung und Audit werden zusammen committed. Keine
 Appfachdaten im Core. Job-/Event-/Approvaltabellen folgen mit Migration 0002 und
-echten Manifestvalidierungsaufträgen. Workflow-/Forge-/Datenprovider-Tabellen kommen
-mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architecture-decisions/0007-durable-jobs.md).
+echten Manifestvalidierungsaufträgen. Migration 0004 ergänzt die Planung und 0005
+persistente Forge-Quellstände; Appfachdaten bleiben außerhalb des Core. Vertrag: [Jobs](jobs.md), [ADR 0007](architecture-decisions/0007-durable-jobs.md).
 
 ## Implementierte API
 
@@ -58,11 +58,14 @@ mit den dazugehörigen Tickets. Vertrag: [Jobs](jobs.md), [ADR 0007](architectur
 | `GET /api/v1/platform` | angemeldet | Versions-/Ausbaustand |
 | `GET/POST /api/v1/jobs` und Jobdetails/Events | Admin für Anlage, eigene Sichtbarkeit beim Lesen | persistierte Aufträge und sequenzierte Historie; siehe `jobs.md` |
 | Approvalentscheidung, Jobabbruch und Ausführung | Admin; Operator nur eigene berechtigte Runtimejobs; Run zusätzlich anforderndes Subject | hashgebundene Freigabe und aktionsspezifische Zustandsgrenzen; siehe `jobs.md` |
+| `GET/POST /api/v1/app-plans/{id}/workspaces` | berechtigter Developer oder Admin | private, hashgebundene Quellstände eines freigegebenen Plans lesen und idempotent erstellen |
+| `GET /api/v1/forge/workspaces/{id}` und `/archive` | Eigentümer mit aktuellen Planrechten oder Admin | Integrität prüfen und Metadaten bzw. ZIP ausgeben |
 
 OpenAPI ist in `contracts/openapi/core.v1.json` versioniert. Der Hub verwendet daraus
-generierte TypeScript-Typen. Mutationserweiterungen erhalten typisierte Requests,
-Idempotency-Keys und persistente Jobs. Fehlende Chat-/Forge-Routen
-existieren bewusst noch nicht und melden keinen simulierten Erfolg.
+generierte TypeScript-Typen. Mutationen nutzen typisierte Requests und, soweit
+wiederholbar, Idempotenzschlüssel. Planfreigaben und Runtimeaktionen verwenden
+persistente Jobs; Forge-Quellstände sind transaktional gespeicherte Metadaten und
+führen keinen Build aus. Chat und Forge sind in `chat.md` und `forge.md` beschrieben.
 
 ## Deployment-Trust-Boundary
 
@@ -93,7 +96,7 @@ Forge bleibt eine eigene, davon getrennte Workspace-/Build-Domäne.
 `planning.py`, `planning_api.py` und `planning_schemas.py` implementieren manuelle
 App-Anforderungen und unveränderliche Requirements-/Planrevisionen. AppRequest ist
 der Planungsworkflow-Anker. Migration 0004 ergänzt genau `app_requests`/`app_plans`;
-Readiness verlangt `0004_app_planning`. Eigentümer verwalten eigene Ideen, Admins
+Readiness verlangt seit Forge Migration `0005_forge_workspaces`. Eigentümer verwalten eigene Ideen, Admins
 alle. Eine Haushaltszuordnung verlangt für normale Nutzer aktuelle Mitgliedschaft
 und erteilt anderen Personen keinen Planungs- oder Appzugriff.
 
@@ -101,7 +104,7 @@ Die konkret implementierte Metadatenaktion `app_plan.approve` nutzt die bestehen
 Job-/Approvalzustandsmaschine. Hashbindung und erneute Versionsprüfung verhindern
 Freigabe geänderter oder überholter Inhalte; Entscheidung und Jobabschluss sind
 atomar. Dieser Schritt baut/installiert nichts. Der Hub bietet **App planen**;
-Chat/Provider/Wizard folgen mit P3-002/P3-003. Vertrag und Routen: [planning.md](planning.md),
+Chat/Provider/Wizard wurden mit P3-002/P3-003 ergänzt. Vertrag und Routen: [planning.md](planning.md),
 [ADR 0012](architecture-decisions/0012-persistent-app-planning.md).
 
 ## Manifest v1alpha1
