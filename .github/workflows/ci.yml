@@ -122,7 +122,7 @@ jobs:
       - run: python3 tests/verify_notes_container.py
       - name: Save actual immutable build evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: notes-build-evidence
           include-hidden-files: true
@@ -208,7 +208,7 @@ jobs:
         run: uv run pytest tests/test_forge_buildkit.py -q
       - name: Save verified BuildArtifact reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: forge-build-evidence
           path: ${{ runner.temp }}/dkman-forge-evidence/*.json
