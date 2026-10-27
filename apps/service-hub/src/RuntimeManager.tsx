@@ -28,6 +28,7 @@ export function RuntimeManager({api, subject, onChanged, initialProposal}: {api:
   const key = useRef<{action: Action; installation: string; value: string} | null>(null);
   const generation = useRef(0);
   const busyRef = useRef(false);
+  const interactionEpoch = useRef(0);
   const displayedJob = useRef('');
   const detailSequence = useRef(0);
   const details = useCallback(async (next: Job) => {
@@ -51,9 +52,10 @@ export function RuntimeManager({api, subject, onChanged, initialProposal}: {api:
     if (!selected) return;
     async function poll() {
       if (busyRef.current) return;
+      const epoch = interactionEpoch.current;
       try {
         const [observed, history] = await Promise.all([api.get<Status>(`/api/v1/installations/${selected}/status`),api.get<Job[]>(`/api/v1/installations/${selected}/jobs`)]);
-        if (generation.current !== current || busyRef.current) return;
+        if (generation.current !== current || busyRef.current || interactionEpoch.current !== epoch) return;
         setStatus(observed); setJobs(history);
         const recent = history.find(item => ['deployment.start','deployment.stop','deployment.restart'].includes(item.action));
         if (recent) await details(recent);
@@ -66,6 +68,7 @@ export function RuntimeManager({api, subject, onChanged, initialProposal}: {api:
     return () => {++generation.current; window.clearInterval(timer);};
   }, [api, details, selected]);
   async function work(task: () => Promise<void>) {
+    interactionEpoch.current++; detailSequence.current++;
     busyRef.current = true; setBusy(true); setError('');
     try {await task();} catch (cause) {setError(cause instanceof Error ? cause.message : 'Auftrag nicht erreichbar. Gespeicherten Stand erneut laden.');}
     finally {busyRef.current = false; setBusy(false);}
@@ -99,7 +102,7 @@ export function RuntimeManager({api, subject, onChanged, initialProposal}: {api:
     if (!job || !approval || !confirmed) return;
     void work(async () => {
       await api.request(`/api/v1/approvals/${approval.id}/decision`,'POST',{subject:approval.subject,action:approval.action,resource_type:approval.resource_type,resource_id:approval.resource_id,plan_hash:approval.plan_hash,expires_at:approval.expires_at,decision:'approve'});
-      await reload();
+      await acceptJob(await api.get<Job>(`/api/v1/jobs/${job.id}`));
     });
   }
   function execute(suffix: 'run' | 'cancel' | 'reconcile') {
