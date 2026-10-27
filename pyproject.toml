@@ -5,7 +5,7 @@ description = "Private service platform with a policy-controlled orchestration c
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "fastapi==0.147.0", "uvicorn[standard]==0.54.0",
-  "sqlalchemy==2.1.5", "alembic==1.20.0",
+  "sqlalchemy==2.1.5", "alembic==1.20.1",
   "pydantic-settings==2.16.0", "psycopg[binary]==3.3.6",
   "PyJWT[crypto]==2.15.1", "PyYAML==6.0.3",
 ]
