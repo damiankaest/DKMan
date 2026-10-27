@@ -19,7 +19,17 @@ test('real planning persists revisions, isolates people and records approval wit
   async function api(page: Page, path: string) {
     const authorization = authorizations.get(page);
     expect(authorization).toBeTruthy();
-    return page.request.get(`http://localhost:8080/api/v1${path}`,{headers:{Authorization:authorization!}});
+    const url = `http://localhost:8080/api/v1${path}`;
+    const headers = {Authorization:authorization!};
+    let response = await page.request.get(url,{headers});
+    // The real proxy shares a rate limit across the three browser contexts.
+    // Retry only GETs, and still assert the final authorization response.
+    for (let attempt = 0; response.status() === 429 && attempt < 3; attempt++) {
+      console.log(`Planning GET rate limited; retry ${attempt + 1} of 3`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      response = await page.request.get(url,{headers});
+    }
+    return response;
   }
   async function login(page: Page, name: string) {
     await page.goto('/');
