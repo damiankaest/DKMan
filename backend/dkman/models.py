@@ -225,3 +225,20 @@ class AppPlan(Record, Base):
     idempotency_key: Mapped[str] = mapped_column(String(128))
     request_hash: Mapped[str] = mapped_column(String(64))
     approved_job_id: Mapped[str | None] = mapped_column(ForeignKey("jobs.id"), unique=True)
+
+
+class ForgeWorkspace(Record, Base):
+    """An immutable source snapshot. Files are data; Core never executes them."""
+
+    __tablename__ = "forge_workspaces"
+    __table_args__ = (
+        UniqueConstraint("owner_subject", "idempotency_key", name="uq_forge_workspace_key"),
+    )
+    owner_subject: Mapped[str] = mapped_column(String(255), index=True)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("app_plans.id"), index=True)
+    plan_hash: Mapped[str] = mapped_column(String(64))
+    template: Mapped[str] = mapped_column(String(40))
+    bundle_hash: Mapped[str] = mapped_column(String(64))
+    bundle: Mapped[dict[str, Any]] = mapped_column(JSON)
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    request_hash: Mapped[str] = mapped_column(String(64))

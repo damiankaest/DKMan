@@ -13,18 +13,16 @@ von einer noch zu implementierenden Orchestrierung überprüft werden. Der Quell
 ist keine Autorisierung. Zehn lokale Tests prüfen private getrennte Workspaces,
 Pfadabwehr, Symlinks und nachträgliche Mutation der Eingaben. Ruff und mypy bestanden.
 
-Noch offen: deterministischer Provider, drei vollständige Vorlagen, Job- und
-Freigabeanbindung. Ausführung, Tests und Image-Build benötigen später einen isolierten
-Worker. Es gibt noch keinen Forge-Endpunkt und keinen Build-/Deploybutton.
+Historischer Stand: Damals waren Provider und Plananbindung noch offen.
+Ausführung, Image-Build und Deployment benötigen weiterhin einen isolierten Worker.
 
 ## Deterministischer Starter
 
 `TemplateProvider` erstellt für alle drei geplanten Vorlagentypen deterministisch
 begrenzte Startdateien. Anforderungen und Planbezug stehen ausschließlich als Daten
 in `plan.json`; Freitext wird nicht in ausführbaren Quellcode eingefügt. API-Varianten
-enthalten einen Live-Endpunkt, React-Varianten eine einfache Startkomponente. Diese
-Dateien sind ausdrücklich keine vollständigen Vorlagen: Paketdefinitionen, Tests,
-OIDC-Anbindung, Datenhaltung und Deployment fehlen. Keine App wird dadurch erstellt
+enthalten einen Live-Endpunkt, React-Varianten eine einfache Startkomponente. Dieser historische Starter enthielt noch keine vollständigen Vorlagen; siehe den
+aktuellen Abschnitt unten. Keine App wird dadurch erstellt
 oder ausgeführt. Lokale Prüfung: 13 Forge-Tests, Ruff und mypy erfolgreich.
 
 ## Freigegebenen Plan lesen
@@ -50,3 +48,33 @@ Das Manifest enthält bis P4-002 absichtlich eine ungültige Image-Referenz.
 Dieser Checkpoint ist noch kein Abschluss: Die generierten Projekte und die
 Plananbindung müssen separat vollständig geprüft werden. Container- und Deployment-
 Abnahme bleibt P4-002/P4-003.
+
+
+## Persistente Quellstände · P4-001
+
+Die aktuelle freigegebene Planversion kann von deren berechtigtem Developer oder
+einem Admin in eine der drei Vorlagen überführt werden. Über den Hub unter
+**App planen → App-Quellcode vorbereiten → Quellstände öffnen** erzeugt
+**Quellstand erstellen** einen unveränderlichen, privaten Datenbanksnapshot. Der
+Planinhalt wird nicht als Code ausgeführt. Nach Speicherung zeigt der Hub Dateien
+und Inhalts-Hash und bietet einen ZIP-Download. Eine neue Version oder entzogene
+Berechtigung verhindert eine neue Erzeugung; auch der Download prüft aktuelle
+Rechte und den gespeicherten Hash. Historische Quellstände bleiben für ihren
+berechtigten Besitzer lesbar. Ein Idempotenzschlüssel verhindert Doppelanlage bei
+Wiederholung. Migration 0005 ist explizit auszuführen.
+
+Die vollständigen Grundgerüste enthalten gesperrte Abhängigkeiten, Tests,
+Dockerfiles und OIDC/PKCE bzw. die bestehende Core-Appzugriffsprüfung. Anforderungen
+stehen ausschließlich als Daten in plan.json. Der Image-Platzhalter im Manifest ist
+absichtlich ungültig: Erzeugung gewährt keine Build- oder Deploymentfreigabe.
+`materialize_git_workspace` erstellt auf einem vertrauenswürdigen Worker-Root ein
+separates Git-Repository ohne Hooks und ohne Netzaufruf. Der Core ruft diese
+Funktion nicht auf und braucht keinen Hostzugriff. Für eine spätere Ausführung im
+isolierten Worker müssen Berechtigung, Freigabe und Hash erneut überprüft werden.
+
+Lokale Zwischenprüfung: 303 Backendtests bestanden, 15 Dienst-Skips; 24 Hubtests,
+Lint und Build; generierte API-/Fullstack-Backendtests und SQLite-Migrationen sowie
+SPA-/Fullstack-Frontendtests und Builds; PGlite-Migrationsroundtrip mit Revision
+0005. GitHub-CI und die abschließende Browser-/Zielhostabnahme stehen noch aus.
+Die Vorlagen sind Grundgerüste: die beschriebenen Fachfunktionen werden nicht
+automatisch implementiert. P4-002 ergänzt isolierte Checks und Image-Build.

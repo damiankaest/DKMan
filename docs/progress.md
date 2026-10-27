@@ -4,9 +4,11 @@
 
 P4-001 in Arbeit: ausführbare Starter für Python-API, React-SPA und Fullstack
 mit gesperrten Abhängigkeiten, Tests, Identity-/Appzugriffsanbindung und
-Migrationsbasis. Vollständige Abnahme der generierten Projekte und sichere persistente
-Plan-/Workspaceanbindung laufen noch. Dies ist ein Zwischenstand, kein Build oder
-Deployment und keine Freigabe für eine generierte App. Details: forge.md.
+Migrationsbasis. Freigegebene Planrevisionen können als private unveränderliche
+Quellstände gespeichert und heruntergeladen werden. Lokale Prüfungen: 303 Backend-
+und 24 UI-Tests, 15 Dienst-Skips sowie PGlite-Roundtrip und generierte Projektchecks
+bestanden. GitHub-CI und abschließende Browser-/Zielhostabnahme laufen noch.
+Kein Image-Build, Deployment oder Appfreigabe. Details: forge.md.
 
 ## Vorheriger Stand
 

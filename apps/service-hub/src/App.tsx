@@ -142,7 +142,7 @@ export function App({ auth }: { auth: AuthSession }) {
                 </div>
               </article>)}</div>}
           </section>
-        ) : tab === 'chat' ? null : tab === 'planning' && user ? <AppPlanning api={api} subject={user.subject} admin={user.roles.includes('admin')} initialDraft={proposal?.kind === 'app.draft' ? proposal.requirements : undefined} /> : (
+        ) : tab === 'chat' ? null : tab === 'planning' && user ? <AppPlanning api={api} subject={user.subject} admin={user.roles.includes('admin')} developer={user.roles.includes('developer')} initialDraft={proposal?.kind === 'app.draft' ? proposal.requirements : undefined} /> : (
           <section>
             {user && <RuntimeManager api={api} subject={user.subject} initialProposal={proposal?.kind === 'runtime' ? proposal : undefined} onChanged={() => {void api.apps().then(setApps).catch(() => setApps(current => current.map(app => ({...app,status:'unknown',route:null}))));}} />}
             {user?.roles.includes('admin') && <>

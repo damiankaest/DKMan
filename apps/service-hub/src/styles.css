@@ -29,3 +29,7 @@
 .planning-wizard {display:grid;gap:.75rem;padding:1.25rem;margin-bottom:1rem;background:#182520;border:1px solid #375842;border-radius:.75rem}
 .planning-wizard textarea {min-height:5rem;width:100%}
 .planning-wizard li {overflow-wrap:anywhere;margin-bottom:.8rem}
+
+.forge-workspaces {margin:1rem 0;padding:1rem;border:1px solid #384a40;border-radius:.75rem}
+.forge-workspaces select {display:block;margin:.5rem 0}
+.forge-workspaces li {overflow-wrap:anywhere;margin:.5rem 0}
