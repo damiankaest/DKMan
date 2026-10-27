@@ -2,6 +2,26 @@
 
 ## Aktueller Stand
 
+P4-003 ist in Arbeit: Ein Builder kann Buildnachweise mit einem separaten
+Ed25519-Schlüssel signieren; Core prüft Signatur, Plan, Quellen und Rezepte und der
+Hub kann den Nachweis importieren. Ein manueller Preview-Adapter auf einer getrennten
+Linux-VM akzeptiert zunächst nur die React-SPA, prüft Archiv und Rechte erneut,
+startet eine eingeschränkte Preview auf Loopback und signiert eine zeitlich begrenzte
+Readiness-Beobachtung mit einem zweiten Schlüssel. Core und Hub können den Nachweis
+registrieren. Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im
+wegwerfbaren CI-Runner sowie die Zielhostabnahme sind noch ausstehend. Produktive
+Archivübernahme, previewgebundene Genehmigung, Installation und Updates sind für
+P4-003 noch offen. Siehe `forge.md` und ADR 0015.
+
+Lokale Vorprüfung: 330 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
+übersprungen; Ruff, Format, mypy, Paketbuild und Vertragsexport erfolgreich. Hub-Lint,
+Produktionsbuild und 27 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
+Migration 0006 einschließlich Downgrade und erneutem Upgrade. Ein echter Docker- und
+BuildKit-Lauf wird im Wegwerf-CI-Runner geprüft; lokale Browser- und Engineabnahme
+stehen mangels Chromium beziehungsweise Docker weiterhin aus.
+
+## Vorheriger Stand
+
 P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
 prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
 OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben

@@ -242,3 +242,23 @@ class ForgeWorkspace(Record, Base):
     bundle: Mapped[dict[str, Any]] = mapped_column(JSON)
     idempotency_key: Mapped[str] = mapped_column(String(128))
     request_hash: Mapped[str] = mapped_column(String(64))
+
+
+class ForgeBuildArtifact(Record, Base):
+    """Signed build metadata only; the OCI archive stays outside Core."""
+
+    __tablename__ = "forge_build_artifacts"
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("forge_workspaces.id"), index=True)
+    submitted_by: Mapped[str] = mapped_column(String(255), index=True)
+    evidence_hash: Mapped[str] = mapped_column(String(64))
+    attestation: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class ForgePreview(Record, Base):
+    """A signed observation of a preview, not a live-health or deployment claim."""
+
+    __tablename__ = "forge_previews"
+    artifact_id: Mapped[str] = mapped_column(ForeignKey("forge_build_artifacts.id"), index=True)
+    submitted_by: Mapped[str] = mapped_column(String(255), index=True)
+    evidence_hash: Mapped[str] = mapped_column(String(64))
+    attestation: Mapped[dict[str, Any]] = mapped_column(JSON)

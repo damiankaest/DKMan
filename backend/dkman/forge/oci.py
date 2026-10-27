@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import tarfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,8 +21,16 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_oci_archive(path: Path) -> tuple[str, str, int]:
-    """Return manifest digest, archive hash and size after verifying all referenced blobs."""
+@dataclass(frozen=True)
+class OciInspection:
+    manifest_digest: str
+    config_digest: str
+    archive_sha256: str
+    archive_size: int
+
+
+def inspect_oci_archive(path: Path) -> OciInspection:
+    """Verify all descriptors and expose the immutable config/image ID separately."""
     size = path.stat().st_size
     if not path.is_file() or path.is_symlink() or size <= 0 or size > MAX_ARCHIVE:
         raise ValueError("invalid_oci_archive_size")
@@ -89,10 +98,20 @@ def verify_oci_archive(path: Path) -> tuple[str, str, int]:
             layers = manifest.get("layers")
             if not isinstance(layers, list) or not layers:
                 raise ValueError("invalid_oci_layers")
-            verify_descriptor(manifest.get("config"))
+            config = manifest.get("config")
+            config_name = verify_descriptor(config)
+            read_json(config_name)
+            assert isinstance(config, dict)  # verify_descriptor already rejects other values
+            config_digest = str(config["digest"])
             for layer in layers:
                 verify_descriptor(layer)
             digest_value = str(descriptor["digest"])
     except (tarfile.TarError, json.JSONDecodeError, UnicodeDecodeError, KeyError, TypeError) as exc:
         raise ValueError("invalid_oci_archive") from exc
-    return digest_value, sha256_file(path), size
+    return OciInspection(digest_value, config_digest, sha256_file(path), size)
+
+
+def verify_oci_archive(path: Path) -> tuple[str, str, int]:
+    """Compatibility wrapper for the existing P4-002 worker interface."""
+    result = inspect_oci_archive(path)
+    return result.manifest_digest, result.archive_sha256, result.archive_size

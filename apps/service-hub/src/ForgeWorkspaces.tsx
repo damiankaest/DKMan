@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiClient } from './api';
 import type { components } from './generated/api';
+import { ForgeBuildArtifacts } from './ForgeBuildArtifacts';
 
 type Plan = components['schemas']['PlanView'];
 type Workspace = components['schemas']['WorkspaceView'];
@@ -69,6 +70,7 @@ export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Pla
         <strong>{item.template}</strong> · {new Date(item.created_at).toLocaleString('de-DE')}
         <button type="button" disabled={busy} onClick={() => {void download(item);}}>ZIP herunterladen</button>
         <details><summary>Dateien und Prüfsumme</summary><p>Quellstand-ID: <code>{item.id}</code></p><p>Prüfsumme: <code>{item.bundle_hash}</code></p><ul>{item.files.map(file => <li key={file}>{file}</li>)}</ul></details>
+        <ForgeBuildArtifacts api={api} workspaceId={item.id} current={current && !!plan.approved_job_id} />
       </li>)}</ul>}
     </>}
   </section>;

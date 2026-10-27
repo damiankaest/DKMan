@@ -110,6 +110,62 @@ Vorlagen in einer späteren Revision geändert werden, muss für einen neuen Bui
 passender neuer Quellstand erstellt werden. Der OCI-Digest identifiziert das gebaute
 Image; ein bitgenau reproduzierbarer Rebuild wird nicht behauptet.
 
+## Erste Preview-Arbeit · P4-003
+
+Dieser Teil ist in Arbeit: Eine produktive Übernahme oder Installation ist noch nicht
+implementiert. Der erste Preview-Pfad unterstützt nur `react-spa` und benötigt eine
+separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
+Daten, Docker-Sockets oder Secrets haben. Die Isolation des Hosts muss der Betreiber
+bereitstellen und prüfen. Ein internes Docker-Netz isoliert Container nicht vollständig
+vom eigenen Host.
+
+Auf dem isolierten Builder und der separaten Preview-VM jeweils einen eigenen Schlüssel
+in einem existierenden privaten Verzeichnis anlegen. Ohne `--apply` sind die Befehle
+nur ein Dry-Run:
+
+```bash
+uv run python scripts/generate_forge_signing_key.py --root /pfad/privat --purpose build
+uv run python scripts/generate_forge_signing_key.py --root /pfad/privat --purpose preview
+```
+
+Für die jeweilige tatsächliche Schlüsselanlage auf der passenden VM zusätzlich
+`--apply --confirm CREATE_FORGE_SIGNING_KEY` verwenden. Private Schlüssel bleiben auf
+der jeweiligen VM. Nur die öffentlichen Schlüssel werden zum Core übertragen und
+explizit über `forge-attestation.yaml` bzw. `forge-preview.yaml` eingebunden. Sie
+müssen verschieden und für den Core-Prozess lesbar sein. Änderungen an laufenden
+Diensten benötigen eine gesonderte Hostwartung; kein Overlay wird automatisch aktiviert.
+
+Einen neuen Build mit `--signing-key /pfad/privat/forge-build-private.pem` erzeugen.
+Im Hub beim Quellstand die `build-attestation.json` importieren. Core prüft den
+konfigurierten öffentlichen Schlüssel und den aktuellen Plan; das OCI-Archiv bleibt
+außerhalb des Core. Alte unsignierte P4-002-Builds sind nicht als Nachweis importierbar.
+
+Nach sicherer Übertragung von `image.oci.tar` und `build-attestation.json` in ein
+privates Verzeichnis auf der Preview-VM lässt sich der Preview-Adapter zunächst planen:
+
+```bash
+uv run python -m dkman.deployment_adapter.forge_preview \
+  --root /pfad/privat --core https://dkman.example \
+  --artifact-dir /pfad/zum/build-verzeichnis \
+  --builder-public-key /pfad/forge-build-public.pem \
+  --preview-private-key /pfad/forge-preview-private.pem
+```
+
+Auf der ausdrücklich isolierten Preview-VM startet `--apply --confirm
+PREVIEW_ISOLATED_VM` die Vorschau. Der Prozess fragt das aktuelle OIDC-Access-Token
+verdeckt ab und zeigt einen nur auf dieser VM erreichbaren `127.0.0.1`-Port. Für einen
+anderen Rechner ist ein bewusst eingerichteter SSH-Tunnel erforderlich. Ohne echte
+Identity-/Produktionsdienste kann die Vorlage ihre Anmeldung in der Vorschau nicht
+vollständig durchführen. Enter oder der Zeitablauf entfernt Container und Netzwerk;
+das geladene Image bleibt auf der Preview-Engine. Nach hartem Abbruch kann der Operator
+mit `--root /pfad/privat --cleanup-id PREVIEW-UUID --apply --confirm
+CLEANUP_FORGE_PREVIEW` ausschließlich die passend markierten Ressourcen entfernen.
+
+Die `preview-attestation.json` lässt sich innerhalb ihrer Gültigkeit beim Build im Hub
+importieren. Sie belegt eine beobachtete Readiness, keinen aktuellen Livezustand und
+keine menschliche Abnahme. Es gibt noch keinen integrierten Preview-Link, keine
+Archivübernahme in die Produktiv-Engine und keinen Deploy- oder Updateablauf.
+
 ## Prüfungen
 
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)

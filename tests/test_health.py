@@ -16,7 +16,9 @@ def test_readiness_rejects_missing_and_wrong_revision(client, engine):
         connection.execute(text("INSERT INTO alembic_version VALUES ('wrong')"))
     assert client.get("/health/ready").status_code == 503
     with engine.begin() as connection:
-        connection.execute(text("UPDATE alembic_version SET version_num='0005_forge_workspaces'"))
+        connection.execute(
+            text("UPDATE alembic_version SET version_num='0006_forge_build_artifacts'")
+        )
     response = client.get("/health/ready")
     assert response.status_code == 200
     assert response.json()["database"] == "ready"

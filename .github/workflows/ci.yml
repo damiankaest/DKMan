@@ -180,6 +180,7 @@ jobs:
     timeout-minutes: 30
     env:
       DKMAN_DISPOSABLE_BUILDKIT_TEST: '1'
+      DKMAN_DISPOSABLE_DOCKER_TEST: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
