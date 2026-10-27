@@ -2,6 +2,15 @@
 
 ## Aktueller Stand
 
+P3-003 Wiederaufbau: vierstufiger Planungswizard mit Gartenbeispiel und sichtbaren
+Apps als manuell zu prüfenden Integrationskandidaten. Anforderungen werden nach
+Übernahme über die vorhandene Planungs-API gespeichert und können dort freigegeben
+werden. Kein automatischer Datenzugriff oder Deployment. Lokale Hubprüfungen:
+`npm ci`, `npm run lint`, `npm run build`, `npm test`: 21 Tests bestanden.
+Browser-/CI- und Zielhostabnahme ausstehend. P4-001 noch nicht wiederaufgebaut.
+
+## Vorheriger Stand
+
 P3-002 ist abgeschlossen und geprüft: **DKMan Chat** mit sichtbarem Regelmodus,
 lesender App-/Registry-/Jobsuche, Requirements- und gebundenen Runtime-/Installations-
 vorschlägen. Der austauschbare Provider enthält einen tatsächlichen optionalen
