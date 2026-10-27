@@ -35,6 +35,8 @@ jobs:
       - run: uv run python scripts/export_contracts.py
       - run: git diff --exit-code -- contracts
       - run: uv run python scripts/validate_manifests.py
+      - name: Verify Forge check dependency lock
+        run: uv export --project backend/dkman/forge/starter_assets/api --frozen --group dev --no-emit-project --format requirements-txt --no-header --no-annotate --quiet | cmp - backend/dkman/forge/worker_assets/requirements-check.lock
 
   frontend:
     runs-on: ubuntu-latest
@@ -172,3 +174,43 @@ jobs:
         with: {node-version: '24'}
       - run: uv sync --frozen
       - run: uv run python scripts/check_forge_templates.py
+
+  forge-buildkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DKMAN_DISPOSABLE_BUILDKIT_TEST: '1'
+      DKMAN_TEST_BUILDKIT_SOCKET: unix://${{ runner.temp }}/dkman-buildkit/buildkitd.sock
+      DKMAN_BUILD_EVIDENCE_DIR: ${{ runner.temp }}/dkman-forge-evidence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Install verified BuildKit on disposable runner
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/buildkit.tar.gz" https://github.com/moby/buildkit/releases/download/v0.34.1/buildkit-v0.34.1.linux-amd64.tar.gz
+          echo "a59539daf547fe0958efe2d07e41c0a6944e1112a66d7e519ec1cf5b673ef15b  $RUNNER_TEMP/buildkit.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/buildkit" "$RUNNER_TEMP/dkman-buildkit"
+          tar -xzf "$RUNNER_TEMP/buildkit.tar.gz" -C "$RUNNER_TEMP/buildkit"
+          echo "$RUNNER_TEMP/buildkit/bin" >> "$GITHUB_PATH"
+          sudo env PATH="$RUNNER_TEMP/buildkit/bin:/usr/sbin:/usr/bin:/sbin:/bin" "$RUNNER_TEMP/buildkit/bin/buildkitd" --addr "$DKMAN_TEST_BUILDKIT_SOCKET" --root "$RUNNER_TEMP/buildkit-state" > "$RUNNER_TEMP/buildkit.log" 2>&1 &
+          for attempt in $(seq 1 40); do
+            test -S "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock" && break
+            sleep 1
+          done
+          test -S "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
+          sudo chmod 666 "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
+      - name: Check and build each starter
+        run: uv run pytest tests/test_forge_buildkit.py -q
+      - name: Save verified BuildArtifact reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-build-evidence
+          path: ${{ runner.temp }}/dkman-forge-evidence/*.json
+          if-no-files-found: ignore
+      - name: Show builder log on failure
+        if: failure()
+        run: test ! -f "$RUNNER_TEMP/buildkit.log" || tail -100 "$RUNNER_TEMP/buildkit.log"

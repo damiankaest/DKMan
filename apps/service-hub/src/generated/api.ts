@@ -794,6 +794,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forge/workspaces/{workspace_id}/build-input": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Build Input
+         * @description Recheck current plan, membership and approval before an isolated build.
+         */
+        get: operations["getForgeBuildInput"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/forge/workspaces/{workspace_id}/archive": {
         parameters: {
             query?: never;
@@ -926,6 +946,17 @@ export interface components {
             decided_at: string | null;
             /** Consumed At */
             consumed_at: string | null;
+        };
+        /**
+         * BuildInput
+         * @description Authorized source data; it grants no deployment or host access.
+         */
+        BuildInput: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Bundle Hash */
+            bundle_hash: string;
+            bundle: components["schemas"]["SourceBundle"];
         };
         /** CapabilityView */
         CapabilityView: {
@@ -1137,6 +1168,19 @@ export interface components {
              * @constant
              */
             kind: "app.draft";
+            requirements: components["schemas"]["Requirements"];
+        };
+        /** GenerationRequest */
+        GenerationRequest: {
+            /** Plan Id */
+            plan_id: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "python-api" | "react-spa" | "fullstack-fastapi-react";
             requirements: components["schemas"]["Requirements"];
         };
         /** GrantView */
@@ -1714,6 +1758,14 @@ export interface components {
             checked_at: string | null;
             /** Reason */
             reason: string | null;
+        };
+        /** SourceBundle */
+        SourceBundle: {
+            request: components["schemas"]["GenerationRequest"];
+            /** Files */
+            files: {
+                [key: string]: string;
+            };
         };
         /** UI */
         UI: {
@@ -3388,6 +3440,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getForgeBuildInput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildInput"];
                 };
             };
             /** @description Validation Error */

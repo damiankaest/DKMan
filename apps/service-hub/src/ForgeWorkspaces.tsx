@@ -51,7 +51,7 @@ export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Pla
   }
   return <section className="forge-workspaces" aria-label="App-Quellstände">
     <h4>App-Quellcode vorbereiten</h4>
-    <p>Erstelle aus einem freigegebenen Plan einen gespeicherten Quellstand. Deine Anforderungen werden zur Prüfung beigelegt; Build, Vorschau und Installation folgen später.</p>
+    <p>Erstelle aus einem freigegebenen Plan einen gespeicherten Quellstand. Ein isolierter Worker kann die Vorlage prüfen und ein Image bauen. Vorschau und Installation folgen später.</p>
     <button type="button" onClick={() => setOpen(!open)}>{open ? 'Quellstände schließen' : 'Quellstände öffnen'}</button>
     {open && <>
       {error && <p role="alert" className="error">{error}</p>}
@@ -68,7 +68,7 @@ export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Pla
       {items.length === 0 && !busy ? <p>Noch keine Quellstände für diese Planversion.</p> : <ul>{items.map(item => <li key={item.id}>
         <strong>{item.template}</strong> · {new Date(item.created_at).toLocaleString('de-DE')}
         <button type="button" disabled={busy} onClick={() => {void download(item);}}>ZIP herunterladen</button>
-        <details><summary>Dateien und Prüfsumme</summary><p><code>{item.bundle_hash}</code></p><ul>{item.files.map(file => <li key={file}>{file}</li>)}</ul></details>
+        <details><summary>Dateien und Prüfsumme</summary><p>Quellstand-ID: <code>{item.id}</code></p><p>Prüfsumme: <code>{item.bundle_hash}</code></p><ul>{item.files.map(file => <li key={file}>{file}</li>)}</ul></details>
       </li>)}</ul>}
     </>}
   </section>;

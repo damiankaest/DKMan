@@ -2,14 +2,29 @@
 
 ## Aktueller Stand
 
-P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) implementiert:
+P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
+prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
+OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben
+auf dem Builder. Kein Core-/Hub-Dockerzugriff, Registry-Push oder Deployment. Ein
+dedizierter CI-Job soll alle drei Vorlagen tatsächlich bauen; dessen Ergebnis sowie
+die Abnahme auf einem eigens isolierten Zielbuilder stehen noch aus. Die Bedienung
+erfordert aktuell einen Operator und ein gültiges OIDC-Access-Token. Einzelheiten und
+offene Grenzen: `forge.md` und ADR 0014. Nächstes Ticket: P4-003.
+
+Lokal: `uv sync --frozen`, Ruff, Format, mypy und Paketbuild erfolgreich;
+`uv run pytest -q`: 319 bestanden, 19 wegen fehlender PostgreSQL-/Docker-/BuildKit-Dienste
+übersprungen. Hub: `npm ci`, Lint, Build und 24 UI-Tests erfolgreich. Der lokale
+Playwright-Start scheiterte am fehlenden Chromium; der Download lieferte ein defektes
+Archiv. Der reale BuildKit-Test läuft daher ausschließlich auf dem separaten CI-Runner.
+
+P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) in main:
 Starter für Python-API, React-SPA und Fullstack, Berechtigung und Planbindung,
 persistente private Quellstände, ZIP-Download und isolierbare Git-Materialisierung.
 Lokal bestanden 308 Backendtests (16 Dienst-Skips), 24 UI-Tests, acht Browsertests,
 der PGlite-Migrationsroundtrip und die Prüfungen der generierten Projekte. Der PR
-enthält zusätzliche CI-Prüfungen mit PostgreSQL und echter OIDC-Journey; der letzte
-Lauf ist für die Abnahme maßgeblich. Der isolierte Image-Build folgt in P4-002,
-Preview/Deployment in P4-003. Details: forge.md.
+enthält zusätzliche CI-Prüfungen mit PostgreSQL und echter OIDC-Journey;
+[PR-CI 40497813427](https://github.com/damiankaest/DKMan/actions/runs/40497813427)
+war erfolgreich. Preview/Deployment folgen in P4-003. Details: forge.md.
 
 ## Vorheriger Stand
 

@@ -2528,6 +2528,54 @@
         }
       }
     },
+    "/api/v1/forge/workspaces/{workspace_id}/build-input": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Get Build Input",
+        "description": "Recheck current plan, membership and approval before an isolated build.",
+        "operationId": "getForgeBuildInput",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildInput"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/forge/workspaces/{workspace_id}/archive": {
       "get": {
         "tags": [
@@ -2889,6 +2937,30 @@
           "consumed_at"
         ],
         "title": "ApprovalView"
+      },
+      "BuildInput": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "bundle_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Bundle Hash"
+          },
+          "bundle": {
+            "$ref": "#/components/schemas/SourceBundle"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "bundle_hash",
+          "bundle"
+        ],
+        "title": "BuildInput",
+        "description": "Authorized source data; it grants no deployment or host access."
       },
       "CapabilityView": {
         "properties": {
@@ -3409,6 +3481,42 @@
           "requirements"
         ],
         "title": "DraftProposal"
+      },
+      "GenerationRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Plan Id"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Content Hash"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "python-api",
+              "react-spa",
+              "fullstack-fastapi-react"
+            ],
+            "title": "Template"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/Requirements"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "plan_id",
+          "content_hash",
+          "template",
+          "requirements"
+        ],
+        "title": "GenerationRequest"
       },
       "GrantView": {
         "properties": {
@@ -4803,6 +4911,29 @@
           "reason"
         ],
         "title": "ServiceView"
+      },
+      "SourceBundle": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/GenerationRequest"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "maxProperties": 100,
+            "minProperties": 1,
+            "title": "Files"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request",
+          "files"
+        ],
+        "title": "SourceBundle"
       },
       "UI": {
         "properties": {

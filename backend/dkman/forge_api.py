@@ -46,6 +46,14 @@ class WorkspaceView(BaseModel):
     files: list[str] = Field(max_length=100)
 
 
+class BuildInput(BaseModel):
+    """Authorized source data; it grants no deployment or host access."""
+
+    workspace_id: str
+    bundle_hash: PlanningHash
+    bundle: SourceBundle
+
+
 def bundle_hash(bundle: SourceBundle) -> str:
     payload = json.dumps(
         bundle.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -188,6 +196,24 @@ def list_workspaces(plan_id: str, db: Db, actor: User) -> list[WorkspaceView]:
 )
 def get_workspace(workspace_id: str, db: Db, actor: User) -> WorkspaceView:
     return view(visible_workspace(db, workspace_id, actor))
+
+
+@router.get(
+    "/forge/workspaces/{workspace_id}/build-input",
+    response_model=BuildInput,
+    operation_id="getForgeBuildInput",
+)
+def get_build_input(workspace_id: str, db: Db, actor: User) -> BuildInput:
+    """Recheck current plan, membership and approval before an isolated build."""
+    workspace = visible_workspace(db, workspace_id, actor)
+    plan = plan_for(db, workspace.plan_id, actor)
+    request_for(db, plan.request_id, actor, lock=True)
+    db.refresh(plan)
+    bundle = checked_bundle(workspace)
+    generation = generation_request_for(db, actor, plan.id, bundle.request.template)
+    if generation != bundle.request:
+        raise HTTPException(409, "Workspace no longer matches the approved plan")
+    return BuildInput(workspace_id=workspace.id, bundle_hash=workspace.bundle_hash, bundle=bundle)
 
 
 @router.get(
