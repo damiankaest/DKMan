@@ -95,3 +95,37 @@ def test_requires_authentication_and_strict_input(client, as_user):
     assert client.post("/api/v1/app-plans/x/workspaces", json={}).status_code == 401
     as_user("alice", ["developer"])
     assert client.post("/api/v1/app-plans/x/workspaces", json={}).status_code == 422
+
+
+def test_membership_revocation_revokes_source_access(client, as_user):
+    as_user("alice", ["developer"])
+    profile = client.put("/api/v1/me/profile").json()
+    as_user("admin", ["admin"])
+    home = client.post("/api/v1/households", json={"name": "Home"}).json()
+    membership = f"/api/v1/households/{home['id']}/members/{profile['id']}"
+    assert client.put(membership).status_code == 204
+    as_user("alice", ["developer"])
+    item = create(client, household_id=home["id"]).json()
+    plan = plans(client, item)[0]
+    as_user("admin", ["admin"])
+    job = review(client, plan).json()
+    assert approve(client, job).status_code == 200
+    assert client.post(f"/api/v1/jobs/{job['id']}/run").json()["state"] == "succeeded"
+    as_user("alice", ["developer"])
+    workspace = generate(client, plan).json()
+    assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/archive").status_code == 200
+    as_user("admin", ["admin"])
+    assert client.delete(membership).status_code == 204
+    as_user("alice", ["developer"])
+    assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}").status_code == 404
+    assert client.get(f"/api/v1/forge/workspaces/{workspace['id']}/archive").status_code == 404
+    assert client.get(f"/api/v1/app-plans/{plan['id']}/workspaces").status_code == 404
+    assert generate(client, plan).status_code == 404
+
+
+def test_distinct_idempotency_keys_create_separate_equal_snapshots(client, as_user):
+    _, plan = prepare(client, as_user)
+    first = generate(client, plan, "first").json()
+    second = generate(client, plan, "second").json()
+    assert first["id"] != second["id"]
+    assert first["bundle_hash"] == second["bundle_hash"]

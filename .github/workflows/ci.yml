@@ -151,6 +151,18 @@ jobs:
   forge-templates:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_DB: dkman_forge_template_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dkman_forge_template_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DKMAN_TEMPLATE_TEST_DATABASE_URL: postgresql+psycopg://postgres@127.0.0.1:5432/dkman_forge_template_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

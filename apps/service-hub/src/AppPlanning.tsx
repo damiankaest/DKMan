@@ -189,8 +189,8 @@ export function AppPlanning({api, subject, admin, developer = false, initialDraf
             return items.length > 0 && <div key={name}><h4>{label}</h4><ul>{items.map((value,index) => <li key={index}>{value}</li>)}</ul></div>;
           })}
           <details><summary>Planreferenz</summary><p>Version {viewed.revision} · Manuell · {new Date(viewed.created_at).toLocaleString('de-DE')}</p><p>Inhalts-Hash: <code>{viewed.content_hash}</code></p></details>
-          {(admin || developer) && <ForgeWorkspaces key={viewed.id} api={api} plan={viewed} current={Boolean(latest)} />}
-          {latest && admin && <PlanReview key={viewed.id} api={api} plan={viewed} subject={subject} onApproved={async () => {if (selected) await open(selected);}} />}
+          {(admin || developer) && <ForgeWorkspaces key={`forge-${viewed.id}`} api={api} plan={viewed} current={Boolean(latest)} />}
+          {latest && admin && <PlanReview key={`review-${viewed.id}`} api={api} plan={viewed} subject={subject} onApproved={async () => {if (selected) await open(selected);}} />}
           {latest && !admin && <p className="muted">Eine Person mit Adminrechten kann diese Planversion zur späteren Umsetzung freigeben.</p>}
         </article>}
       </div>

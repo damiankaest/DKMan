@@ -15,7 +15,7 @@ export default function App() {
           void (async () => {
             try {
               const base = appBase(window.location.pathname);
-              const match = base.match(/^\/run\/([0-9a-f-]{36})\/$/);
+              const match = base.match(/^\/run\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/$/);
               if (!match) throw new Error('Installation fehlt');
               await client.updateToken(30);
               if (!client.token) throw new Error('Sitzung abgelaufen');

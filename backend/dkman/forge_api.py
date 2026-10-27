@@ -190,7 +190,14 @@ def get_workspace(workspace_id: str, db: Db, actor: User) -> WorkspaceView:
     return view(visible_workspace(db, workspace_id, actor))
 
 
-@router.get("/forge/workspaces/{workspace_id}/archive", operation_id="downloadForgeWorkspace")
+@router.get(
+    "/forge/workspaces/{workspace_id}/archive",
+    operation_id="downloadForgeWorkspace",
+    response_class=Response,
+    responses={
+        200: {"content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}}
+    },
+)
 def download_workspace(workspace_id: str, db: Db, actor: User) -> Response:
     item = visible_workspace(db, workspace_id, actor)
     bundle = checked_bundle(item)

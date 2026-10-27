@@ -157,7 +157,7 @@ export function App({ auth }: { auth: AuthSession }) {
         )}
 
         {auth.authenticated && user && !loading && chatOpened && <div hidden={tab !== 'chat'}><Chat api={api} onProposal={openProposal} /></div>}
-        <section className="roadmap"><div><span className="section-number">DEINE NÄCHSTEN MÖGLICHKEITEN</span><h2>Von der Idee zur eigenen App.</h2><p>Im DKMan Chat bereitest du Ideen vor und findest vorhandene Apps und Aufträge. Unter „App planen“ speicherst du Planversionen. Als Nächstes folgen der geführte Wizard und Forge für Build und Vorschau.</p></div><span className="planned">Schritt für Schritt</span></section>
+        <section className="roadmap"><div><span className="section-number">DEINE NÄCHSTEN MÖGLICHKEITEN</span><h2>Von der Idee zur eigenen App.</h2><p>Im DKMan Chat bereitest du Ideen vor und findest vorhandene Apps und Aufträge. Unter „App planen“ speicherst du Planversionen. Freigegebene Pläne können als Quellstand vorbereitet werden. Build und Vorschau folgen als Nächstes.</p></div><span className="planned">Schritt für Schritt</span></section>
       </main>
       <footer><span>DKMan <span className="muted">/ Private by design</span></span><span className="muted">Core · Registry · Identity</span></footer>
     </div>

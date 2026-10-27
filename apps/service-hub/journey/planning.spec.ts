@@ -61,6 +61,29 @@ test('real planning persists revisions, isolates people and records approval wit
   expect(job.state).toBe('succeeded');expect(job.result.effect).toBe('plan_recorded');
   expect(job.result.content_hash).toBe(initial.content_hash);
   await expect(admin.getByText('Planversion freigegeben',{exact:true})).toBeVisible();
+  // A real approved plan can create an inert, persistent Forge source snapshot.
+  await admin.getByRole('button',{name:'Quellstände öffnen'}).click();
+  const createdWorkspace = admin.waitForResponse(response => new URL(response.url()).pathname === `/api/v1/app-plans/${initial.id}/workspaces` && response.request().method() === 'POST');
+  await expect(admin.getByRole('button',{name:'Quellstand erstellen'})).toBeEnabled();
+  await admin.getByRole('button',{name:'Quellstand erstellen'}).click();
+  const workspaceResponse = await createdWorkspace;
+  expect(workspaceResponse.status()).toBe(201);
+  const workspace = await workspaceResponse.json();
+  expect(workspace.plan_hash).toBe(initial.content_hash);
+  expect(workspace.files).toContain('backend/app/main.py');
+  expect(workspace.files).toContain('web/src/App.tsx');
+  await expect(admin.getByRole('button',{name:'ZIP herunterladen'})).toBeVisible();
+  const archive = await api(admin,`/forge/workspaces/${workspace.id}/archive`);
+  expect(archive.status()).toBe(200);
+  expect(archive.headers()['content-type']).toContain('application/zip');
+  expect((await api(member,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
+  expect((await api(outsider,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
+  await admin.reload();
+  await expect(admin.getByRole('heading',{name:'Hallo, ci-admin.'})).toBeVisible({timeout:30_000});
+  await admin.getByRole('button',{name:'App planen',exact:true}).click();
+  await admin.getByRole('button',{name:/Unser Garten.*Version 1/}).click();
+  await admin.getByRole('button',{name:'Quellstände öffnen'}).click();
+  await expect(admin.getByRole('button',{name:'ZIP herunterladen'})).toBeVisible();
   const installationsAfter = await (await api(admin,'/apps')).json();
   expect(installationsAfter.map((item:{id:string}) => item.id).sort()).toEqual(installationsBefore.map((item:{id:string}) => item.id).sort());
   await member.getByLabel('Funktionen',{exact:true}).fill('Pflanzen verwalten\nGießen planen\nKalender');
@@ -74,6 +97,6 @@ test('real planning persists revisions, isolates people and records approval wit
   expect(versions[1].document).toEqual(initial.document);
   expect((await api(outsider,`/app-requests/${request.id}`)).status()).toBe(404);
   expect((await api(outsider,`/app-plans/${initial.id}`)).status()).toBe(404);
-  writeFileSync('../../.local/planning-journey.json',JSON.stringify({request_id:request.id,job_id:job.id,state:job.state,result:job.result,versions:versions.map((plan:{id:string;revision:number;content_hash:string;approved_job_id:string|null}) => ({id:plan.id,revision:plan.revision,content_hash:plan.content_hash,approved_job_id:plan.approved_job_id})),outsider_status:404,unchanged_installations:true},null,2));
+  writeFileSync('../../.local/planning-journey.json',JSON.stringify({request_id:request.id,job_id:job.id,state:job.state,result:job.result,versions:versions.map((plan:{id:string;revision:number;content_hash:string;approved_job_id:string|null}) => ({id:plan.id,revision:plan.revision,content_hash:plan.content_hash,approved_job_id:plan.approved_job_id})),outsider_status:404,workspace_id:workspace.id,workspace_hash:workspace.bundle_hash,workspace_file_count:workspace.files.length,unchanged_installations:true},null,2));
   await adminContext.close();await memberContext.close();await outsiderContext.close();
 });

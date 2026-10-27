@@ -69,3 +69,26 @@ def test_database_revision_is_checked_after_explicit_migration(tmp_path, monkeyp
         assert client.get("/health/ready").status_code == 200
         subprocess.run([sys.executable, "-m", "alembic", "downgrade", "base"], cwd=root, env=os.environ.copy(), check=True)
         assert client.get("/health/ready").status_code == 503
+
+
+def test_real_postgres_migration_when_test_database_is_supplied(monkeypatch):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from pytest import fail, skip
+    from sqlalchemy.engine import make_url
+
+    url = os.environ.get("DKMAN_TEMPLATE_TEST_DATABASE_URL")
+    if not url:
+        skip("No disposable PostgreSQL template test database")
+    if not (make_url(url).database or "").endswith("_test"):
+        fail("Refusing migration test: database name must end with _test")
+    monkeypatch.setenv("DATABASE_URL", url)
+    root = Path(__file__).resolve().parents[1]
+    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=root, env=os.environ.copy(), check=True)
+    try:
+        with TestClient(app) as client:
+            assert client.get("/health/ready").status_code == 200
+    finally:
+        subprocess.run([sys.executable, "-m", "alembic", "downgrade", "base"], cwd=root, env=os.environ.copy(), check=True)
