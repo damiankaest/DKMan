@@ -119,7 +119,7 @@ export function AppPlanning({api, subject, admin, initialDraft}: {api: ApiClient
 
   async function open(item: AppRequest) {
     const [current, history] = await Promise.all([api.get<AppRequest>(`/api/v1/app-requests/${item.id}`), api.get<Plan[]>(`/api/v1/app-requests/${item.id}/plans`)]);
-    setSelected(current); setPlans(history); setViewId(history[0]?.id ?? '');
+    setWizard(false); setSelected(current); setPlans(history); setViewId(history[0]?.id ?? '');
     setFields(history[0] ? fieldsOf(history[0].document.requirements) : empty);
     setHousehold(current.household_id ?? '');
   }
@@ -161,14 +161,14 @@ export function AppPlanning({api, subject, admin, initialDraft}: {api: ApiClient
     <div className="planning-layout">
       <aside className="planning-history" aria-label="Gespeicherte App-Ideen">
         <h3>{admin ? 'App-Ideen' : 'Meine App-Ideen'}</h3>
-        <button className="primary" disabled={busy} onClick={() => {resetKey();setSelected(null);setPlans([]);setViewId('');setFields(empty);setHousehold('');setNotice('');setError('');}}>Neue App-Idee</button>
+        <button className="primary" disabled={busy} onClick={() => {resetKey();setWizard(false);setSelected(null);setPlans([]);setViewId('');setFields(empty);setHousehold('');setNotice('');setError('');}}>Neue App-Idee</button>
         {requests.length === 0 ? <p className="muted">Deine erste Idee wartet auf dich.</p> : <ul>{requests.map(item => <li key={item.id}><button className={selected?.id === item.id ? 'selected' : ''} aria-label={`${item.title}, Version ${item.current_revision}`} aria-pressed={selected?.id === item.id} disabled={busy} onClick={() => {void act(() => open(item));}}><strong>{item.title}</strong><small>Version {item.current_revision} · {new Date(item.updated_at).toLocaleDateString('de-DE')}</small></button></li>)}</ul>}
         <button className="quiet" disabled={busy} onClick={() => {void act(async () => {await load();if (selected) await open(selected);});}}>Stand neu laden</button>
       </aside>
       <div className="planning-content">
         {!wizard && <button type="button" disabled={busy} onClick={() => setWizard(true)}>Geführte Planung starten</button>}
         {wizard && <PlanningWizard api={api} initial={{title:fields.title,goal:fields.goal,features:lines(fields.features),entities:lines(fields.entities),screens:lines(fields.screens),acceptance_checks:lines(fields.acceptance_checks),deployment_requirements:lines(fields.deployment_requirements)}} onCancel={() => setWizard(false)} onApply={value => {setFields(fieldsOf(value));setWizard(false);setNotice('Entwurf übernommen. Bitte prüfen und speichern.');}} />}
-        <form onSubmit={save} aria-label={selected ? 'App-Idee weiterentwickeln' : 'Neue App-Idee anlegen'}>
+        <form hidden={wizard} onSubmit={save} aria-label={selected ? 'App-Idee weiterentwickeln' : 'Neue App-Idee anlegen'}>
           <h3>{selected ? 'Deine nächste Planversion' : 'Eine neue App-Idee'}</h3>
           <p className="muted">{initialDraft && !selected ? 'Aus dem Chat übernommen. Bitte prüfe und ergänze den Entwurf vor dem Speichern.' : 'Prüfe deine Angaben vor dem Speichern.'}</p>
           <div className="planning-field"><label htmlFor="planning-title">Name der App</label><input id="planning-title" required maxLength={120} value={fields.title} disabled={busy} onChange={event => setFields({...fields,title:event.target.value})} placeholder="Zum Beispiel: Unser Garten" /></div>
