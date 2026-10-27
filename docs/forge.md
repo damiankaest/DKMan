@@ -85,6 +85,9 @@ danach verdeckt abgefragt und weder als Befehlsargument noch in die Buildumgebun
 gegeben. Bei einem abgelaufenen Token fragt der Worker einmal nach einem neuen;
 ohne erfolgreich erneuerte Authentifizierung entsteht kein freigegebenes Image.
 Eine integrierte Tokenbeschaffung oder ein Buildstart im Hub sind noch nicht vorhanden.
+Haushaltszugriff und Planstand werden bei jedem Abruf aus der Datenbank geprüft;
+Rollen werden aus dem jeweils gültigen Token gelesen und nicht bei jedem Abruf
+live beim Identity-Provider abgefragt.
 
 Die Prüfungen umfassen Python-Syntax, Pytest einschließlich SQLite-Migrationsprobe
 sowie für Webvorlagen Vitest und TypeScript-/Vite-Build. Eine PostgreSQL-Integration,

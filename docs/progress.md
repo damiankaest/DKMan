@@ -6,8 +6,11 @@ P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
 prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
 OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben
 auf dem Builder. Kein Core-/Hub-Dockerzugriff, Registry-Push oder Deployment. Ein
-dedizierter CI-Job soll alle drei Vorlagen tatsächlich bauen; dessen Ergebnis sowie
-die Abnahme auf einem eigens isolierten Zielbuilder stehen noch aus. Die Bedienung
+dedizierter CI-Job hat alle drei Vorlagen tatsächlich gebaut und deren OCI-Digests
+geprüft ([Lauf 40505338262](https://github.com/damiankaest/DKMan/actions/runs/40505338262),
+Commit `2c927a7`); Gesamt-CI und die Abnahme auf einem eigens isolierten Zielbuilder
+stehen noch aus. Der Builder verwendet dort synthetische Plan-/Quellstanddaten; die
+OIDC-Zugriffsprüfung ist davon getrennt. Nachweis: `evidence/p4-002-buildkit.json`. Die Bedienung
 erfordert aktuell einen Operator und ein gültiges OIDC-Access-Token. Einzelheiten und
 offene Grenzen: `forge.md` und ADR 0014. Nächstes Ticket: P4-003.
 
@@ -15,7 +18,7 @@ Lokal: `uv sync --frozen`, Ruff, Format, mypy und Paketbuild erfolgreich;
 `uv run pytest -q`: 319 bestanden, 19 wegen fehlender PostgreSQL-/Docker-/BuildKit-Dienste
 übersprungen. Hub: `npm ci`, Lint, Build und 24 UI-Tests erfolgreich. Der lokale
 Playwright-Start scheiterte am fehlenden Chromium; der Download lieferte ein defektes
-Archiv. Der reale BuildKit-Test läuft daher ausschließlich auf dem separaten CI-Runner.
+Archiv. Der reale BuildKit-Test wurde auf dem separaten CI-Runner bestanden.
 
 P4-001 ist im [PR #28](https://github.com/damiankaest/DKMan/pull/28) in main:
 Starter für Python-API, React-SPA und Fullstack, Berechtigung und Planbindung,

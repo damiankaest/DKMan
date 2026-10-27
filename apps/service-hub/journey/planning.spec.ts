@@ -76,6 +76,14 @@ test('real planning persists revisions, isolates people and records approval wit
   const archive = await api(admin,`/forge/workspaces/${workspace.id}/archive`);
   expect(archive.status()).toBe(200);
   expect(archive.headers()['content-type']).toContain('application/zip');
+  const buildInput = await api(admin,`/forge/workspaces/${workspace.id}/build-input`);
+  expect(buildInput.status()).toBe(200);
+  const source = await buildInput.json();
+  expect(source.workspace_id).toBe(workspace.id);
+  expect(source.bundle_hash).toBe(workspace.bundle_hash);
+  expect(source.bundle.request.content_hash).toBe(initial.content_hash);
+  expect((await api(member,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(404);
+  expect((await api(outsider,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(404);
   expect((await api(member,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
   expect((await api(outsider,`/forge/workspaces/${workspace.id}`)).status()).toBe(404);
   await admin.reload();
@@ -95,6 +103,7 @@ test('real planning persists revisions, isolates people and records approval wit
   expect(versions.map((plan:{revision:number}) => plan.revision)).toEqual([2,1]);
   expect(versions[0].approved_job_id).toBeNull();expect(versions[1].approved_job_id).toBe(job.id);
   expect(versions[1].document).toEqual(initial.document);
+  expect((await api(admin,`/forge/workspaces/${workspace.id}/build-input`)).status()).toBe(409);
   expect((await api(outsider,`/app-requests/${request.id}`)).status()).toBe(404);
   expect((await api(outsider,`/app-plans/${initial.id}`)).status()).toBe(404);
   writeFileSync('../../.local/planning-journey.json',JSON.stringify({request_id:request.id,job_id:job.id,state:job.state,result:job.result,versions:versions.map((plan:{id:string;revision:number;content_hash:string;approved_job_id:string|null}) => ({id:plan.id,revision:plan.revision,content_hash:plan.content_hash,approved_job_id:plan.approved_job_id})),outsider_status:404,workspace_id:workspace.id,workspace_hash:workspace.bundle_hash,workspace_file_count:workspace.files.length,unchanged_installations:true},null,2));

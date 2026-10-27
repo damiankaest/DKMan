@@ -12,7 +12,8 @@ P3-001 ergänzt **App planen**: manuelle Anforderungen, gespeicherte Planversion
 und konkrete Planfreigaben. P3-002 ergänzt **DKMan Chat** mit offengelegtem Regelmodus,
 berechtigter App-/Registry-Suche, Jobereignissen, Anforderungsentwürfen und einer
 optionalen echten Modellanbindung. Der Wizard und Forge-Quellstände sind vorhanden;
-ein manueller BuildKit-Worker ist implementiert und wartet auf die reale Builder-Abnahme.
+ein manueller BuildKit-Worker ist auf einem CI-Builder getestet; die Zielhostabnahme
+steht noch aus.
 Einstieg: [App planen und Basisstack aktualisieren](docs/planning.md),
 [Chat und optionaler Modellprovider](docs/chat.md), [Forge und Build-Worker](docs/forge.md),
 [Notes und offene Host-Gates](docs/notes.md).

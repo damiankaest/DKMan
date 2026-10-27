@@ -1,11 +1,14 @@
 # ADR 0014 · Isolierter Forge-Build
 
-Status: implementiert, reale BuildKit-Abnahme abhängig vom CI-Lauf und Zielhost.
+Status: implementiert und auf einem CI-Builder getestet; Zielhostabnahme steht aus.
 
 Der Core gibt einen privaten Forge-Quellstand nur dann als Build-Eingabe aus, wenn
 der aufrufende Developer oder Admin aktuell Zugriff auf den Haushalt und die
 aktuelle, unveränderte, freigegebene Planrevision besitzt. Der Core führt keinen
 Quellcode aus und erhält keinen Docker- oder BuildKit-Socket.
+Haushaltsmitgliedschaft und Planstand werden jeweils aus der Datenbank geprüft;
+die Rollen entstammen dem gültigen OIDC-Token und können bis zu dessen Ablauf
+einen früheren Stand abbilden.
 
 Ein separat von einem Operator gestarteter BuildKit-Client läuft auf einem eigens
 isolierten Builder. Er akzeptiert zunächst ausschließlich exakt die drei im Worker
