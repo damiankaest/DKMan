@@ -10,10 +10,14 @@ auf einem Wegwerf-Runner geprüft. Ein neuer Updateablauf bindet alte und neue R
 an eine separate Freigabe und aktualisiert den gespeicherten Stand nur bei nachgewiesenem
 Containerwechsel. Die [PR-CI 40705094439](https://github.com/damiankaest/DKMan/actions/runs/40705094439)
 hat Build, Preview, Core-Freigabe, Adapter-Installation, Update und App-Kachel gemeinsam
-mit echtem BuildKit und Docker geprüft (4 Tests); ihre übrigen Jobs liefen bei dieser
-Dokumentation noch. Eine Journey mit echtem Keycloak und nicht berechtigtem Benutzer
-ist zusätzlich vorbereitet, aber noch nicht ausgeführt. Lokal bestehen 361
-Backendtests mit 19 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
+mit echtem BuildKit und Docker geprüft (4 Tests); alle Jobs sind erfolgreich.
+Auch [CI 40705688675](https://github.com/damiankaest/DKMan/actions/runs/40705688675)
+war vollständig erfolgreich: Eine Browserjourney prüfte Anmeldung über echtes Keycloak,
+Erstellung, Freigabe, Installation und Update sowie die Ablehnung eines nicht
+freigegebenen Benutzers. Der geprüfte CI-Artefaktnachweis steht in
+`docs/evidence/p4-003-forge-ci.json`. Ein anschließend ergänzter Operatorhelfer mit
+Dry-Run wird im aktuellen CI-Lauf geprüft. Lokal bestehen 370 Backendtests mit 20
+Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
 Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
 API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost
 verändert. Der folgende Previewstand bleibt als Verlauf erhalten.

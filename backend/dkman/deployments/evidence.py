@@ -37,7 +37,12 @@ def prove_completion(
     if len(current) != len(after.containers) or set(current) != expected:
         raise ValueError("Incomplete current workload")
     if command.action == "deploy" and command.upgrade is not None:
-        if len(before) != 1 or set(before) != {"app"} or set(current) != {"app"}:
+        if (
+            len(before) != 1
+            or len(receipt.before.containers) != 1
+            or set(before) != {"app"}
+            or set(current) != {"app"}
+        ):
             raise ValueError("Update requires exactly one old and one new app")
         old, new = before["app"], current["app"]
         previous_plan = command.upgrade.previous
@@ -46,6 +51,7 @@ def prove_completion(
             or old.runtime_plan_hash != previous_plan.plan_hash
             or old.status != "running"
             or old.health != "healthy"
+            or old.started_at > receipt.before.observed_at
             or old.volumes
             or new.image_id != plan.image
             or new.runtime_plan_hash != plan.plan_hash

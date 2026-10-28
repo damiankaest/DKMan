@@ -262,8 +262,11 @@ hat alle drei Starter auf einer Wegwerf-Engine mit echten BuildKit-Images gestar
 ihre Readiness gemessen, die signierten Previewbelege geprüft und die Previewressourcen
 entfernt. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
 hat zusätzlich die Installation des React-Starters mit echtem Docker-Adapter und
-Enginebeleg auf einem Wegwerf-Runner geprüft. Eine vollständige Benutzerjourney mit
-echtem OIDC für die generierte App und die Zielhostabnahme stehen noch aus.
+Enginebeleg auf einem Wegwerf-Runner geprüft. [PR-CI 40705688675](https://github.com/damiankaest/DKMan/actions/runs/40705688675)
+hat darüber hinaus mit echtem Keycloak die vollständige CI-Journey von der Planfreigabe
+über Build, Preview, Installation und Update bis zum Öffnen der App geprüft; ein nicht
+berechtigter Benutzer erhielt keinen App-Zugriff. Der Nachweis mit CI-IDs und Prüfsumme
+liegt in `docs/evidence/p4-003-forge-ci.json`. Die Zielhostabnahme steht noch aus.
 
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
 hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte

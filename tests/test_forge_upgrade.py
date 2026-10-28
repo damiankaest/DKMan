@@ -282,7 +282,17 @@ def test_changed_plan_after_approval_never_calls_adapter(client, app, upgrade_ca
 
 
 @pytest.mark.parametrize(
-    "change", ["same_container", "wrong_image", "wrong_plan", "volume", "unhealthy", "old_plan"]
+    "change",
+    [
+        "same_container",
+        "wrong_image",
+        "wrong_plan",
+        "volume",
+        "unhealthy",
+        "old_plan",
+        "future_old",
+        "duplicate_old",
+    ],
 )
 def test_update_receipt_must_prove_both_revisions(client, upgrade_candidate, change):
     _, first, preview, _ = upgrade_candidate
@@ -295,9 +305,17 @@ def test_update_receipt_must_prove_both_revisions(client, upgrade_candidate, cha
     receipt = outcome.completion.receipt
     after = outcome.completion.after
     current = after.containers[0]
-    if change == "old_plan":
-        old = receipt.before.containers[0].model_copy(update={"runtime_plan_hash": "f" * 64})
-        before = receipt.before.model_copy(update={"containers": [old]})
+    if change in {"old_plan", "future_old", "duplicate_old"}:
+        old = receipt.before.containers[0]
+        if change == "old_plan":
+            old = old.model_copy(update={"runtime_plan_hash": "f" * 64})
+        elif change == "future_old":
+            old = old.model_copy(
+                update={"started_at": receipt.before.observed_at + timedelta(seconds=1)}
+            )
+        before = receipt.before.model_copy(
+            update={"containers": [old, old] if change == "duplicate_old" else [old]}
+        )
         receipt = receipt.model_copy(update={"before": before})
     else:
         values = {

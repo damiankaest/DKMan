@@ -110,19 +110,20 @@ def main(workspace_id: str) -> None:
             check=True,
         )
     script = Path(__file__).resolve().parents[1] / "scripts/linux/stage_forge_archive.sh"
+    arguments = [
+        str(script),
+        "--artifact-dir",
+        str(incoming),
+        "--root",
+        str(root / "staged"),
+        "--builder-public-key",
+        str(root / "builder-public.pem"),
+    ]
+    planned = subprocess.run(arguments, text=True, capture_output=True, timeout=30)
+    if planned.returncode or "Dry-run only" not in planned.stdout:
+        raise ValueError("CI staging dry-run failed: " + planned.stderr[-2000:])
     staged = subprocess.run(
-        [
-            str(script),
-            "--artifact-dir",
-            str(incoming),
-            "--root",
-            str(root / "staged"),
-            "--builder-public-key",
-            str(root / "builder-public.pem"),
-            "--apply",
-            "--confirm",
-            "STAGE_FORGE_ARCHIVE",
-        ],
+        [*arguments, "--apply", "--confirm", "STAGE_FORGE_ARCHIVE"],
         input=token + "\n",
         text=True,
         capture_output=True,

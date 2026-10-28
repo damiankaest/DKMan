@@ -1,0 +1,20 @@
+{
+  "ticket": "P4-003",
+  "ci_run": "https://github.com/damiankaest/DKMan/actions/runs/40705688675",
+  "commit": "b0c97f49bc1ecd420f2fb6011003cf6ff4b46059",
+  "artifact_id": 12823837040,
+  "artifact_sha256": "acb48a50737af3538f4c13ccb948b37040f68faa693daa51b61fabfddfb8c92a",
+  "context": "Disposable GitHub runner; real Keycloak, Core, BuildKit, previews and Docker adapter; synthetic CI accounts and data.",
+  "journey": {
+    "request_id": "7dae9474-f96c-4826-9991-a251f02ba37b",
+    "installation_id": "7368dcf8-4db7-4d32-b409-ce1e1fa8620a",
+    "install_job": "83acf619-47b0-4619-9813-e050151285ef",
+    "update_job": "0168eb59-1e47-4d22-bac7-6212cec50e7c",
+    "builds": [
+      "12851757-a46c-4a3f-9829-afd88ded88e1",
+      "7aa46fe1-71bf-43f2-8068-4d9390b6d0eb"
+    ],
+    "update_state": "succeeded",
+    "outsider_denied": true
+  }
+}
