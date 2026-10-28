@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_forge_build_worker import build_input, sample_oci
 
 from dkman.deployment_adapter import forge_preview
+from dkman.deployment_adapter.compose import CommandError
 from dkman.deployment_adapter.forge_preview import PreviewError, cleanup_preview, start_preview
 from dkman.forge.attestation import (
     BuildEvidence,
@@ -30,8 +31,10 @@ from dkman.models import utcnow
 
 
 class FakeDocker:
-    def __init__(self, image):
+    def __init__(self, image, user="101"):
         self.image = image
+        self.user = user
+        self.environment = []
         self.calls = []
         self.preview_id = None
         self.container = None
@@ -41,6 +44,8 @@ class FakeDocker:
         self.calls.append(args)
         if args[:2] == ["info", "--format"]:
             return "linux"
+        if args[:2] == ["version", "--format"]:
+            return "28.0.0"
         if args[:2] == ["ps", "--all"]:
             if "label=io.dkman.preview=true" in args:
                 return "" if self.container is None else self.container
@@ -51,13 +56,16 @@ class FakeDocker:
                 assert manifest[0]["RepoTags"] == []
             return "loaded"
         if args[:2] == ["image", "inspect"]:
-            return json.dumps([{"Id": self.image, "Config": {"User": "101", "Volumes": None}}])
+            return json.dumps([{"Id": self.image, "Config": {"User": self.user, "Volumes": None}}])
         if args[:2] == ["network", "create"]:
             self.network = args[-1]
             self.preview_id = self.network.removeprefix("dkman-preview-")
             return "network"
         if args[:2] == ["container", "run"]:
             self.container = "c" * 64
+            self.environment = [
+                args[index + 1] for index, value in enumerate(args) if value == "--env"
+            ]
             return self.container
         if args[:2] == ["container", "inspect"]:
             return json.dumps(
@@ -66,7 +74,8 @@ class FakeDocker:
                         "Id": self.container,
                         "Image": self.image,
                         "Config": {
-                            "User": "101",
+                            "User": self.user,
+                            "Env": self.environment,
                             "Labels": {"io.dkman.preview-id": self.preview_id},
                         },
                         "State": {"Status": "running"},
@@ -86,6 +95,8 @@ class FakeDocker:
             )
         if args[:2] == ["container", "port"]:
             return "127.0.0.1:43210"
+        if args[:2] == ["container", "exec"]:
+            return "migrated"
         if args[:2] == ["container", "rm"]:
             self.container = None
             return "removed"
@@ -102,13 +113,14 @@ class FakeDocker:
 
 
 @pytest.fixture
-def setup_preview(tmp_path, monkeypatch):
+def setup_preview(tmp_path, monkeypatch, request):
     root = tmp_path / "private"
     root.mkdir(mode=0o700)
     archive = root / "image.oci.tar"
     sample_oci(archive)
     info = inspect_oci_archive(archive)
-    source = build_input("react-spa")
+    kind = getattr(request, "param", "react-spa")
+    source = build_input(kind)
     bundle = source.bundle
     builder = Ed25519PrivateKey.generate()
     preview = Ed25519PrivateKey.generate()
@@ -159,7 +171,7 @@ def setup_preview(tmp_path, monkeypatch):
             return Response()
 
     monkeypatch.setattr(forge_preview.urllib.request, "build_opener", lambda *_: Opener())
-    docker = FakeDocker(info.config_digest)
+    docker = FakeDocker(info.config_digest, "101" if kind == "react-spa" else "10001:10001")
     return root, archive, source, registered, signed, builder, preview, docker
 
 
@@ -186,6 +198,7 @@ def test_preview_checks_build_and_cleans_only_its_resources(setup_preview):
     assert proof.evidence.expires_at - proof.evidence.observed_at == timedelta(seconds=60)
     run = next(args for args in docker.calls if args[:2] == ["container", "run"])
     assert "127.0.0.1::8080" in run and "--read-only" in run and "--cap-drop" in run
+    assert "/tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777" in run
     assert "--privileged" not in run and "--mount" not in run
     load = next(args for args in docker.calls if args[:2] == ["image", "load"])
     assert Path(load[-1]).name == "docker-load.tar" and not Path(load[-1]).exists()
@@ -205,6 +218,27 @@ def test_preview_rejects_changed_archive_before_docker(setup_preview):
             docker,
         )
     assert docker.calls == []
+
+
+def test_preview_rejects_older_docker_before_loading_an_image(setup_preview):
+    root, archive, source, registered, signed, builder, preview, docker = setup_preview
+    run = docker.run
+
+    def old_engine(args, timeout=45):
+        return "27.5.1" if args[:2] == ["version", "--format"] else run(args, timeout=timeout)
+
+    docker.run = old_engine
+    with pytest.raises(PreviewError, match="docker_28_or_newer_required"):
+        start_preview(
+            signed,
+            lambda: (source, registered),
+            builder.public_key(),
+            preview,
+            archive,
+            root,
+            docker,
+        )
+    assert not any(args[:2] == ["image", "load"] for args in docker.calls)
 
 
 def test_preview_cleans_up_when_authorization_changes(setup_preview):
@@ -248,3 +282,51 @@ def test_only_one_preview_can_run_in_a_shared_adapter_root(setup_preview):
                 docker,
             )
     assert docker.calls == []
+
+
+@pytest.mark.parametrize("setup_preview", ["python-api", "fullstack-fastapi-react"], indirect=True)
+def test_api_previews_migrate_only_an_ephemeral_database(setup_preview):
+    root, archive, source, registered, signed, builder, preview, docker = setup_preview
+    report = start_preview(
+        signed, lambda: (source, registered), builder.public_key(), preview, archive, root, docker
+    )
+    assert report["state"] == "stopped"
+    run = next(args for args in docker.calls if args[:2] == ["container", "run"])
+    assert "DATABASE_URL=sqlite:////tmp/dkman-preview.sqlite3" in run
+    migration = next(args for args in docker.calls if args[:2] == ["container", "exec"])
+    assert migration[2:] == [
+        "--user",
+        "10001:10001",
+        "c" * 64,
+        "/usr/local/bin/alembic",
+        "-c",
+        "/app/alembic.ini",
+        "upgrade",
+        "head",
+    ]
+    assert docker.container is None and docker.network is None
+
+
+@pytest.mark.parametrize("setup_preview", ["python-api"], indirect=True)
+def test_failed_preview_migration_cleans_up_without_signing(setup_preview):
+    root, archive, source, registered, signed, builder, preview, docker = setup_preview
+    run = docker.run
+
+    def fail_migration(args, timeout=45):
+        if args[:2] == ["container", "exec"]:
+            raise CommandError()
+        return run(args, timeout=timeout)
+
+    docker.run = fail_migration
+    with pytest.raises(PreviewError, match="preview_failed"):
+        start_preview(
+            signed,
+            lambda: (source, registered),
+            builder.public_key(),
+            preview,
+            archive,
+            root,
+            docker,
+        )
+    assert docker.container is None and docker.network is None
+    assert not list(root.glob("*/preview-attestation.json"))

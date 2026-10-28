@@ -423,8 +423,6 @@ def verify_preview(
     public = preview_public_key(request)
     assert isinstance(public, Ed25519PublicKey)
     build = verify_artifact(artifact, workspace, request)
-    if build.evidence.template != "react-spa":
-        raise HTTPException(409, "Preview is not supported for this template")
     try:
         signed = SignedPreviewEvidence.model_validate(item.attestation)
         verify_preview_signature(signed, public)

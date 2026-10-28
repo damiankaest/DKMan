@@ -5,22 +5,24 @@
 P4-003 ist in Arbeit: Ein Builder kann Buildnachweise mit einem separaten
 Ed25519-Schlüssel signieren; Core prüft Signatur, Plan, Quellen und Rezepte und der
 Hub kann den Nachweis importieren. Ein manueller Preview-Adapter auf einer getrennten
-Linux-VM akzeptiert zunächst nur die React-SPA, prüft Archiv und Rechte erneut,
+Linux-VM akzeptiert die drei unveränderten Starter, prüft Archiv und Rechte erneut,
 startet eine eingeschränkte Preview auf Loopback und signiert eine zeitlich begrenzte
 Readiness-Beobachtung mit einem zweiten Schlüssel. Core und Hub können den Nachweis
-registrieren. Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im
+registrieren. API-/Fullstack-Previews nutzen eine kurzlebige SQLite-DB im Container.
+Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im
 wegwerfbaren CI-Runner sowie die Zielhostabnahme sind noch ausstehend. Produktive
 Archivübernahme, previewgebundene Genehmigung, Installation und Updates sind für
 P4-003 noch offen. Siehe `forge.md` und ADR 0015.
 
-Lokale Vorprüfung: 334 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
+Lokale Vorprüfung: 340 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
 übersprungen; Ruff, Format, mypy, Paketbuild und Vertragsexport erfolgreich. Hub-Lint,
-Produktionsbuild und 27 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
+Produktionsbuild und 29 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
 Migration 0006 einschließlich Downgrade und erneutem Upgrade. Ein echter Docker- und
 BuildKit-Lauf wird im Wegwerf-CI-Runner geprüft; lokale Browser- und Engineabnahme
 stehen mangels Chromium beziehungsweise Docker weiterhin aus. Die erste CI-Engineprobe
 scheiterte beim Laden des OCI-Formats; der Adapter erstellt jetzt ein tagloses
-Docker-Archiv aus nochmals geprüften Blobs. Die erneute Engineprobe steht aus.
+Docker-Archiv aus nochmals geprüften Blobs. Ein weiterer CI-Lauf lädt das Image und
+startet den Container, scheitert aber bei der Portabfrage. Die Ursache wird geprüft.
 
 ## Vorheriger Stand
 

@@ -41,6 +41,7 @@ from dkman.forge_api import BuildArtifactView, BuildInput
 from dkman.jobs import digest
 
 MAX_TTL_SECONDS = 900
+PREVIEW_DATABASE_URL = "sqlite:////tmp/dkman-preview.sqlite3"
 
 
 class PreviewError(Exception):
@@ -90,8 +91,7 @@ def verify_inputs(
     verify_recipe(signed.evidence, bundle)
     evidence = signed.evidence
     if (
-        evidence.template != "react-spa"
-        or str(evidence.workspace_id) != source.workspace_id
+        str(evidence.workspace_id) != source.workspace_id
         or evidence.source_hash != source.bundle_hash
         or registered.id != str(evidence.build_id)
         or registered.workspace_id != source.workspace_id
@@ -179,6 +179,10 @@ def _start_preview(
     inspected_archive = verify_inputs(signed, source, registered, builder_public, archive)
     if provider.run(["info", "--format", "{{.OSType}}"]).strip() != "linux":
         raise PreviewError("linux_engine_required")
+    version = provider.run(["version", "--format", "{{.Server.Version}}"]).strip()
+    parsed_version = re.fullmatch(r"v?([0-9]+)\.[0-9]+\.[0-9]+(?:[-+][a-zA-Z0-9.-]+)?", version)
+    if parsed_version is None or int(parsed_version.group(1)) < 28:
+        raise PreviewError("docker_28_or_newer_required")
     active = provider.run(
         ["ps", "--all", "--filter", "label=io.dkman.preview=true", "--format", "{{.ID}}"]
     )
@@ -191,6 +195,8 @@ def _start_preview(
     (report_dir / "preview-status.json").write_text(json.dumps(report) + "\n")
     (report_dir / "preview-status.json").chmod(0o600)
     network = f"dkman-preview-{preview_id}"
+    needs_database = signed.evidence.template != "react-spa"
+    image_user = "10001:10001" if needs_database else "101"
     try:
         load_archive = report_dir / "docker-load.tar"
         write_docker_load_archive(archive, load_archive, inspected_archive)
@@ -202,7 +208,7 @@ def _start_preview(
         config = image.get("Config") or {}
         if (
             image.get("Id") != signed.evidence.config_digest
-            or config.get("User") != "101"
+            or config.get("User") != image_user
             or config.get("Volumes")
         ):
             raise PreviewError("preview_image_contract_mismatch")
@@ -221,53 +227,60 @@ def _start_preview(
             isolated_network.get("Labels") or {}
         ).get("io.dkman.preview-id") != str(preview_id):
             raise PreviewError("preview_network_not_isolated")
-        container = provider.run(
-            [
-                "container",
-                "run",
-                "--detach",
-                "--name",
-                network,
-                "--label",
-                "io.dkman.preview=true",
-                "--label",
-                f"io.dkman.preview-id={preview_id}",
-                "--network",
-                network,
-                "--publish",
-                "127.0.0.1::8080",
-                "--user",
-                "101",
-                "--read-only",
-                "--cap-drop",
-                "ALL",
-                "--security-opt",
-                "no-new-privileges:true",
-                "--pids-limit",
-                "128",
-                "--memory",
-                "256m",
-                "--cpus",
-                "0.5",
-                "--tmpfs",
-                "/tmp:rw,noexec,nosuid,size=32m",
-                "--restart",
-                "no",
-                "--pull",
-                "never",
-                signed.evidence.config_digest,
-            ],
-            timeout=60,
-        ).strip()
+        arguments = [
+            "container",
+            "run",
+            "--detach",
+            "--name",
+            network,
+            "--label",
+            "io.dkman.preview=true",
+            "--label",
+            f"io.dkman.preview-id={preview_id}",
+            "--network",
+            network,
+            "--publish",
+            "127.0.0.1::8080",
+            "--user",
+            image_user,
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges:true",
+            "--pids-limit",
+            "128",
+            "--memory",
+            "256m",
+            "--cpus",
+            "0.5",
+            "--tmpfs",
+            "/tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777",
+            "--restart",
+            "no",
+            "--pull",
+            "never",
+        ]
+        if needs_database:
+            arguments.extend(["--env", f"DATABASE_URL={PREVIEW_DATABASE_URL}"])
+        arguments.append(signed.evidence.config_digest)
+        container = provider.run(arguments, timeout=60).strip()
         if not re.fullmatch(r"[a-f0-9]{64}", container):
             raise PreviewError("invalid_preview_container")
         item = _inspect_object(provider, "container", container)
         labels = item.get("Config", {}).get("Labels") or {}
         host = item.get("HostConfig") or {}
+        environment = item.get("Config", {}).get("Env") or []
+        database_env = [
+            value
+            for value in environment
+            if isinstance(value, str) and value.startswith("DATABASE_URL=")
+        ]
         if (
             item.get("Image") != signed.evidence.config_digest
             or labels.get("io.dkman.preview-id") != str(preview_id)
-            or item.get("Config", {}).get("User") != "101"
+            or item.get("Config", {}).get("User") != image_user
+            or database_env != ([f"DATABASE_URL={PREVIEW_DATABASE_URL}"] if needs_database else [])
             or item.get("State", {}).get("Status") != "running"
             or host.get("Privileged") is not False
             or host.get("ReadonlyRootfs") is not True
@@ -283,6 +296,23 @@ def _start_preview(
             )
         ):
             raise PreviewError("preview_container_contract_mismatch")
+        if needs_database:
+            # The exact reviewed starter migration creates only an ephemeral SQLite DB in tmpfs.
+            provider.run(
+                [
+                    "container",
+                    "exec",
+                    "--user",
+                    image_user,
+                    container,
+                    "/usr/local/bin/alembic",
+                    "-c",
+                    "/app/alembic.ini",
+                    "upgrade",
+                    "head",
+                ],
+                timeout=60,
+            )
         endpoint = provider.run(["container", "port", container, "8080/tcp"]).strip()
         match = re.fullmatch(r"127\.0\.0\.1:([0-9]{1,5})", endpoint)
         if not match or not 1 <= int(match.group(1)) <= 65535:

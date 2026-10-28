@@ -55,7 +55,7 @@ export function ForgeBuildArtifacts({api, workspaceId, current}: {api: ApiClient
         <strong>{item.evidence.template}</strong> · {new Date(item.evidence.finished_at).toLocaleString('de-DE')}
         <p>Image-Digest: <code>{item.evidence.manifest_digest}</code></p>
         <p>Checks: {item.evidence.checks.join(', ')}</p>
-        {item.evidence.template === 'react-spa' && <ForgePreviews api={api} artifactId={item.id} current={current} />}
+        <ForgePreviews api={api} artifactId={item.id} current={current} />
       </li>)}</ul>}
       <p>Ein geprüfter Build-Nachweis ist noch keine Vorschau oder Installationsfreigabe.</p>
     </>}

@@ -32,3 +32,12 @@ it('prevents importing evidence for an old plan', async () => {
   await waitFor(() => expect(screen.getByLabelText('Signierter Build-Nachweis')).toBeDisabled());
   expect(screen.getByRole('button',{name:'Build-Nachweis prüfen'})).toBeDisabled();
 });
+
+it.each(['python-api', 'fullstack-fastapi-react'])('offers preview evidence for %s', async template => {
+  const artifact = {id:'one', workspace_id:'workspace', created_at:'2026-10-27T00:00:00Z', submitted_by:'alice', key_id:'a'.repeat(64), evidence_hash:'b'.repeat(64), evidence:{template, finished_at:'2026-10-27T00:00:00Z', manifest_digest:`sha256:${'c'.repeat(64)}`, checks:['api-passed']}};
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([artifact]))));
+  const api = new ApiClient({authenticated:true,token:async () => 'test',login:async () => {},logout:async () => {}});
+  render(<ForgeBuildArtifacts api={api} workspaceId="workspace" current />);
+  fireEvent.click(screen.getByRole('button',{name:'Build-Nachweise öffnen'}));
+  expect(await screen.findByRole('button',{name:'Vorschau-Nachweise öffnen'})).toBeVisible();
+});

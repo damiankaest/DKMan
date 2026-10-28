@@ -54,7 +54,7 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
     verify_signature(signed, signing_key.public_key())
     verify_recipe(signed.evidence, bundle)
     assert signed.evidence.config_digest == inspect_oci_archive(artifact).config_digest
-    if kind == "react-spa" and os.environ.get("DKMAN_DISPOSABLE_DOCKER_TEST") == "1":
+    if os.environ.get("DKMAN_DISPOSABLE_DOCKER_TEST") == "1":
         from dkman.deployment_adapter.compose import ComposeProvider
         from dkman.deployment_adapter.forge_preview import start_preview
 
@@ -73,9 +73,14 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
         seen = []
 
         def ready(origin, proof):
-            with urllib.request.urlopen(origin + "/", timeout=5) as response:
+            endpoint = "/health/live" if kind == "python-api" else "/"
+            with urllib.request.urlopen(origin + endpoint, timeout=5) as response:
                 assert response.status == 200
-                assert b"<html" in response.read(4096).lower()
+                payload = response.read(4096)
+                if kind == "python-api":
+                    assert json.loads(payload) == {"status": "healthy"}
+                else:
+                    assert b"<html" in payload.lower()
             seen.append(proof)
 
         # Disposable CI only: surface Docker stderr on failure without retrying a mutation.
@@ -95,6 +100,28 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                     self.errors.seek(0)
                     message = self.errors.read(4096).decode("utf-8", errors="replace")
                     print(f"Docker {self.arguments[3:5]} failed: {message}", file=sys.stderr)
+                    if self.arguments[3:5] == ["container", "port"]:
+                        container_id = self.arguments[5]
+                        probes = [
+                            [
+                                "container",
+                                "inspect",
+                                "--format",
+                                "{{json .State}} {{json .NetworkSettings.Ports}} "
+                                "{{json .HostConfig.PortBindings}}",
+                                container_id,
+                            ],
+                            ["container", "logs", "--tail", "30", container_id],
+                        ]
+                        for probe in probes:
+                            process = popen(
+                                [docker, "--host", "unix:///var/run/docker.sock", *probe],
+                                stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                            )
+                            details, _ = process.communicate(timeout=10)
+                            print(details[:8192].decode("utf-8", errors="replace"), file=sys.stderr)
                 return result
 
         def observed_popen(arguments, **kwargs):

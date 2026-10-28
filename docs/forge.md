@@ -113,11 +113,12 @@ Image; ein bitgenau reproduzierbarer Rebuild wird nicht behauptet.
 ## Erste Preview-Arbeit · P4-003
 
 Dieser Teil ist in Arbeit: Eine produktive Übernahme oder Installation ist noch nicht
-implementiert. Der erste Preview-Pfad unterstützt nur `react-spa` und benötigt eine
-separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
+implementiert. Der Preview-Pfad unterstützt die drei unveränderten Startervorlagen und
+benötigt eine separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
 Daten, Docker-Sockets oder Secrets haben. Die Isolation des Hosts muss der Betreiber
 bereitstellen und prüfen. Ein internes Docker-Netz isoliert Container nicht vollständig
-vom eigenen Host.
+vom eigenen Host. Die Preview erfordert Docker Engine 28 oder neuer: Bei älteren Versionen
+kann ein an Loopback veröffentlichter Port unter Umständen im gleichen Netz erreichbar sein.
 
 Auf dem isolierten Builder und der separaten Preview-VM jeweils einen eigenen Schlüssel
 in einem existierenden privaten Verzeichnis anlegen. Ohne `--apply` sind die Befehle
@@ -156,6 +157,10 @@ Der Docker-Pfad muss zum ausführbaren Programm auf der Preview-VM passen. Vor d
 Laden verpackt der Adapter ausschließlich die geprüften OCI-Blobs ohne Tags in ein
 temporäres Docker-Archiv und prüft die Image-ID nach dem Laden erneut. Das temporäre
 Archiv benötigt zusätzlichen Speicherplatz und wird nach dem Ladevorgang entfernt.
+Für die beiden API-Vorlagen setzt der Adapter ausschließlich eine SQLite-Datenbank in
+`/tmp` innerhalb des Containers auf und führt die feste Startermigration aus. Diese
+Testdatenbank liegt im begrenzten tmpfs und verschwindet mit dem Preview-Container.
+Es werden keine produktiven Datenbankadressen oder Zugangsdaten übergeben.
 
 Auf der ausdrücklich isolierten Preview-VM startet `--apply --confirm
 PREVIEW_ISOLATED_VM` die Vorschau. Der Prozess fragt das aktuelle OIDC-Access-Token

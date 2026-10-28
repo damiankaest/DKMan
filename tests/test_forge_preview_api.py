@@ -3,6 +3,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
+import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_forge_artifacts import path, setup_artifact
@@ -90,3 +91,12 @@ def test_requires_distinct_key_current_plan_and_unexpired_bound_evidence(
     as_user("alice", ["developer"])
     assert revision(client, item).status_code == 201
     assert client.post(path, json=body).status_code == 409
+
+
+@pytest.mark.parametrize("setup_artifact", ["python-api", "fullstack-fastapi-react"], indirect=True)
+def test_records_api_template_preview(client, app, tmp_path, setup_artifact):
+    _, _, build, key, evidence = prepare_preview(client, app, tmp_path, setup_artifact)
+    url = f"/api/v1/forge/build-artifacts/{build['id']}/previews"
+    response = client.post(url, json=sign_preview(evidence, key).model_dump(mode="json"))
+    assert response.status_code == 201
+    assert response.json()["evidence"]["config_digest"] == build["evidence"]["config_digest"]

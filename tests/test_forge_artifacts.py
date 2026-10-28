@@ -24,9 +24,9 @@ from dkman.models import ForgeBuildArtifact, utcnow
 
 
 @pytest.fixture
-def setup_artifact(client, as_user, app, tmp_path):
+def setup_artifact(client, as_user, app, tmp_path, request):
     item, plan = prepare(client, as_user)
-    workspace = generate(client, plan, template="react-spa").json()
+    workspace = generate(client, plan, template=getattr(request, "param", "react-spa")).json()
     build_input = client.get(f"/api/v1/forge/workspaces/{workspace['id']}/build-input").json()
     bundle = SourceBundle.model_validate(build_input["bundle"])
     key = Ed25519PrivateKey.generate()

@@ -14,13 +14,16 @@ Builder. Das Archiv muss vor jeder Verwendung unabhängig gegen den Nachweis gep
 werden.
 
 Ein eigener Preview-Adapter wird manuell auf einer dedizierten, isolierten Linux-VM
-ausgeführt. Er akzeptiert bisher nur die unveränderte React-SPA. Er prüft erneut den
+ausgeführt. Er akzeptiert ausschließlich die drei unveränderten Startervorlagen und prüft erneut den
 signierten Build, den aktuellen Plan, die Core-Registrierung und das OCI-Archiv, lädt
 das Image auf der separaten Engine und startet es ohne Produktionssecrets, Volumes
 oder Produktionsnetzwerk. Netzwerk ist intern, der einzige Port bindet an Loopback;
 Prozess-, CPU- und Speichergrenzen sowie Read-only und Capability-Entzug sind fest.
 Ein Docker-Netzwerk ersetzt keine VM-Isolation; die Bestätigung durch den Betreiber
-und die Einrichtung der getrennten Maschine sind Voraussetzungen.
+und die Einrichtung der getrennten Maschine sind Voraussetzungen. Für API- und
+Fullstack-Previews wird eine SQLite-Testdatenbank in einem begrenzten tmpfs angelegt;
+die fest vorgegebene Startermigration läuft im Container. Mit dessen Entfernung sind
+die Testdaten verschwunden.
 
 Nach tatsächlich gemessener HTTP-Readiness signiert die Preview-VM mit einem vom
 Buildschlüssel getrennten Schlüssel einen auf Build, Quellstand und Container-ID
