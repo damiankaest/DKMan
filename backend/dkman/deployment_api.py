@@ -22,6 +22,7 @@ from dkman.deployments.contracts import (
     CuratedImage,
     DeploymentCommand,
     DeploymentPlan,
+    ForgeReleaseProof,
     Identifier,
     InstallationContext,
     OperationView,
@@ -31,6 +32,7 @@ from dkman.deployments.contracts import (
     validate_plan,
 )
 from dkman.deployments.evidence import prove_completion
+from dkman.forge.attestation import SignedBuildEvidence, SignedPreviewEvidence, read_public_key
 from dkman.job_schemas import JobView
 from dkman.jobs import (
     approval_for,
@@ -42,11 +44,14 @@ from dkman.jobs import (
     owned_lease,
     utc,
 )
+from dkman.manifest import Manifest
 from dkman.models import (
     AppDefinition,
     AppInstallation,
     ApprovalRequest,
     DeploymentTarget,
+    ForgeBuildArtifact,
+    ForgePreview,
     HealthObservation,
     Job,
     ServiceInstance,
@@ -70,6 +75,32 @@ def catalog(settings: Settings) -> Catalog:
         return Catalog.model_validate_json(path.read_text())
     except (OSError, ValueError):
         raise HTTPException(503, "Curated deployment catalog unavailable") from None
+
+
+def validate_runtime_policy(
+    settings: Settings, plan: DeploymentPlan, *, fresh: bool = False
+) -> None:
+    if plan.profile != "forge-spa-v1":
+        validate_plan(catalog(settings), plan)
+        return
+    if (
+        not settings.deployment_enabled
+        or settings.forge_builder_public_key_file is None
+        or settings.forge_preview_public_key_file is None
+    ):
+        raise ValueError("Forge deployment verification is unavailable")
+    try:
+        builder = read_public_key(settings.forge_builder_public_key_file)
+        preview = read_public_key(settings.forge_preview_public_key_file)
+        validate_plan(
+            catalog(settings),
+            plan,
+            builder_key=builder,
+            preview_key=preview,
+            require_fresh_preview=fresh,
+        )
+    except (OSError, TypeError) as exc:
+        raise ValueError("Forge deployment verification is unavailable") from exc
 
 
 def credential(
@@ -248,7 +279,217 @@ def plan_installation(
     return job
 
 
-def verified_plan(db: Session, job: Job, settings: Settings) -> DeploymentPlan:
+class ForgeInstallInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    household_id: UUID
+
+
+@router.post(
+    "/forge/previews/{preview_id}/installations",
+    response_model=JobView,
+    status_code=202,
+    operation_id="planForgeInstallation",
+)
+def plan_forge_installation(
+    preview_id: UUID,
+    body: ForgeInstallInput,
+    request: Request,
+    response: Response,
+    db: Db,
+    actor: Admin,
+    idempotency_key: Key,
+) -> Job:
+    from dkman.forge_api import current_bundle, verify_preview, visible_workspace
+    from dkman.planning import plan_for, request_for
+
+    fingerprint = digest(
+        {
+            "action": "deployment.install",
+            "preview_id": str(preview_id),
+            **body.model_dump(mode="json"),
+        }
+    )
+
+    def replay() -> Job | None:
+        previous = db.scalar(
+            select(Job).where(
+                Job.requested_by == actor.subject, Job.idempotency_key == idempotency_key
+            )
+        )
+        if previous is not None and previous.request_hash != fingerprint:
+            raise HTTPException(409, "Idempotency key binds a different request")
+        return previous
+
+    if (existing := replay()) is not None:
+        return existing
+    observation = db.get(ForgePreview, str(preview_id))
+    artifact = db.get(ForgeBuildArtifact, observation.artifact_id) if observation else None
+    if observation is None or artifact is None:
+        raise HTTPException(404, "Preview not found")
+    workspace = visible_workspace(db, artifact.workspace_id, actor)
+    bundle = current_bundle(db, workspace, actor)
+    plan_record = plan_for(db, workspace.plan_id, actor)
+    parent = request_for(db, plan_record.request_id, actor, lock=True)
+    if parent.household_id is not None and parent.household_id != str(body.household_id):
+        raise HTTPException(409, "Preview belongs to a different household")
+    household(db, str(body.household_id))
+    if (existing := replay()) is not None:
+        return existing
+    verified = verify_preview(observation, artifact, workspace, request)
+    if verified.evidence.expires_at <= utcnow():
+        raise HTTPException(409, "Preview evidence has expired")
+    if bundle.request.template != "react-spa":
+        raise HTTPException(409, "Production installation currently supports only the SPA starter")
+    definition_id = "forge-" + UUID(parent.id).hex
+    reserved = db.scalar(
+        select(DeploymentTarget)
+        .join(Job, Job.id == DeploymentTarget.job_id)
+        .where(
+            DeploymentTarget.definition_id == definition_id,
+            Job.state.not_in(["cancelled", "expired", "failed"]),
+        )
+    )
+    if reserved is not None:
+        raise HTTPException(409, "This app is already installed or has an unresolved plan")
+    signed_build = SignedBuildEvidence.model_validate(artifact.attestation)
+    signed_preview = SignedPreviewEvidence.model_validate(observation.attestation)
+    version = f"0.{plan_record.revision}.{int(UUID(artifact.id).hex[:12], 16)}"
+    manifest = Manifest.model_validate(
+        {
+            "schemaVersion": "dkman.io/v1alpha1",
+            "id": definition_id,
+            "name": bundle.request.requirements.title,
+            "version": version,
+            "type": "web-app",
+            "description": "Forge starter with a separately reviewed preview",
+            "ui": {
+                "displayName": bundle.request.requirements.title,
+                "icon": "grid",
+                "route": f"/run/{definition_id}/",
+            },
+            "runtime": {
+                "deploymentProvider": "docker-compose",
+                "image": signed_build.evidence.config_digest,
+                "internalPort": 8080,
+                "memoryMb": 256,
+                "cpus": 0.5,
+            },
+            "health": {"livePath": "/health/live", "readyPath": "/health/ready"},
+            "capabilities": [],
+            "dependencies": [],
+        }
+    )
+    content = manifest.model_dump(by_alias=True)
+    definition = db.get(AppDefinition, definition_id)
+    if definition is None:
+        definition = AppDefinition(
+            id=definition_id,
+            name=manifest.name,
+            version=version,
+            description=manifest.description,
+            source=f"forge:{parent.id}",
+        )
+        db.add(definition)
+        db.flush()
+    elif definition.source != f"forge:{parent.id}":
+        raise HTTPException(409, "Registered app identity changed")
+    else:
+        # No active or completed reservation exists, so this is a new installation after
+        # a cancelled/failed plan rather than an update of a running instance.
+        definition.name = manifest.name
+        definition.version = version
+    record = db.scalar(
+        select(ServiceManifest).where(
+            ServiceManifest.definition_id == definition_id, ServiceManifest.version == version
+        )
+    )
+    if record is None:
+        record = ServiceManifest(
+            definition_id=definition_id,
+            schema_version=manifest.schema_version,
+            version=version,
+            content=content,
+        )
+        db.add(record)
+        db.flush()
+    elif record.content != content:
+        raise HTTPException(409, "Registered app revision differs from the build")
+    installation_id = uuid4()
+    plan = DeploymentPlan(
+        definition_id=definition_id,
+        version=version,
+        image=signed_build.evidence.config_digest,
+        internal_port=8080,
+        user="101",
+        memory_mb=256,
+        cpus=0.5,
+        profile="forge-spa-v1",
+        source_hash=workspace.bundle_hash,
+        installation_id=installation_id,
+        context=InstallationContext(
+            household_id=body.household_id,
+            subject=actor.subject,
+            manifest_id=UUID(record.id),
+            manifest_hash=digest(content),
+        ),
+        forge=ForgeReleaseProof(build=signed_build, preview=signed_preview),
+    )
+    try:
+        validate_runtime_policy(request.app.state.settings, plan, fresh=True)
+    except ValueError:
+        raise HTTPException(
+            409, "Forge deployment is not curated or its preview has expired"
+        ) from None
+    job = Job(
+        id=str(uuid4()),
+        requested_by=actor.subject,
+        idempotency_key=idempotency_key,
+        request_hash=fingerprint,
+        action="deployment.install",
+        resource_type="app_installation",
+        resource_id=str(installation_id),
+        risk="sensitive",
+        plan=plan.model_dump(mode="json"),
+        plan_hash=plan.plan_hash,
+        state="waiting_approval",
+        event_sequence=0,
+        requires_approval=True,
+        correlation_id=request.state.correlation_id,
+    )
+    db.add(job)
+    try:
+        db.flush()
+        db.add(
+            DeploymentTarget(
+                id=str(installation_id),
+                job_id=job.id,
+                household_id=str(body.household_id),
+                definition_id=definition_id,
+            )
+        )
+        db.add(
+            ApprovalRequest(
+                job_id=job.id,
+                subject=actor.subject,
+                action=job.action,
+                resource_type=job.resource_type,
+                resource_id=job.resource_id,
+                plan_hash=job.plan_hash,
+                expires_at=min(utc(verified.evidence.expires_at), utcnow() + timedelta(minutes=15)),
+            )
+        )
+        event(db, job, "submitted", actor.subject)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if (existing := replay()) is None:
+            raise
+        return existing
+    response.headers["Location"] = f"/api/v1/jobs/{job.id}"
+    return job
+
+
+def verified_plan(db: Session, job: Job, settings: Settings, actor: Principal) -> DeploymentPlan:
     plan = DeploymentPlan.model_validate(job.plan)
     target = db.get(DeploymentTarget, job.resource_id)
     context = plan.context
@@ -267,6 +508,35 @@ def verified_plan(db: Session, job: Job, settings: Settings) -> DeploymentPlan:
         or job.risk != "sensitive"
     ):
         raise ValueError("Installation binding changed")
+    if plan.forge is not None:
+        from dkman.forge.attestation import verify_recipe
+        from dkman.forge.templates import TemplateProvider
+        from dkman.forge_api import current_bundle, visible_workspace
+        from dkman.planning import plan_for, request_for
+
+        proof = plan.forge
+        workspace = visible_workspace(db, str(proof.build.evidence.workspace_id), actor)
+        bundle = current_bundle(db, workspace, actor)
+        parent_plan = plan_for(db, workspace.plan_id, actor)
+        parent = request_for(db, parent_plan.request_id, actor, lock=True)
+        artifact = db.get(ForgeBuildArtifact, str(proof.build.evidence.build_id))
+        preview = db.get(ForgePreview, str(proof.preview.evidence.preview_id))
+        if (
+            artifact is None
+            or preview is None
+            or artifact.workspace_id != workspace.id
+            or preview.artifact_id != artifact.id
+            or digest(artifact.attestation) != artifact.evidence_hash
+            or digest(preview.attestation) != preview.evidence_hash
+            or artifact.attestation != proof.build.model_dump(mode="json")
+            or preview.attestation != proof.preview.model_dump(mode="json")
+            or workspace.bundle_hash != proof.build.evidence.source_hash
+            or TemplateProvider().generate(bundle.request) != bundle
+            or plan.definition_id != "forge-" + UUID(parent.id).hex
+            or (parent.household_id is not None and parent.household_id != target.household_id)
+        ):
+            raise ValueError("Forge authorization or evidence changed")
+        verify_recipe(proof.build.evidence, bundle)
     household(db, target.household_id)
     manifest = db.get(ServiceManifest, str(context.manifest_id))
     if (
@@ -276,7 +546,7 @@ def verified_plan(db: Session, job: Job, settings: Settings) -> DeploymentPlan:
         or digest(manifest.content) != context.manifest_hash
     ):
         raise ValueError("Registered manifest changed")
-    validate_plan(catalog(settings), plan)
+    validate_runtime_policy(settings, plan, fresh=plan.forge is not None)
     return plan
 
 
@@ -376,6 +646,11 @@ def accept_rejection(db: Session, job: Job, result: OperationView, actor: Princi
 
 def completion_result(job: Job, outcome: OperationView) -> dict[str, str]:
     if outcome.completion is None:
+        if job.action in LIFECYCLE_ACTIONS:
+            from dkman.deployments.contracts import LifecyclePlan
+
+            if LifecyclePlan.model_validate(job.plan).runtime.profile == "forge-spa-v1":
+                raise ValueError("Forge runtime requires an engine receipt")
         return {}  # Completed historical v1 operations remain compatible.
     runtime = (
         DeploymentPlan.model_validate(job.plan) if job.action == "deployment.install" else None
@@ -409,6 +684,8 @@ def accept_outcome(db: Session, job: Job, outcome: OperationView, actor: Princip
     plan = DeploymentPlan.model_validate(job.plan)
     if accept_rejection(db, job, outcome, actor):
         return job
+    if plan.profile == "forge-spa-v1" and outcome.completion is None:
+        return uncertain(db, job, actor, "execution_evidence_incomplete")
     try:
         proof_result = completion_result(job, outcome)
     except ValueError:
@@ -460,10 +737,12 @@ def accept_outcome(db: Session, job: Job, outcome: OperationView, actor: Princip
 
 
 def run_installation(job_id: str, db: Session, actor: Principal, request: Request) -> Job:
-    token = claim(db, job_id, actor, lease_seconds=180)
+    pending = db.get(Job, job_id)
+    lease_seconds = 600 if pending and pending.plan.get("profile") == "forge-spa-v1" else 180
+    token = claim(db, job_id, actor, lease_seconds=lease_seconds)
     job = owned_lease(db, job_id, token, "claimed")
     try:
-        plan = verified_plan(db, job, request.app.state.settings)
+        plan = verified_plan(db, job, request.app.state.settings, actor)
         # Confirm configured credentials before consuming the approval. No external action.
         credential(request.app.state.settings, actor, job, "operation.read")
     except (ValueError, HTTPException):

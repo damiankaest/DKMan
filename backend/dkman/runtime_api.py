@@ -16,11 +16,11 @@ from dkman.database import get_session
 from dkman.deployment_api import (
     Key,
     accept_rejection,
-    catalog,
     completion_result,
     credential,
     record_runtime,
     uncertain,
+    validate_runtime_policy,
 )
 from dkman.deployments.contracts import (
     DeploymentCommand,
@@ -29,7 +29,6 @@ from dkman.deployments.contracts import (
     LifecyclePlan,
     OperationView,
     RuntimeView,
-    validate_plan,
 )
 from dkman.deployments.redaction import redact_logs
 from dkman.job_schemas import JobView
@@ -152,7 +151,7 @@ def plan_lifecycle(
         raise HTTPException(409, "Installation has an active or unresolved runtime job")
     runtime = installed_plan(db, item)
     try:
-        validate_plan(catalog(request.app.state.settings), runtime)
+        validate_runtime_policy(request.app.state.settings, runtime)
     except ValueError:
         raise HTTPException(409, "Installed runtime is no longer curated") from None
     plan = LifecyclePlan(
@@ -277,7 +276,7 @@ def verified_lifecycle(db: Session, job: Job, request: Request, actor: Principal
         or digest(manifest.content) != plan.runtime.context.manifest_hash
     ):
         raise ValueError("Installed manifest changed")
-    validate_plan(catalog(request.app.state.settings), plan.runtime)
+    validate_runtime_policy(request.app.state.settings, plan.runtime)
     return plan
 
 

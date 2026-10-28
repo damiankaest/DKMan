@@ -502,6 +502,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forge/previews/{preview_id}/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Forge Installation */
+        post: operations["planForgeInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}/reconcile": {
         parameters: {
             query?: never;
@@ -1172,9 +1189,9 @@ export interface components {
             /**
              * User
              * @default 10001:10001
-             * @constant
+             * @enum {string}
              */
-            user: "10001:10001";
+            user: "10001:10001" | "101";
             /**
              * Memory Mb
              * @default 128
@@ -1190,7 +1207,7 @@ export interface components {
              * @default web-v1
              * @enum {string}
              */
-            profile: "web-v1" | "notes-postgres-v1";
+            profile: "web-v1" | "notes-postgres-v1" | "forge-spa-v1";
             /** Database Image */
             database_image?: string | null;
             /** Source Hash */
@@ -1239,9 +1256,9 @@ export interface components {
             /**
              * User
              * @default 10001:10001
-             * @constant
+             * @enum {string}
              */
-            user: "10001:10001";
+            user: "10001:10001" | "101";
             /**
              * Memory Mb
              * @default 128
@@ -1257,7 +1274,7 @@ export interface components {
              * @default web-v1
              * @enum {string}
              */
-            profile: "web-v1" | "notes-postgres-v1";
+            profile: "web-v1" | "notes-postgres-v1" | "forge-spa-v1";
             /** Database Image */
             database_image?: string | null;
             /** Source Hash */
@@ -1280,6 +1297,7 @@ export interface components {
              */
             installation_id: string;
             context?: components["schemas"]["InstallationContext"] | null;
+            forge?: components["schemas"]["ForgeReleaseProof"] | null;
         };
         /** DraftProposal */
         DraftProposal: {
@@ -1290,6 +1308,19 @@ export interface components {
              */
             kind: "app.draft";
             requirements: components["schemas"]["Requirements"];
+        };
+        /** ForgeInstallInput */
+        ForgeInstallInput: {
+            /**
+             * Household Id
+             * Format: uuid
+             */
+            household_id: string;
+        };
+        /** ForgeReleaseProof */
+        ForgeReleaseProof: {
+            build: components["schemas"]["SignedBuildEvidence"];
+            preview: components["schemas"]["SignedPreviewEvidence"];
         };
         /** GenerationRequest */
         GenerationRequest: {
@@ -1466,7 +1497,7 @@ export interface components {
              */
             state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
             /** Plan */
-            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"] | components["schemas"]["PlanApprovalCommand"];
+            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"] | components["schemas"]["UpgradePlan"] | components["schemas"]["PlanApprovalCommand"];
             /** Plan Hash */
             plan_hash: string;
             /** Requires Approval */
@@ -1999,6 +2030,36 @@ export interface components {
             icon: "notebook" | "activity" | "grid";
             /** Route */
             route: string;
+        };
+        /** UpgradePlan */
+        UpgradePlan: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Action
+             * @default deploy
+             * @constant
+             */
+            action: "deploy";
+            /**
+             * Resource Type
+             * @default app_installation
+             * @constant
+             */
+            resource_type: "app_installation";
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Subject */
+            subject: string;
+            previous: components["schemas"]["DeploymentPlan"];
+            replacement: components["schemas"]["DeploymentPlan"];
         };
         /** ValidationError */
         ValidationError: {
@@ -2999,6 +3060,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InstallInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    planForgeInstallation: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeInstallInput"];
             };
         };
         responses: {

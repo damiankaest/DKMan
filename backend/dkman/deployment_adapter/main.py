@@ -32,6 +32,7 @@ from dkman.deployments.contracts import (
     validate_plan,
 )
 from dkman.deployments.evidence import prove_completion
+from dkman.forge.attestation import read_public_key
 
 
 class AdapterSettings(BaseSettings):
@@ -41,6 +42,9 @@ class AdapterSettings(BaseSettings):
     secret_file: Path = Path("/run/secrets/adapter-delegation-key")
     data_secret_file: Path = Path("/run/secrets/adapter-data-key")
     docker_binary: str = Field(default="/usr/local/bin/docker", pattern=r"^/[a-zA-Z0-9/_-]+$")
+    forge_builder_public_key_file: Path | None = None
+    forge_preview_public_key_file: Path | None = None
+    forge_staging_root: Path | None = None
 
 
 def create_app(
@@ -50,7 +54,11 @@ def create_app(
     settings = settings or AdapterSettings()
     factory = provider_factory or (
         lambda operation_id: ComposeProvider(
-            settings.state_root, operation_id, settings.docker_binary, app.state.data_secret
+            settings.state_root,
+            operation_id,
+            settings.docker_binary,
+            app.state.data_secret,
+            settings.forge_staging_root,
         )
     )
 
@@ -114,6 +122,26 @@ def create_app(
         ):
             raise HTTPException(403, "Delegation binding mismatch")
 
+    def validate_policy(plan: DeploymentPlan, *, fresh: bool = False) -> None:
+        if plan.profile != "forge-spa-v1":
+            validate_plan(app.state.catalog, plan)
+            return
+        if (
+            settings.forge_builder_public_key_file is None
+            or settings.forge_preview_public_key_file is None
+        ):
+            raise ValueError("Forge verification keys are unavailable")
+        try:
+            validate_plan(
+                app.state.catalog,
+                plan,
+                builder_key=read_public_key(settings.forge_builder_public_key_file),
+                preview_key=read_public_key(settings.forge_preview_public_key_file),
+                require_fresh_preview=fresh,
+            )
+        except (OSError, TypeError) as exc:
+            raise ValueError("Forge verification keys are unavailable") from exc
+
     @app.middleware("http")
     async def headers(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -175,12 +203,39 @@ def create_app(
         bind(value, body.action, operation_id, body.plan.installation_id, body.plan_hash)
         if body.lifecycle and body.lifecycle.subject != value.sub:
             raise HTTPException(403, "Lifecycle identity mismatch")
+        if body.upgrade and body.upgrade.subject != value.sub:
+            raise HTTPException(403, "Update identity mismatch")
+        if (
+            body.action == "install"
+            and body.plan.context
+            and body.plan.context.subject != value.sub
+        ):
+            raise HTTPException(403, "Installation identity mismatch")
+        if body.plan.profile == "forge-spa-v1" and body.action not in {
+            "install",
+            "deploy",
+            "start",
+            "stop",
+            "restart",
+            "status",
+            "logs",
+            "discover",
+        }:
+            raise HTTPException(409, "Forge action is not supported")
+        if (
+            body.plan.profile == "forge-spa-v1"
+            and body.action in {"start", "stop", "restart"}
+            and body.lifecycle is None
+        ):
+            raise HTTPException(409, "Forge lifecycle requires a bound plan")
         journal: Journal = app.state.journal
         previous = journal.replay(body, value)
         if previous:
             return previous
         mutating = body.action not in READ_ACTIONS
-        record_rejection = body.action in {"install", "start", "stop", "restart"}
+        record_rejection = body.action in {"install", "start", "stop", "restart"} or (
+            body.action == "deploy" and body.upgrade is not None
+        )
         # Reads may overlap reads, never a mutation. Briefly wait for an active
         # observation before rejecting a mutation; this retries only lock acquisition.
         with journal.lock(body.plan.installation_id, shared=not mutating, wait_seconds=2):
@@ -188,7 +243,9 @@ def create_app(
             if previous:
                 return previous
             try:
-                validate_plan(app.state.catalog, body.plan)
+                validate_policy(body.plan, fresh=body.action in {"install", "deploy"})
+                if body.upgrade:
+                    validate_policy(body.upgrade.previous)
             except ValueError:
                 if record_rejection:
                     return journal.reject(body, value, "curation_rejected")
@@ -197,6 +254,8 @@ def create_app(
                 current = journal.current_plan(body.plan.installation_id)
                 if body.lifecycle and current is None:
                     raise HTTPException(409, "Lifecycle requires a known installation")
+                if body.upgrade and current != body.upgrade.previous:
+                    raise HTTPException(409, "Update must replace the current installation plan")
                 if current is not None:
                     if (
                         current.definition_id != body.plan.definition_id
@@ -209,9 +268,13 @@ def create_app(
                         )
                 provider = factory(operation_id)
                 provider.preflight(body.plan, known=current is not None)
+                if body.upgrade:
+                    provider.require_forge_artifact(body.plan)
                 observation = provider.status(body.plan)
                 if body.action == "install" and observation.state != "absent":
                     raise HTTPException(409, "Installation already exists")
+                if body.upgrade and observation.state != "running":
+                    raise HTTPException(409, "Update requires a healthy running installation")
                 if body.action in {"start", "restart"} and observation.state == "absent":
                     raise HTTPException(409, "Installation is absent")
                 if body.action == "remove_data" and observation.state != "absent":
@@ -227,6 +290,11 @@ def create_app(
             # Repeat time validation after preflight; an expired request cannot begin execution.
             if value.exp <= int(datetime.now(UTC).timestamp()):
                 raise HTTPException(401, "Delegation expired before execution")
+            if body.plan.profile == "forge-spa-v1" and body.action in {"install", "deploy"}:
+                try:
+                    validate_policy(body.plan, fresh=True)
+                except ValueError:
+                    return journal.reject(body, value, "curation_rejected")
             result = journal.begin(body, value, mutating)
             provider.collect_receipts(body, journal.record_receipt)
             try:
@@ -239,6 +307,12 @@ def create_app(
                     completion, outcome = prove_completion(
                         body, operation_id, result.created_at, receipt, provider.evidence(body.plan)
                     )
+                if (
+                    body.plan.profile == "forge-spa-v1"
+                    and body.action in {"install", "deploy", "start", "stop", "restart"}
+                    and completion is None
+                ):
+                    raise ValueError("Forge installation requires an engine receipt")
                 result = result.model_copy(
                     update={
                         "completion": completion,

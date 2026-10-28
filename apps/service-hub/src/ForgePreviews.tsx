@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ApiClient } from './api';
 import type { components } from './generated/api';
+import { ForgeInstall } from './ForgeInstall';
 
 type Preview = components['schemas']['PreviewView'];
 type SignedPreview = components['schemas']['SignedPreviewEvidence'];
 
-export function ForgePreviews({api, artifactId, current}: {api: ApiClient; artifactId: string; current: boolean}) {
+export function ForgePreviews({api, artifactId, current, admin = false, subject = '', installable = false}: {api: ApiClient; artifactId: string; current: boolean; admin?: boolean; subject?: string; installable?: boolean}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Preview[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -51,6 +52,7 @@ export function ForgePreviews({api, artifactId, current}: {api: ApiClient; artif
       {items.length === 0 && !busy ? <p>Für diesen Build liegt noch kein Vorschau-Nachweis vor.</p> : <ul>{items.map(item => <li key={item.id}>
         Vorschau bei der Prüfung erreichbar: {new Date(item.evidence.observed_at).toLocaleString('de-DE')}.
         <p>Nachweis gültig bis {new Date(item.evidence.expires_at).toLocaleString('de-DE')}.</p>
+        {admin && installable && <ForgeInstall api={api} preview={item} current={current} subject={subject} />}
       </li>)}</ul>}
       <p>Dies belegt eine frühere Messung; es ist keine Anzeige des aktuellen Zustands und keine Installationsfreigabe.</p>
     </>}

@@ -165,7 +165,7 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                 artifact,
                 root,
                 ComposeProvider(root, uuid4(), docker),
-                ttl_seconds=5,
+                ttl_seconds=300,
                 on_ready=ready,
                 hold=lambda _: None,
             )
@@ -174,6 +174,12 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
         verify_preview_signature(observation, preview_key.public_key())
         assert observation.evidence.config_digest == signed.evidence.config_digest
         assert observation.evidence.artifact_id == signed.evidence.build_id
+        if kind == "react-spa":
+            from forge_deploy_ci import exercise_forge_install
+
+            exercise_forge_install(
+                root, artifact, source, registered, signed, signing_key, preview_key, observation
+            )
     evidence = Path(os.environ["DKMAN_BUILD_EVIDENCE_DIR"])
     evidence.mkdir(parents=True, exist_ok=True)
     (evidence / f"{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
