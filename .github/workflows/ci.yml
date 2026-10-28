@@ -206,7 +206,7 @@ jobs:
           test -S "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
           sudo chmod 666 "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
       - name: Check and build each starter
-        run: uv run pytest tests/test_forge_buildkit.py -q
+        run: uv run pytest tests/test_forge_buildkit.py tests/test_forge_core_docker.py -q
       - name: Save verified BuildArtifact reports
         if: always()
         uses: actions/upload-artifact@v4
