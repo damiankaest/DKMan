@@ -65,7 +65,7 @@ mapfile -t mounts < <(docker inspect --format '{{range .Mounts}}{{if eq .Destina
 if ((${#mounts[@]} != 1)) || [[ "${mounts[0]}" != "$staging" ]]; then
   printf '%s\n' 'Staging directory is not the configured adapter mount.' >&2; exit 2
 fi
-printf '%s\n' 'Plan: verify the current approved Forge SPA and stage its archive without loading or starting a container.'
+printf '%s\n' 'Plan: verify the approved Forge SPA and stage its archive without loading an image or starting an app container.'
 printf 'Artifact: %s\nStaging: %s\n' "$artifact" "$staging"
 if ! $apply; then
   printf '%s\n' 'Dry-run only. Apply requires --apply --confirm STAGE_FORGE_ARCHIVE.'
