@@ -1,0 +1,12 @@
+# Explicit operator opt-in with runtime.yaml and both Forge verification overlays.
+# Only the deployment adapter can load images; the staged archive mount is read-only.
+services:
+  deployment-adapter:
+    environment:
+      DKMAN_ADAPTER_FORGE_BUILDER_PUBLIC_KEY_FILE: /etc/dkman-forge/builder-public.pem
+      DKMAN_ADAPTER_FORGE_PREVIEW_PUBLIC_KEY_FILE: /etc/dkman-forge/preview-public.pem
+      DKMAN_ADAPTER_FORGE_STAGING_ROOT: /var/lib/dkman-forge-staged
+    volumes:
+      - ../../.local/forge/builder-public.pem:/etc/dkman-forge/builder-public.pem:ro
+      - ../../.local/forge/preview-public.pem:/etc/dkman-forge/preview-public.pem:ro
+      - ../../.local/forge/staged:/var/lib/dkman-forge-staged:ro

@@ -1423,6 +1423,76 @@
         }
       }
     },
+    "/api/v1/forge/previews/{preview_id}/installations": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Plan Forge Installation",
+        "operationId": "planForgeInstallation",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Preview Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeInstallInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/{job_id}/reconcile": {
       "post": {
         "tags": [
@@ -2576,6 +2646,265 @@
         }
       }
     },
+    "/api/v1/forge/workspaces/{workspace_id}/build-artifacts": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Register Build Artifact",
+        "operationId": "registerForgeBuildArtifact",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignedBuildEvidence"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildArtifactView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "List Build Artifacts",
+        "operationId": "listForgeBuildArtifacts",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuildArtifactView"
+                  },
+                  "title": "Response Listforgebuildartifacts"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forge/build-artifacts/{artifact_id}": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Get Build Artifact",
+        "operationId": "getForgeBuildArtifact",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildArtifactView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forge/build-artifacts/{artifact_id}/previews": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Register Preview",
+        "operationId": "registerForgePreview",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignedPreviewEvidence"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "List Previews",
+        "operationId": "listForgePreviews",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PreviewView"
+                  },
+                  "title": "Response Listforgepreviews"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/forge/workspaces/{workspace_id}/archive": {
       "get": {
         "tags": [
@@ -2607,6 +2936,76 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forge/previews/{preview_id}/upgrades": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Plan Forge Upgrade",
+        "operationId": "planForgeUpgrade",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Preview Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeUpgradeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
                 }
               }
             }
@@ -2938,6 +3337,163 @@
         ],
         "title": "ApprovalView"
       },
+      "BuildArtifactView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "submitted_by": {
+            "type": "string",
+            "title": "Submitted By"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Hash"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/BuildEvidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "created_at",
+          "submitted_by",
+          "key_id",
+          "evidence_hash",
+          "evidence"
+        ],
+        "title": "BuildArtifactView"
+      },
+      "BuildEvidence": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "build_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Build Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "source_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Hash"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "python-api",
+              "react-spa",
+              "fullstack-fastapi-react"
+            ],
+            "title": "Template"
+          },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "api-passed",
+                "web-passed"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Checks"
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Manifest Digest"
+          },
+          "config_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Config Digest"
+          },
+          "archive_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Archive Sha256"
+          },
+          "archive_size": {
+            "type": "integer",
+            "maximum": 2147483648.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Archive Size"
+          },
+          "check_recipe_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Check Recipe Sha256"
+          },
+          "check_requirements_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Check Requirements Sha256"
+          },
+          "image_recipe_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Image Recipe Sha256"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "build_id",
+          "workspace_id",
+          "source_hash",
+          "plan_hash",
+          "template",
+          "checks",
+          "manifest_digest",
+          "config_digest",
+          "archive_sha256",
+          "archive_size",
+          "check_recipe_sha256",
+          "check_requirements_sha256",
+          "image_recipe_sha256",
+          "finished_at"
+        ],
+        "title": "BuildEvidence"
+      },
       "BuildInput": {
         "properties": {
           "workspace_id": {
@@ -3213,7 +3769,10 @@
           },
           "user": {
             "type": "string",
-            "const": "10001:10001",
+            "enum": [
+              "10001:10001",
+              "101"
+            ],
             "title": "User",
             "default": "10001:10001"
           },
@@ -3235,7 +3794,8 @@
             "type": "string",
             "enum": [
               "web-v1",
-              "notes-postgres-v1"
+              "notes-postgres-v1",
+              "forge-spa-v1"
             ],
             "title": "Profile",
             "default": "web-v1"
@@ -3374,7 +3934,10 @@
           },
           "user": {
             "type": "string",
-            "const": "10001:10001",
+            "enum": [
+              "10001:10001",
+              "101"
+            ],
             "title": "User",
             "default": "10001:10001"
           },
@@ -3396,7 +3959,8 @@
             "type": "string",
             "enum": [
               "web-v1",
-              "notes-postgres-v1"
+              "notes-postgres-v1",
+              "forge-spa-v1"
             ],
             "title": "Profile",
             "default": "web-v1"
@@ -3451,6 +4015,16 @@
                 "type": "null"
               }
             ]
+          },
+          "forge": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ForgeReleaseProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -3481,6 +4055,53 @@
           "requirements"
         ],
         "title": "DraftProposal"
+      },
+      "ForgeInstallInput": {
+        "properties": {
+          "household_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Household Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "household_id"
+        ],
+        "title": "ForgeInstallInput"
+      },
+      "ForgeReleaseProof": {
+        "properties": {
+          "build": {
+            "$ref": "#/components/schemas/SignedBuildEvidence"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/SignedPreviewEvidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "build",
+          "preview"
+        ],
+        "title": "ForgeReleaseProof"
+      },
+      "ForgeUpgradeInput": {
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "installation_id"
+        ],
+        "title": "ForgeUpgradeInput"
       },
       "GenerationRequest": {
         "properties": {
@@ -3879,6 +4500,9 @@
               },
               {
                 "$ref": "#/components/schemas/LifecyclePlan"
+              },
+              {
+                "$ref": "#/components/schemas/UpgradePlan"
               },
               {
                 "$ref": "#/components/schemas/PlanApprovalCommand"
@@ -4341,6 +4965,138 @@
         ],
         "title": "PlanView"
       },
+      "PreviewEvidence": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "preview_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Preview Id"
+          },
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "artifact_evidence_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Artifact Evidence Hash"
+          },
+          "source_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Hash"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Manifest Digest"
+          },
+          "config_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Config Digest"
+          },
+          "container_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Container Id"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "state": {
+            "type": "string",
+            "const": "healthy",
+            "title": "State",
+            "default": "healthy"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preview_id",
+          "artifact_id",
+          "workspace_id",
+          "artifact_evidence_hash",
+          "source_hash",
+          "plan_hash",
+          "manifest_digest",
+          "config_digest",
+          "container_id",
+          "observed_at",
+          "expires_at"
+        ],
+        "title": "PreviewEvidence"
+      },
+      "PreviewView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "artifact_id": {
+            "type": "string",
+            "title": "Artifact Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "submitted_by": {
+            "type": "string",
+            "title": "Submitted By"
+          },
+          "evidence_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Hash"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/PreviewEvidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "artifact_id",
+          "created_at",
+          "submitted_by",
+          "evidence_hash",
+          "key_id",
+          "evidence"
+        ],
+        "title": "PreviewView"
+      },
       "ProfileView": {
         "properties": {
           "id": {
@@ -4608,7 +5364,7 @@
           },
           "image": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\\.[0-9]+\\.[0-9]+)$",
+            "pattern": "^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\\.[0-9]+\\.[0-9]+))$",
             "title": "Image"
           },
           "internalPort": {
@@ -4647,6 +5403,10 @@
             "type": "string",
             "title": "Id"
           },
+          "definition_id": {
+            "type": "string",
+            "title": "Definition Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -4659,6 +5419,7 @@
         "type": "object",
         "required": [
           "id",
+          "definition_id",
           "name",
           "household_id"
         ],
@@ -4912,6 +5673,72 @@
         ],
         "title": "ServiceView"
       },
+      "SignedBuildEvidence": {
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "const": "ed25519",
+            "title": "Algorithm",
+            "default": "ed25519"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/BuildEvidence"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 88,
+            "minLength": 88,
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
+            "title": "Signature"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key_id",
+          "evidence",
+          "signature"
+        ],
+        "title": "SignedBuildEvidence"
+      },
+      "SignedPreviewEvidence": {
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "const": "ed25519",
+            "title": "Algorithm",
+            "default": "ed25519"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/PreviewEvidence"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 88,
+            "minLength": 88,
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
+            "title": "Signature"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key_id",
+          "evidence",
+          "signature"
+        ],
+        "title": "SignedPreviewEvidence"
+      },
       "SourceBundle": {
         "properties": {
           "request": {
@@ -4966,6 +5793,54 @@
           "route"
         ],
         "title": "UI"
+      },
+      "UpgradePlan": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "action": {
+            "type": "string",
+            "const": "deploy",
+            "title": "Action",
+            "default": "deploy"
+          },
+          "resource_type": {
+            "type": "string",
+            "const": "app_installation",
+            "title": "Resource Type",
+            "default": "app_installation"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resource Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/DeploymentPlan"
+          },
+          "replacement": {
+            "$ref": "#/components/schemas/DeploymentPlan"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource_id",
+          "subject",
+          "previous",
+          "replacement"
+        ],
+        "title": "UpgradePlan"
       },
       "ValidationError": {
         "properties": {

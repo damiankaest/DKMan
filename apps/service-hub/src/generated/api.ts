@@ -502,6 +502,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forge/previews/{preview_id}/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Forge Installation */
+        post: operations["planForgeInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}/reconcile": {
         parameters: {
             query?: never;
@@ -814,6 +831,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forge/workspaces/{workspace_id}/build-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Build Artifacts */
+        get: operations["listForgeBuildArtifacts"];
+        put?: never;
+        /** Register Build Artifact */
+        post: operations["registerForgeBuildArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forge/build-artifacts/{artifact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Build Artifact */
+        get: operations["getForgeBuildArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forge/build-artifacts/{artifact_id}/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Previews */
+        get: operations["listForgePreviews"];
+        put?: never;
+        /** Register Preview */
+        post: operations["registerForgePreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/forge/workspaces/{workspace_id}/archive": {
         parameters: {
             query?: never;
@@ -825,6 +895,23 @@ export interface paths {
         get: operations["downloadForgeWorkspace"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forge/previews/{preview_id}/upgrades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Forge Upgrade */
+        post: operations["planForgeUpgrade"];
         delete?: never;
         options?: never;
         head?: never;
@@ -947,6 +1034,74 @@ export interface components {
             /** Consumed At */
             consumed_at: string | null;
         };
+        /** BuildArtifactView */
+        BuildArtifactView: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Submitted By */
+            submitted_by: string;
+            /** Key Id */
+            key_id: string;
+            /** Evidence Hash */
+            evidence_hash: string;
+            evidence: components["schemas"]["BuildEvidence"];
+        };
+        /** BuildEvidence */
+        BuildEvidence: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Build Id
+             * Format: uuid
+             */
+            build_id: string;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Source Hash */
+            source_hash: string;
+            /** Plan Hash */
+            plan_hash: string;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "python-api" | "react-spa" | "fullstack-fastapi-react";
+            /** Checks */
+            checks: ("api-passed" | "web-passed")[];
+            /** Manifest Digest */
+            manifest_digest: string;
+            /** Config Digest */
+            config_digest: string;
+            /** Archive Sha256 */
+            archive_sha256: string;
+            /** Archive Size */
+            archive_size: number;
+            /** Check Recipe Sha256 */
+            check_recipe_sha256: string;
+            /** Check Requirements Sha256 */
+            check_requirements_sha256: string;
+            /** Image Recipe Sha256 */
+            image_recipe_sha256: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+        };
         /**
          * BuildInput
          * @description Authorized source data; it grants no deployment or host access.
@@ -1051,9 +1206,9 @@ export interface components {
             /**
              * User
              * @default 10001:10001
-             * @constant
+             * @enum {string}
              */
-            user: "10001:10001";
+            user: "10001:10001" | "101";
             /**
              * Memory Mb
              * @default 128
@@ -1069,7 +1224,7 @@ export interface components {
              * @default web-v1
              * @enum {string}
              */
-            profile: "web-v1" | "notes-postgres-v1";
+            profile: "web-v1" | "notes-postgres-v1" | "forge-spa-v1";
             /** Database Image */
             database_image?: string | null;
             /** Source Hash */
@@ -1118,9 +1273,9 @@ export interface components {
             /**
              * User
              * @default 10001:10001
-             * @constant
+             * @enum {string}
              */
-            user: "10001:10001";
+            user: "10001:10001" | "101";
             /**
              * Memory Mb
              * @default 128
@@ -1136,7 +1291,7 @@ export interface components {
              * @default web-v1
              * @enum {string}
              */
-            profile: "web-v1" | "notes-postgres-v1";
+            profile: "web-v1" | "notes-postgres-v1" | "forge-spa-v1";
             /** Database Image */
             database_image?: string | null;
             /** Source Hash */
@@ -1159,6 +1314,7 @@ export interface components {
              */
             installation_id: string;
             context?: components["schemas"]["InstallationContext"] | null;
+            forge?: components["schemas"]["ForgeReleaseProof"] | null;
         };
         /** DraftProposal */
         DraftProposal: {
@@ -1169,6 +1325,27 @@ export interface components {
              */
             kind: "app.draft";
             requirements: components["schemas"]["Requirements"];
+        };
+        /** ForgeInstallInput */
+        ForgeInstallInput: {
+            /**
+             * Household Id
+             * Format: uuid
+             */
+            household_id: string;
+        };
+        /** ForgeReleaseProof */
+        ForgeReleaseProof: {
+            build: components["schemas"]["SignedBuildEvidence"];
+            preview: components["schemas"]["SignedPreviewEvidence"];
+        };
+        /** ForgeUpgradeInput */
+        ForgeUpgradeInput: {
+            /**
+             * Installation Id
+             * Format: uuid
+             */
+            installation_id: string;
         };
         /** GenerationRequest */
         GenerationRequest: {
@@ -1345,7 +1522,7 @@ export interface components {
              */
             state: "waiting_approval" | "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled" | "expired" | "reconciliation_required";
             /** Plan */
-            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"] | components["schemas"]["PlanApprovalCommand"];
+            plan: components["schemas"]["ValidationPlan"] | components["schemas"]["DeploymentPlan"] | components["schemas"]["LifecyclePlan"] | components["schemas"]["UpgradePlan"] | components["schemas"]["PlanApprovalCommand"];
             /** Plan Hash */
             plan_hash: string;
             /** Requires Approval */
@@ -1535,6 +1712,77 @@ export interface components {
             /** Approved Job Id */
             approved_job_id: string | null;
         };
+        /** PreviewEvidence */
+        PreviewEvidence: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Preview Id
+             * Format: uuid
+             */
+            preview_id: string;
+            /**
+             * Artifact Id
+             * Format: uuid
+             */
+            artifact_id: string;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Artifact Evidence Hash */
+            artifact_evidence_hash: string;
+            /** Source Hash */
+            source_hash: string;
+            /** Plan Hash */
+            plan_hash: string;
+            /** Manifest Digest */
+            manifest_digest: string;
+            /** Config Digest */
+            config_digest: string;
+            /** Container Id */
+            container_id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * State
+             * @default healthy
+             * @constant
+             */
+            state: "healthy";
+        };
+        /** PreviewView */
+        PreviewView: {
+            /** Id */
+            id: string;
+            /** Artifact Id */
+            artifact_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Submitted By */
+            submitted_by: string;
+            /** Evidence Hash */
+            evidence_hash: string;
+            /** Key Id */
+            key_id: string;
+            evidence: components["schemas"]["PreviewEvidence"];
+        };
         /** ProfileView */
         ProfileView: {
             /** Id */
@@ -1647,6 +1895,8 @@ export interface components {
         RuntimeInstallationView: {
             /** Id */
             id: string;
+            /** Definition Id */
+            definition_id: string;
             /** Name */
             name: string;
             /** Household Id */
@@ -1759,6 +2009,34 @@ export interface components {
             /** Reason */
             reason: string | null;
         };
+        /** SignedBuildEvidence */
+        SignedBuildEvidence: {
+            /**
+             * Algorithm
+             * @default ed25519
+             * @constant
+             */
+            algorithm: "ed25519";
+            /** Key Id */
+            key_id: string;
+            evidence: components["schemas"]["BuildEvidence"];
+            /** Signature */
+            signature: string;
+        };
+        /** SignedPreviewEvidence */
+        SignedPreviewEvidence: {
+            /**
+             * Algorithm
+             * @default ed25519
+             * @constant
+             */
+            algorithm: "ed25519";
+            /** Key Id */
+            key_id: string;
+            evidence: components["schemas"]["PreviewEvidence"];
+            /** Signature */
+            signature: string;
+        };
         /** SourceBundle */
         SourceBundle: {
             request: components["schemas"]["GenerationRequest"];
@@ -1779,6 +2057,36 @@ export interface components {
             icon: "notebook" | "activity" | "grid";
             /** Route */
             route: string;
+        };
+        /** UpgradePlan */
+        UpgradePlan: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Action
+             * @default deploy
+             * @constant
+             */
+            action: "deploy";
+            /**
+             * Resource Type
+             * @default app_installation
+             * @constant
+             */
+            resource_type: "app_installation";
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Subject */
+            subject: string;
+            previous: components["schemas"]["DeploymentPlan"];
+            replacement: components["schemas"]["DeploymentPlan"];
         };
         /** ValidationError */
         ValidationError: {
@@ -2802,6 +3110,43 @@ export interface operations {
             };
         };
     };
+    planForgeInstallation: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeInstallInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reconcileInstallationJob: {
         parameters: {
             query?: never;
@@ -3484,6 +3829,169 @@ export interface operations {
             };
         };
     };
+    listForgeBuildArtifacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildArtifactView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    registerForgeBuildArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignedBuildEvidence"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildArtifactView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getForgeBuildArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildArtifactView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listForgePreviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    registerForgePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignedPreviewEvidence"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     downloadForgeWorkspace: {
         parameters: {
             query?: never;
@@ -3502,6 +4010,43 @@ export interface operations {
                 };
                 content: {
                     "application/zip": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    planForgeUpgrade: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeUpgradeInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
                 };
             };
             /** @description Validation Error */

@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     deployment_enabled: bool = False
     deployment_catalog_file: Path = Path("/etc/dkman-adapter/catalog.json")
     deployment_secret_file: Path = Path("/run/secrets/adapter-delegation-key")
+    forge_builder_public_key_file: Path | None = None
+    forge_preview_public_key_file: Path | None = None
     chat_provider: Literal["rules", "openai_compatible"] = "rules"
     chat_api_url: str = ""
     chat_model: str = Field(default="", max_length=120)

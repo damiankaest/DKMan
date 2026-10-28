@@ -1,4 +1,4 @@
-# Forge · P4-001 und P4-002
+# Forge · P4-001 bis P4-003
 
 Forge erstellt für freigegebene Planrevisionen reproduzierbare Quellstände. Zur Wahl
 stehen eine Python-API, eine React-SPA und eine Kombination beider Vorlagen. Die
@@ -109,8 +109,167 @@ Das Buildrezept prüft die Vorlage gegen die lokal installierten Starterdateien.
 Vorlagen in einer späteren Revision geändert werden, muss für einen neuen Build ein
 passender neuer Quellstand erstellt werden. Der OCI-Digest identifiziert das gebaute
 Image; ein bitgenau reproduzierbarer Rebuild wird nicht behauptet.
+Das Build-Rezept überträgt die privaten Quellrechte gezielt auf den festen
+unprivilegierten Containerbenutzer. Ältere signierte Builds mit einem anderen Rezept
+müssen nach dieser Änderung neu erzeugt werden; der Core lehnt abweichende Rezepte ab.
+
+## Erste Preview-Arbeit · P4-003
+
+Der Preview-Pfad unterstützt die drei unveränderten Startervorlagen und
+benötigt eine separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
+Daten, Docker-Sockets oder Secrets haben. Die Isolation des Hosts muss der Betreiber
+bereitstellen und prüfen. Ein internes Docker-Netz isoliert Container nicht vollständig
+vom eigenen Host. Der Container veröffentlicht keinen Docker-Port; ein begrenzter
+Forwarder auf der Preview-VM bindet ausschließlich an Loopback und leitet an die
+geprüfte Containeradresse weiter.
+
+Auf dem isolierten Builder und der separaten Preview-VM jeweils einen eigenen Schlüssel
+in einem existierenden privaten Verzeichnis anlegen. Ohne `--apply` sind die Befehle
+nur ein Dry-Run:
+
+```bash
+uv run python scripts/generate_forge_signing_key.py --root /pfad/privat --purpose build
+uv run python scripts/generate_forge_signing_key.py --root /pfad/privat --purpose preview
+```
+
+Für die jeweilige tatsächliche Schlüsselanlage auf der passenden VM zusätzlich
+`--apply --confirm CREATE_FORGE_SIGNING_KEY` verwenden. Private Schlüssel bleiben auf
+der jeweiligen VM. Nur die öffentlichen Schlüssel werden zum Core übertragen und
+explizit über `forge-attestation.yaml` bzw. `forge-preview.yaml` eingebunden. Sie
+müssen verschieden und für den Core-Prozess lesbar sein. Änderungen an laufenden
+Diensten benötigen eine gesonderte Hostwartung; kein Overlay wird automatisch aktiviert.
+
+Einen neuen Build mit `--signing-key /pfad/privat/forge-build-private.pem` erzeugen.
+Im Hub beim Quellstand die `build-attestation.json` importieren. Core prüft den
+konfigurierten öffentlichen Schlüssel und den aktuellen Plan; das OCI-Archiv bleibt
+außerhalb des Core. Alte unsignierte P4-002-Builds sind nicht als Nachweis importierbar.
+
+Nach sicherer Übertragung von `image.oci.tar` und `build-attestation.json` in ein
+privates Verzeichnis auf der Preview-VM lässt sich der Preview-Adapter zunächst planen:
+
+```bash
+uv run python -m dkman.deployment_adapter.forge_preview \
+  --root /pfad/privat --core https://dkman.example \
+  --artifact-dir /pfad/zum/build-verzeichnis \
+  --builder-public-key /pfad/forge-build-public.pem \
+  --preview-private-key /pfad/forge-preview-private.pem \
+  --docker-binary /usr/bin/docker
+```
+
+Der Docker-Pfad muss zum ausführbaren Programm auf der Preview-VM passen. Vor dem
+Laden verpackt der Adapter ausschließlich die geprüften OCI-Blobs ohne Tags in ein
+temporäres Docker-Archiv und prüft die Image-ID nach dem Laden erneut. Das temporäre
+Archiv benötigt zusätzlichen Speicherplatz und wird nach dem Ladevorgang entfernt.
+Für die beiden API-Vorlagen setzt der Adapter ausschließlich eine SQLite-Datenbank in
+`/tmp` innerhalb des Containers auf und führt die feste Startermigration aus. Diese
+Testdatenbank liegt im begrenzten tmpfs und verschwindet mit dem Preview-Container.
+Es werden keine produktiven Datenbankadressen oder Zugangsdaten übergeben.
+
+Auf der ausdrücklich isolierten Preview-VM startet `--apply --confirm
+PREVIEW_ISOLATED_VM` die Vorschau. Der Prozess fragt das aktuelle OIDC-Access-Token
+verdeckt ab und zeigt einen nur auf dieser VM erreichbaren `127.0.0.1`-Port. Für einen
+anderen Rechner ist ein bewusst eingerichteter SSH-Tunnel erforderlich. Der Browser
+für die Vorschau muss ebenfalls isoliert sein: ein eigenes Profil ohne produktive
+Anmeldungen und ohne Zugriff auf produktive Dienste oder Netze verwenden. Das gilt
+auch bei einem SSH-Tunnel, da JavaScript mit den Netzwerkrechten des Browsers läuft.
+Ohne echte
+Identity-/Produktionsdienste kann die Vorlage ihre Anmeldung in der Vorschau nicht
+vollständig durchführen. Enter oder der Zeitablauf entfernt Container und Netzwerk;
+das geladene Image bleibt auf der Preview-Engine. Nach hartem Abbruch kann der Operator
+mit `--root /pfad/privat --cleanup-id PREVIEW-UUID --apply --confirm
+CLEANUP_FORGE_PREVIEW` ausschließlich die passend markierten Ressourcen entfernen.
+
+Die `preview-attestation.json` lässt sich innerhalb ihrer Gültigkeit beim Build im Hub
+importieren. Sie belegt eine beobachtete Readiness, keinen aktuellen Livezustand und
+keine menschliche Abnahme. Ein integrierter Preview-Link besteht noch nicht.
+
+## Installation und Update des React-Starters
+
+Nur die unveränderte `react-spa`-Vorlage kann zunächst installiert werden; API und
+Fullstack bleiben bei der Vorschau. Der Starter ist eine Anmelde- und Zugriffsgrundlage,
+noch keine fertige Garten-App. Die Bereitstellung erfolgt manuell, bevor ein Admin
+den konkreten Plan separat freigibt. Build- und Preview-Schlüssel müssen verschieden
+sein. Der Core erhält beide öffentlichen Schlüssel mit `forge-attestation.yaml` und
+`forge-preview.yaml`; der Adapter erhält sie und sein privates Archivverzeichnis mit
+`forge-deployment.yaml` zusätzlich zu `runtime.yaml`. Diese Overlays sind ein bewusstes
+Opt-in und ändern für sich genommen keinen laufenden Host.
+
+Der Adapter läuft als UID/GID 10001. Sein gemountetes `.local/forge/staged` und jedes
+Build-Unterverzeichnis müssen dieser UID gehören und Modus `0700` haben; die Dateien
+werden mit `0600` angelegt. Die UID darf auf dem Zielsystem keinem anderen,
+unvertrauenswürdigen Benutzer Zugriff auf die Archive verschaffen. Öffentliche
+Schlüsseldateien müssen für Core und Adapter lesbar sein. Vor der Einrichtung die
+Besitzrechte und den verfügbaren Speicherplatz auf dem Zielsystem prüfen; Container-
+Benutzer, Rootless-Docker und Benutzer-Namensräume können andere Host-IDs erfordern.
+
+Nach privater Übertragung der beiden Builddateien `build-attestation.json` und
+`image.oci.tar` in ein eigenes, für UID 10001 lesbares Verzeichnis den Operatorweg
+zunächst **ohne** Mutation prüfen:
+
+```bash
+scripts/linux/stage_forge_archive.sh \
+  --artifact-dir /pfad/zum/eigenen-buildverzeichnis \
+  --root "$PWD/.local/forge/staged" \
+  --builder-public-key "$PWD/.local/forge/builder-public.pem"
+```
+
+Die beiden genannten Verzeichnisse müssen bereits existieren, UID 10001 gehören und
+Modus `0700` besitzen. Die Builddateien benötigen Leserechte für diese UID. Der
+Staging-Ordner muss exakt dem Mount des laufenden Adapters entsprechen. Für die
+Vorbereitung eines separaten Eingangsverzeichnisses kann ein Administrator die zwei
+Dateien gezielt dort ablegen und nur dieses neue Verzeichnis und seine Dateien der
+passenden UID zuordnen; keine bestehenden Verzeichnisse oder Daten rekursiv ändern.
+Bei abweichender UID-Zuordnung ist der Helfer nicht ohne Anpassung einsetzbar.
+
+Für die tatsächliche Übernahme `--apply --confirm STAGE_FORGE_ARCHIVE` ergänzen.
+Der Helfer startet einen kurzlebigen, unprivilegierten Prozess im Netzwerk des laufenden
+Hubs und fragt das aktuelle OIDC-Token verdeckt ab. Im Helfer ist kein Docker-Socket
+eingebunden. Quellstand, Planfreigabe, Builder-Signatur und Archiv werden vor und nach
+dem Kopieren geprüft. Das Staging lädt kein Image und startet keinen App-Container.
+
+Im Hub beim aktuellen, freigegebenen Plan den Build- und anschließend den frischen
+Preview-Nachweis importieren. Bei der React-Vorschau den Haushalt wählen und den
+Installationsplan erstellen. Der Admin prüft Image, Ressourcen und Vorschau, bestätigt
+dies ausdrücklich und startet erst danach den freigegebenen Job. Nach erfolgreichem
+Engine-Nachweis erscheint die App unter „Meine Apps“; Zugriffsrechte für weitere
+Mitglieder müssen wie bei anderen Apps gesondert vergeben werden. Ein unbekannter
+Ausgang bleibt gesperrt und kann nur über „Ergebnis abgleichen“ untersucht werden;
+es erfolgt kein automatischer Wiederholungsversuch.
+
+Für ein Update erst eine neue Planrevision freigeben, daraus einen neuen Quellstand
+bauen, testen und erneut in der isolierten VM prüfen. Das neue Archiv ebenso bereitstellen
+und den Update-Plan für die vorhandene Installation ausdrücklich freigeben. Die
+vorherige Manifest- und Jobrevision bleibt erhalten. Erst ein nachgewiesener Wechsel
+auf den neuen gesunden Container aktualisiert den installierten Stand. Bei einem
+unklaren oder fehlgeschlagenen Engine-Ergebnis erfolgt kein automatisches Rollback;
+der Zustand bleibt zur Klärung gesperrt. Eine eigenständige Rollback-/Restore-Funktion
+und deren Live-Stack-Prüfung gehören weiterhin zu P5-003.
+
+Für neue Keycloak-Realms enthält die Vorlage den öffentlichen OIDC-Client
+`generated-app`. Bestehende Realms werden durch einen erneuten Dateiimport **nicht**
+automatisch geändert. Vor dem ersten Öffnen muss ein Administrator dort diesen Client
+einrichten: Standard Flow und PKCE S256 aktivieren, Implicit Flow, Direct Access und
+Service Accounts deaktivieren; Redirect `http://localhost:8080/run/*` und Web Origin
+`http://localhost:8080` an die tatsächlich konfigurierte Origin anpassen. Der
+Audience-Mapper `dkman-api-audience` muss `dkman-api` in das Access-Token aufnehmen
+(siehe `infrastructure/keycloak/dkman-realm.template.json`). Diesen Schritt zuerst in
+einer isolierten Testumgebung prüfen; keine bestehenden Clients überschreiben.
 
 ## Prüfungen
+
+P4-003: [PR-CI 40652530742](https://github.com/damiankaest/DKMan/actions/runs/40652530742)
+hat alle drei Starter auf einer Wegwerf-Engine mit echten BuildKit-Images gestartet,
+ihre Readiness gemessen, die signierten Previewbelege geprüft und die Previewressourcen
+entfernt. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
+hat zusätzlich die Installation des React-Starters mit echtem Docker-Adapter und
+Enginebeleg auf einem Wegwerf-Runner geprüft. [PR-CI 40705688675](https://github.com/damiankaest/DKMan/actions/runs/40705688675)
+hat darüber hinaus mit echtem Keycloak die vollständige CI-Journey von der Planfreigabe
+über Build, Preview, Installation und Update bis zum Öffnen der App geprüft; ein nicht
+berechtigter Benutzer erhielt keinen App-Zugriff. Der Nachweis mit CI-IDs und Prüfsumme
+liegt in `docs/evidence/p4-003-forge-ci.json`. Die Zielhostabnahme steht noch aus.
+[CI 40706305462](https://github.com/damiankaest/DKMan/actions/runs/40706305462)
+hat zudem den Staging-Helfer auf einem Wegwerf-Runner und den unveränderten Zustand
+einer anderen laufenden App einschließlich ihrer Volumes geprüft.
 
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
 hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte

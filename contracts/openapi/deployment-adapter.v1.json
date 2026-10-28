@@ -281,6 +281,118 @@
   },
   "components": {
     "schemas": {
+      "BuildEvidence": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "build_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Build Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "source_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Hash"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "python-api",
+              "react-spa",
+              "fullstack-fastapi-react"
+            ],
+            "title": "Template"
+          },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "api-passed",
+                "web-passed"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Checks"
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Manifest Digest"
+          },
+          "config_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Config Digest"
+          },
+          "archive_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Archive Sha256"
+          },
+          "archive_size": {
+            "type": "integer",
+            "maximum": 2147483648.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Archive Size"
+          },
+          "check_recipe_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Check Recipe Sha256"
+          },
+          "check_requirements_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Check Requirements Sha256"
+          },
+          "image_recipe_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Image Recipe Sha256"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "build_id",
+          "workspace_id",
+          "source_hash",
+          "plan_hash",
+          "template",
+          "checks",
+          "manifest_digest",
+          "config_digest",
+          "archive_sha256",
+          "archive_size",
+          "check_recipe_sha256",
+          "check_requirements_sha256",
+          "image_recipe_sha256",
+          "finished_at"
+        ],
+        "title": "BuildEvidence"
+      },
       "CompletionEvidence": {
         "properties": {
           "kind": {
@@ -422,6 +534,16 @@
                 "type": "null"
               }
             ]
+          },
+          "upgrade": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UpgradePlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -469,7 +591,10 @@
           },
           "user": {
             "type": "string",
-            "const": "10001:10001",
+            "enum": [
+              "10001:10001",
+              "101"
+            ],
             "title": "User",
             "default": "10001:10001"
           },
@@ -491,7 +616,8 @@
             "type": "string",
             "enum": [
               "web-v1",
-              "notes-postgres-v1"
+              "notes-postgres-v1",
+              "forge-spa-v1"
             ],
             "title": "Profile",
             "default": "web-v1"
@@ -546,6 +672,16 @@
                 "type": "null"
               }
             ]
+          },
+          "forge": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ForgeReleaseProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -589,7 +725,10 @@
               },
               {
                 "type": "string",
-                "const": "install"
+                "enum": [
+                  "install",
+                  "deploy"
+                ]
               }
             ],
             "title": "Action"
@@ -619,6 +758,23 @@
           "acknowledged_at"
         ],
         "title": "EngineReceipt"
+      },
+      "ForgeReleaseProof": {
+        "properties": {
+          "build": {
+            "$ref": "#/components/schemas/SignedBuildEvidence"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/SignedPreviewEvidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "build",
+          "preview"
+        ],
+        "title": "ForgeReleaseProof"
       },
       "HTTPValidationError": {
         "properties": {
@@ -877,6 +1033,93 @@
         ],
         "title": "PlanRequest"
       },
+      "PreviewEvidence": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "preview_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Preview Id"
+          },
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "artifact_evidence_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Artifact Evidence Hash"
+          },
+          "source_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Hash"
+          },
+          "plan_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Plan Hash"
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Manifest Digest"
+          },
+          "config_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$",
+            "title": "Config Digest"
+          },
+          "container_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Container Id"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "state": {
+            "type": "string",
+            "const": "healthy",
+            "title": "State",
+            "default": "healthy"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preview_id",
+          "artifact_id",
+          "workspace_id",
+          "artifact_evidence_hash",
+          "source_hash",
+          "plan_hash",
+          "manifest_digest",
+          "config_digest",
+          "container_id",
+          "observed_at",
+          "expires_at"
+        ],
+        "title": "PreviewEvidence"
+      },
       "RejectionEvidence": {
         "properties": {
           "kind": {
@@ -988,6 +1231,120 @@
           "observed_at"
         ],
         "title": "RuntimeView"
+      },
+      "SignedBuildEvidence": {
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "const": "ed25519",
+            "title": "Algorithm",
+            "default": "ed25519"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/BuildEvidence"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 88,
+            "minLength": 88,
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
+            "title": "Signature"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key_id",
+          "evidence",
+          "signature"
+        ],
+        "title": "SignedBuildEvidence"
+      },
+      "SignedPreviewEvidence": {
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "const": "ed25519",
+            "title": "Algorithm",
+            "default": "ed25519"
+          },
+          "key_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Key Id"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/PreviewEvidence"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 88,
+            "minLength": 88,
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
+            "title": "Signature"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key_id",
+          "evidence",
+          "signature"
+        ],
+        "title": "SignedPreviewEvidence"
+      },
+      "UpgradePlan": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "action": {
+            "type": "string",
+            "const": "deploy",
+            "title": "Action",
+            "default": "deploy"
+          },
+          "resource_type": {
+            "type": "string",
+            "const": "app_installation",
+            "title": "Resource Type",
+            "default": "app_installation"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resource Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/DeploymentPlan"
+          },
+          "replacement": {
+            "$ref": "#/components/schemas/DeploymentPlan"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource_id",
+          "subject",
+          "previous",
+          "replacement"
+        ],
+        "title": "UpgradePlan"
       },
       "ValidationError": {
         "properties": {
