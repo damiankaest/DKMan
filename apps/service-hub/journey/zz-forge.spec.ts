@@ -23,6 +23,8 @@ test('real OIDC user builds, previews, approves and updates a Forge app', async 
   }
   await login(admin,'ci-admin');
   await login(outsider,'ci-outsider');
+  // Earlier browser journeys share the same rate limiter. Drain its burst before mutations.
+  await new Promise(resolve => setTimeout(resolve, 7000));
   const notesId = readFileSync('../../.local/notes-installation.txt','utf8').trim();
   function notesContainers() {
     const ids = execFileSync('docker',['ps','--all','--filter',`label=io.dkman.installation=${notesId}`,'--format','{{.ID}}'],{encoding:'utf8'}).trim().split(/\s+/).filter(Boolean);
@@ -35,6 +37,8 @@ test('real OIDC user builds, previews, approves and updates a Forge app', async 
   const notesBefore = notesContainers();
   async function api(path: string, method = 'GET', data?: unknown) {
     expect(authorization).toMatch(/^Bearer /);
+    // Pace requests proactively; never retry an execution or approval mutation.
+    await new Promise(resolve => setTimeout(resolve, 200));
     const response = await admin.request.fetch(`http://localhost:8080/api/v1${path}`,{
       method, data, headers:{Authorization:authorization,'Idempotency-Key':crypto.randomUUID()}, timeout:420_000,
     });

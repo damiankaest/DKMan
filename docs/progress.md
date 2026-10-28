@@ -19,7 +19,9 @@ freigegebenen Benutzers. Der geprüfte CI-Artefaktnachweis steht in
 prüfte den Operatorhelfer mit echtem Staging sowie erneut die OIDC-Journey; eine
 vorhandene Notes-Installation und deren Volumes blieben unverändert. Für den Fall einer
 verlorenen Updateantwort gibt es zusätzlich einen beleggebundenen Abgleich ohne erneute
-Mutation; die echte CI-Probe dafür läuft. Lokal bestehen 374 Backendtests mit 20
+Mutation; die echte Adapter-/Core-Probe in CI 40707696300 bestand. Ein zwischenzeitlicher
+Browserlauf erhielt HTTP 429 durch die bestehende Proxy-Ratenbegrenzung; die Journey
+taktet ihre Anfragen jetzt vorab und wiederholt keine Mutationen. Lokal bestehen 374 Backendtests mit 20
 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
 Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
 API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost
