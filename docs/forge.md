@@ -267,6 +267,9 @@ hat darüber hinaus mit echtem Keycloak die vollständige CI-Journey von der Pla
 über Build, Preview, Installation und Update bis zum Öffnen der App geprüft; ein nicht
 berechtigter Benutzer erhielt keinen App-Zugriff. Der Nachweis mit CI-IDs und Prüfsumme
 liegt in `docs/evidence/p4-003-forge-ci.json`. Die Zielhostabnahme steht noch aus.
+[CI 40706305462](https://github.com/damiankaest/DKMan/actions/runs/40706305462)
+hat zudem den Staging-Helfer auf einem Wegwerf-Runner und den unveränderten Zustand
+einer anderen laufenden App einschließlich ihrer Volumes geprüft.
 
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
 hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte

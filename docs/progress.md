@@ -15,8 +15,11 @@ Auch [CI 40705688675](https://github.com/damiankaest/DKMan/actions/runs/40705688
 war vollständig erfolgreich: Eine Browserjourney prüfte Anmeldung über echtes Keycloak,
 Erstellung, Freigabe, Installation und Update sowie die Ablehnung eines nicht
 freigegebenen Benutzers. Der geprüfte CI-Artefaktnachweis steht in
-`docs/evidence/p4-003-forge-ci.json`. Ein anschließend ergänzter Operatorhelfer mit
-Dry-Run wird im aktuellen CI-Lauf geprüft. Lokal bestehen 372 Backendtests mit 20
+`docs/evidence/p4-003-forge-ci.json`. [CI 40706305462](https://github.com/damiankaest/DKMan/actions/runs/40706305462)
+prüfte den Operatorhelfer mit echtem Staging sowie erneut die OIDC-Journey; eine
+vorhandene Notes-Installation und deren Volumes blieben unverändert. Für den Fall einer
+verlorenen Updateantwort gibt es zusätzlich einen beleggebundenen Abgleich ohne erneute
+Mutation; die echte CI-Probe dafür läuft. Lokal bestehen 374 Backendtests mit 20
 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
 Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
 API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost

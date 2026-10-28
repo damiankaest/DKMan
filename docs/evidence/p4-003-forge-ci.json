@@ -16,5 +16,24 @@
     ],
     "update_state": "succeeded",
     "outsider_denied": true
+  },
+  "staging_journey": {
+    "ci_run": "https://github.com/damiankaest/DKMan/actions/runs/40706305462",
+    "commit": "95c2d70b856e42ccb7ff8565f88139b3b00eb58a",
+    "artifact_id": 12823223610,
+    "artifact_sha256": "6fcb4d4903a18ff00b7df080df9731db86ec704d40f1bad79cdbe12f02076bce",
+    "journey": {
+      "request_id": "9edd101d-666f-4c8e-8e5e-69462c9d60c9",
+      "installation_id": "46f644af-5326-41a7-9100-f366191ab4ca",
+      "install_job": "83c62b53-36b6-4197-a33f-2a610773dc1f",
+      "update_job": "8e4a90bf-4228-4484-93ef-7725bb93c898",
+      "builds": [
+        "917ec8d6-ddf0-4bd3-bed2-f1ea8cd10eb8",
+        "0c551528-f72b-46ed-baf8-bc3d5361ffad"
+      ],
+      "update_state": "succeeded",
+      "outsider_denied": true,
+      "other_app_unchanged": true
+    }
   }
 }
