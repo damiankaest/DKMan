@@ -36,6 +36,7 @@ def prepare(root: Path) -> None:
         )
         public.chmod(0o444)
     (forge / "worker").mkdir(mode=0o700)
+    (forge / "incoming").mkdir(mode=0o700)
     subprocess.run(
         [
             "sudo",

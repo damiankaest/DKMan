@@ -23,6 +23,16 @@ test('real OIDC user builds, previews, approves and updates a Forge app', async 
   }
   await login(admin,'ci-admin');
   await login(outsider,'ci-outsider');
+  const notesId = readFileSync('../../.local/notes-installation.txt','utf8').trim();
+  function notesContainers() {
+    const ids = execFileSync('docker',['ps','--all','--filter',`label=io.dkman.installation=${notesId}`,'--format','{{.ID}}'],{encoding:'utf8'}).trim().split(/\s+/).filter(Boolean);
+    expect(ids).toHaveLength(2);
+    return ids.map(id => {
+      const item = JSON.parse(execFileSync('docker',['container','inspect',id],{encoding:'utf8'}))[0];
+      return {id:item.Id,image:item.Image,started:item.State.StartedAt,volumes:item.Mounts.filter((mount:{Type:string}) => mount.Type === 'volume').map((mount:{Name:string}) => mount.Name).sort()};
+    }).sort((left,right) => left.id.localeCompare(right.id));
+  }
+  const notesBefore = notesContainers();
   async function api(path: string, method = 'GET', data?: unknown) {
     expect(authorization).toMatch(/^Bearer /);
     const response = await admin.request.fetch(`http://localhost:8080/api/v1${path}`,{
@@ -61,6 +71,7 @@ test('real OIDC user builds, previews, approves and updates a Forge app', async 
   await expect(card.getByRole('link',{name:'App öffnen ↗'})).toHaveAttribute('href',path,{timeout:45_000});
   await card.getByRole('link',{name:'App öffnen ↗'}).click();
   await expect(admin.getByRole('status')).toContainText('Angemeldet und freigegeben',{timeout:45_000});
+  expect(notesContainers()).toEqual(notesBefore);
   await outsider.goto(path);
   await expect(outsider.getByRole('status')).toContainText('App-Zugriff konnte nicht bestätigt werden',{timeout:45_000});
   // Reload the hub to refresh the captured admin token before the second real build.
@@ -82,6 +93,7 @@ test('real OIDC user builds, previews, approves and updates a Forge app', async 
   await expect(updated).toContainText(`Version ${update.plan.replacement.version}`,{timeout:45_000});
   await updated.getByRole('link',{name:'App öffnen ↗'}).click();
   await expect(admin.getByRole('status')).toContainText('Angemeldet und freigegeben',{timeout:45_000});
-  writeFileSync('../../.local/forge-journey.json',JSON.stringify({request_id:request.id,installation_id:install.resource_id,install_job:install.id,update_job:update.id,builds:[first.build_id,second.build_id],update_state:outcome.state,outsider_denied:true},null,2));
+  expect(notesContainers()).toEqual(notesBefore);
+  writeFileSync('../../.local/forge-journey.json',JSON.stringify({request_id:request.id,installation_id:install.resource_id,install_job:install.id,update_job:update.id,builds:[first.build_id,second.build_id],update_state:outcome.state,outsider_denied:true,other_app_unchanged:true},null,2));
   await adminContext.close();await outsiderContext.close();
 });

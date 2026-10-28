@@ -202,25 +202,30 @@ Schlüsseldateien müssen für Core und Adapter lesbar sein. Vor der Einrichtung
 Besitzrechte und den verfügbaren Speicherplatz auf dem Zielsystem prüfen; Container-
 Benutzer, Rootless-Docker und Benutzer-Namensräume können andere Host-IDs erfordern.
 
-Nach privater Übertragung des Buildverzeichnisses kann der Operator unter derselben
-UID wie der Adapter zunächst den Dry-Run ausführen:
+Nach privater Übertragung der beiden Builddateien `build-attestation.json` und
+`image.oci.tar` in ein eigenes, für UID 10001 lesbares Verzeichnis den Operatorweg
+zunächst **ohne** Mutation prüfen:
 
 ```bash
-uv run python -m dkman.deployment_adapter.forge_staging \
-  --root /pfad/zum/privaten-staging \
-  --core http://127.0.0.1:8080 \
-  --artifact-dir /pfad/zum/privaten-buildverzeichnis \
-  --builder-public-key /pfad/forge-build-public.pem
+scripts/linux/stage_forge_archive.sh \
+  --artifact-dir /pfad/zum/eigenen-buildverzeichnis \
+  --root "$PWD/.local/forge/staged" \
+  --builder-public-key "$PWD/.local/forge/builder-public.pem"
 ```
 
+Die beiden genannten Verzeichnisse müssen bereits existieren, UID 10001 gehören und
+Modus `0700` besitzen. Die Builddateien benötigen Leserechte für diese UID. Der
+Staging-Ordner muss exakt dem Mount des laufenden Adapters entsprechen. Für die
+Vorbereitung eines separaten Eingangsverzeichnisses kann ein Administrator die zwei
+Dateien gezielt dort ablegen und nur dieses neue Verzeichnis und seine Dateien der
+passenden UID zuordnen; keine bestehenden Verzeichnisse oder Daten rekursiv ändern.
+Bei abweichender UID-Zuordnung ist der Helfer nicht ohne Anpassung einsetzbar.
+
 Für die tatsächliche Übernahme `--apply --confirm STAGE_FORGE_ARCHIVE` ergänzen.
-Das aktuelle OIDC-Token wird verdeckt abgefragt. Quellstand, Planfreigabe,
-Builder-Signatur und Archiv werden vor und nach dem Kopieren geprüft. Das Staging
-lädt kein Image und startet keinen Container. Der `--root` muss dasselbe Verzeichnis
-sein, das über das Overlay beim Adapter eingebunden ist. Falls der lokale Operator
-und UID 10001 nicht identisch sind, ist eine explizite, geprüfte Einrichtung der
-Besitzrechte beziehungsweise ein eigener eingeschränkter Staging-Prozess unter UID
-10001 erforderlich; ein blindes rekursives `chown` auf `.local` ist nicht vorgesehen.
+Der Helfer startet einen kurzlebigen, unprivilegierten Prozess im Netzwerk des laufenden
+Hubs und fragt das aktuelle OIDC-Token verdeckt ab. Im Helfer ist kein Docker-Socket
+eingebunden. Quellstand, Planfreigabe, Builder-Signatur und Archiv werden vor und nach
+dem Kopieren geprüft. Das Staging lädt kein Image und startet keinen App-Container.
 
 Im Hub beim aktuellen, freigegebenen Plan den Build- und anschließend den frischen
 Preview-Nachweis importieren. Bei der React-Vorschau den Haushalt wählen und den

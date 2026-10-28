@@ -11,7 +11,6 @@ from uuid import UUID, uuid4
 
 from dkman.deployment_adapter.compose import ComposeProvider
 from dkman.deployment_adapter.forge_preview import fetch_artifact, start_preview
-from dkman.deployment_adapter.forge_staging import stage_archive
 from dkman.forge.attestation import SignedBuildEvidence, SignedPreviewEvidence, read_private_key
 from dkman.forge.build_worker import execute_build, fetch_input
 
@@ -89,12 +88,48 @@ def main(workspace_id: str) -> None:
     observed = post(
         f"/api/v1/forge/build-artifacts/{registered.id}/previews", proof.model_dump(mode="json")
     )
-    private_stage = worker / f"stage-{uuid4()}"
-    private_stage.mkdir(mode=0o700)
-    staged = stage_archive(signed, authorize, builder.public_key(), archive, private_stage)
-    target = root / "staged" / str(signed.evidence.build_id)
-    subprocess.run(["sudo", "cp", "-a", "--", str(staged), str(target)], check=True)
-    subprocess.run(["sudo", "chown", "-R", "10001:10001", "--", str(target)], check=True)
+    incoming = root / "incoming" / str(signed.evidence.build_id)
+    subprocess.run(
+        ["sudo", "install", "-d", "-m", "0700", "-o", "10001", "-g", "10001", str(incoming)],
+        check=True,
+    )
+    for filename in ("image.oci.tar", "build-attestation.json"):
+        subprocess.run(
+            [
+                "sudo",
+                "install",
+                "-m",
+                "0600",
+                "-o",
+                "10001",
+                "-g",
+                "10001",
+                str(artifact_dir / filename),
+                str(incoming / filename),
+            ],
+            check=True,
+        )
+    script = Path(__file__).resolve().parents[1] / "scripts/linux/stage_forge_archive.sh"
+    staged = subprocess.run(
+        [
+            str(script),
+            "--artifact-dir",
+            str(incoming),
+            "--root",
+            str(root / "staged"),
+            "--builder-public-key",
+            str(root / "builder-public.pem"),
+            "--apply",
+            "--confirm",
+            "STAGE_FORGE_ARCHIVE",
+        ],
+        input=token + "\n",
+        text=True,
+        capture_output=True,
+        timeout=420,
+    )
+    if staged.returncode:
+        raise ValueError("CI staging helper failed: " + staged.stderr[-2000:])
     print(json.dumps({"preview_id": observed["id"], "build_id": registered.id}))
 
 
