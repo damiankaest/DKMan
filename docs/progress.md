@@ -8,7 +8,11 @@ Archivübernahme, previewgebundene separate Installationsfreigabe und die Ausfü
 war vollständig erfolgreich und hat die Installation mit echtem Docker und Enginebeleg
 auf einem Wegwerf-Runner geprüft. Ein neuer Updateablauf bindet alte und neue Revision
 an eine separate Freigabe und aktualisiert den gespeicherten Stand nur bei nachgewiesenem
-Containerwechsel. Der neue echte Update-CI-Test steht noch aus. Lokal bestehen 361
+Containerwechsel. Die [PR-CI 40705094439](https://github.com/damiankaest/DKMan/actions/runs/40705094439)
+hat Build, Preview, Core-Freigabe, Adapter-Installation, Update und App-Kachel gemeinsam
+mit echtem BuildKit und Docker geprüft (4 Tests); ihre übrigen Jobs liefen bei dieser
+Dokumentation noch. Eine Journey mit echtem Keycloak und nicht berechtigtem Benutzer
+ist zusätzlich vorbereitet, aber noch nicht ausgeführt. Lokal bestehen 361
 Backendtests mit 19 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
 Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
 API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost

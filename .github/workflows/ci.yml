@@ -100,6 +100,7 @@ jobs:
     timeout-minutes: 25
     env:
       DKMAN_DISPOSABLE_DOCKER_TEST: '1'
+      DKMAN_DISPOSABLE_BUILDKIT_TEST: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -108,15 +109,31 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: '24'}
       - run: uv sync --frozen
+      - name: Install verified CI BuildKit
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/buildkit.tar.gz" https://github.com/moby/buildkit/releases/download/v0.34.1/buildkit-v0.34.1.linux-amd64.tar.gz
+          echo "a59539daf547fe0958efe2d07e41c0a6944e1112a66d7e519ec1cf5b673ef15b  $RUNNER_TEMP/buildkit.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/buildkit" "$RUNNER_TEMP/dkman-buildkit"
+          tar -xzf "$RUNNER_TEMP/buildkit.tar.gz" -C "$RUNNER_TEMP/buildkit"
+          echo "$RUNNER_TEMP/buildkit/bin" >> "$GITHUB_PATH"
+          echo "DKMAN_TEST_BUILDKIT_SOCKET=unix://$RUNNER_TEMP/dkman-buildkit/buildkitd.sock" >> "$GITHUB_ENV"
+          sudo env PATH="$RUNNER_TEMP/buildkit/bin:/usr/sbin:/usr/bin:/sbin:/bin" "$RUNNER_TEMP/buildkit/bin/buildkitd" --addr "unix://$RUNNER_TEMP/dkman-buildkit/buildkitd.sock" --root "$RUNNER_TEMP/buildkit-state" > "$RUNNER_TEMP/buildkit.log" 2>&1 &
+          for attempt in $(seq 1 40); do
+            test -S "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock" && break
+            sleep 1
+          done
+          test -S "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
+          sudo chmod 666 "$RUNNER_TEMP/dkman-buildkit/buildkitd.sock"
       - run: uv run python scripts/generate_adapter_config.py --apply --confirm ADAPTER_CONFIG
       - run: uv run python scripts/build_notes.py --apply --confirm BUILD_NOTES
       - run: python3 scripts/generate_local_config.py && python3 tests/prepare_notes_journey.py
+      - run: uv run python tests/prepare_forge_journey.py
       - name: Start isolated runtime stack
         run: |
           export DKMAN_DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml config --quiet
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml up -d --build --wait --wait-timeout 300
-          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f tests/notes-faults.compose.yaml run --rm --no-deps core python -m dkman.seed
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f infrastructure/compose/forge-attestation.yaml -f infrastructure/compose/forge-preview.yaml -f infrastructure/compose/forge-deployment.yaml -f tests/notes-faults.compose.yaml config --quiet
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f infrastructure/compose/forge-attestation.yaml -f infrastructure/compose/forge-preview.yaml -f infrastructure/compose/forge-deployment.yaml -f tests/notes-faults.compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose -p dkman --env-file .env -f infrastructure/compose/compose.yaml -f infrastructure/compose/runtime.yaml -f infrastructure/compose/forge-attestation.yaml -f infrastructure/compose/forge-preview.yaml -f infrastructure/compose/forge-deployment.yaml -f tests/notes-faults.compose.yaml run --rm --no-deps core python -m dkman.seed
       - run: npm ci --ignore-scripts --no-audit --no-fund && npx playwright install --with-deps chromium && npm run test:journey
         working-directory: apps/service-hub
       - run: python3 tests/verify_notes_container.py
@@ -136,6 +153,7 @@ jobs:
             .local/notes-operation-evidence.json
             .local/planning-journey.json
             .local/chat-journey.json
+            .local/forge-journey.json
       - name: Show sanitized startup state on failure
         if: failure()
         run: |

@@ -844,14 +844,15 @@ def reconcile_job(
     "/apps/{app_id}/refresh", response_model=RuntimeView, operation_id="refreshInstallationStatus"
 )
 def refresh_status(app_id: UUID, request: Request, db: Db, actor: Admin) -> RuntimeView:
+    from dkman.runtime_api import installed_plan
+
     target = db.get(DeploymentTarget, str(app_id))
-    if target is None or db.get(AppInstallation, str(app_id)) is None:
+    installation = db.get(AppInstallation, str(app_id))
+    if target is None or installation is None:
         raise HTTPException(404, "Installed app not found")
-    original = db.get(Job, target.job_id)
-    assert original is not None
-    plan = DeploymentPlan.model_validate(original.plan)
+    plan = installed_plan(db, installation)
     # A separate, read-only operation never consumes/reuses an install approval.
-    read = Job(id=str(uuid4()), resource_id=str(app_id), plan_hash=original.plan_hash)
+    read = Job(id=str(uuid4()), resource_id=str(app_id), plan_hash=plan.plan_hash)
     token = credential(request.app.state.settings, actor, read, "status")
     db.commit()
     try:

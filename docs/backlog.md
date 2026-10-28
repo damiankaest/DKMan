@@ -28,7 +28,7 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P3-003 | P1 / 3 | P3-002 | Garten-Wizard sammelt Requirements und schlägt berechtigte vorhandene Dienste vor; genehmigbarer Plan |
 | P4-001 | P1 / 4 | P3-003 | PR #28 in main; ausführbare Vorlagen, gebundene private Quellstände/ZIP und Worker-Gitinitialisierung; PR-CI 40497813427 erfolgreich |
 | P4-002 | P1 / 4 | P4-001 | manueller isolierter BuildKit-Worker, Tests und OCI-Build sowie privates BuildArtifact mit Digest und Fehlerlogs implementiert; [PR #29](https://github.com/damiankaest/DKMan/pull/29), vollständige PR-CI 40506720712 für Code `1fe0b36` bestanden, alle drei Images real auf CI-Builder gebaut; Zielhostabnahme ausstehend, kein Hub-Start/Deployment |
-| P4-003 | P1 / 4 | P4-002,P2-006 | in Arbeit: signierte Build-/Preview-Nachweise und drei isolierte Starter-Previews; React-Starter mit separater Freigabe real auf CI-Engine installiert; Update als neue Revision implementiert, echte Update-CI und OIDC-Gesamtjourney noch offen |
+| P4-003 | P1 / 4 | P4-002,P2-006 | in Arbeit: signierte Build-/Preview-Nachweise, drei isolierte Starter-Previews und Installation/Update des React-Starters über Core/Freigabe/echten Adapter auf CI-Engine geprüft; OIDC-Gesamtjourney und Zielhostabnahme noch offen |
 | P4-004 | P2 / 4 | P4-003 | OpenHands-SDK-Vertrag anhand offizieller Version in isolierter Probe evaluieren; keine vorgezogene Produktionsintegration |
 | P5-001 | P2 / 5 | P4-003 | DB-Provider/Wizard, eigene Approllen/Secrets, Migration und Rechte-Negativtests |
 | P5-002 | P2 / 5 | P5-001 | File-/Notification-Capabilities, zwei Apps ohne direkte Fremd-DB-Schreibrechte |

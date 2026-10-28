@@ -16,8 +16,10 @@ from test_planning import approve, review, revision
 from dkman.deployment_health import poll_once
 from dkman.deployments.contracts import (
     ContainerEvidence,
+    DeploymentCommand,
     EngineReceipt,
     OperationView,
+    UpgradePlan,
     WorkloadEvidence,
 )
 from dkman.deployments.evidence import prove_completion
@@ -239,6 +241,9 @@ def test_upgrade_requires_separate_approval_and_preserves_prior_revision(
 
     poll_once(engine, app.state.settings, StatusEngine())
     assert client.get("/api/v1/apps").json()[0]["route"].endswith(first["resource_id"] + "/")
+    app.state.deployment_client = StatusEngine()
+    refreshed = client.post(f"/api/v1/apps/{first['resource_id']}/refresh")
+    assert refreshed.status_code == 200 and refreshed.json()["state"] == "running"
 
 
 def test_missing_receipt_keeps_old_revision_and_blocks_retry(
@@ -274,3 +279,35 @@ def test_changed_plan_after_approval_never_calls_adapter(client, app, upgrade_ca
     result = client.post(f"/api/v1/jobs/{job['id']}/run").json()
     assert result["state"] == "failed" and result["failure_code"] == "upgrade_preflight_failed"
     assert fake.calls == []
+
+
+@pytest.mark.parametrize(
+    "change", ["same_container", "wrong_image", "wrong_plan", "volume", "unhealthy", "old_plan"]
+)
+def test_update_receipt_must_prove_both_revisions(client, upgrade_candidate, change):
+    _, first, preview, _ = upgrade_candidate
+    raw = submit_upgrade(client, first, preview).json()
+    plan = UpgradePlan.model_validate(raw["plan"])
+    command = DeploymentCommand(action="deploy", plan=plan.replacement, upgrade=plan)
+    operation = uuid4()
+    outcome = FakeEngine().execute(operation, command, "")
+    assert outcome.completion is not None
+    receipt = outcome.completion.receipt
+    after = outcome.completion.after
+    current = after.containers[0]
+    if change == "old_plan":
+        old = receipt.before.containers[0].model_copy(update={"runtime_plan_hash": "f" * 64})
+        before = receipt.before.model_copy(update={"containers": [old]})
+        receipt = receipt.model_copy(update={"before": before})
+    else:
+        values = {
+            "same_container": {"container_id": receipt.before.containers[0].container_id},
+            "wrong_image": {"image_id": "sha256:" + "f" * 64},
+            "wrong_plan": {"runtime_plan_hash": "f" * 64},
+            "volume": {"volumes": ["foreign-volume"]},
+            "unhealthy": {"health": "unhealthy"},
+        }
+        current = current.model_copy(update=values[change])
+        after = after.model_copy(update={"containers": [current]})
+    with pytest.raises(ValueError):
+        prove_completion(command, operation, outcome.created_at, receipt, after)
