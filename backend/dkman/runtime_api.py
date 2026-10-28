@@ -29,6 +29,7 @@ from dkman.deployments.contracts import (
     LifecyclePlan,
     OperationView,
     RuntimeView,
+    UpgradePlan,
 )
 from dkman.deployments.redaction import redact_logs
 from dkman.job_schemas import JobView
@@ -56,6 +57,7 @@ User = Annotated[Principal, Depends(current_principal)]
 
 class RuntimeInstallationView(BaseModel):
     id: str
+    definition_id: str
     name: str
     household_id: str
 
@@ -91,7 +93,10 @@ def installations(db: Db, actor: User) -> list[RuntimeInstallationView]:
             assert definition is not None
             result.append(
                 RuntimeInstallationView(
-                    id=item.id, household_id=item.household_id, name=definition.name
+                    id=item.id,
+                    definition_id=item.definition_id,
+                    household_id=item.household_id,
+                    name=definition.name,
                 )
             )
     return result
@@ -102,14 +107,27 @@ def installed_plan(db: Session, item: AppInstallation) -> DeploymentPlan:
     original = db.get(Job, target.job_id) if target else None
     if original is None or original.state != "succeeded" or original.action != "deployment.install":
         raise HTTPException(409, "Installed runtime provenance unavailable")
-    plan = DeploymentPlan.model_validate(original.plan)
+    latest = db.scalar(
+        select(Job)
+        .where(
+            Job.action == "deployment.upgrade", Job.resource_id == item.id, Job.state == "succeeded"
+        )
+        .order_by(Job.finished_at.desc(), Job.created_at.desc(), Job.id.desc())
+    )
+    if latest is not None:
+        update = UpgradePlan.model_validate(latest.plan)
+        if update.plan_hash != latest.plan_hash or str(update.resource_id) != item.id:
+            raise HTTPException(409, "Installed update provenance changed")
+        plan = update.replacement
+    else:
+        plan = DeploymentPlan.model_validate(original.plan)
     if (
         str(plan.installation_id) != item.id
         or plan.context is None
         or str(plan.context.household_id) != item.household_id
         or str(plan.context.manifest_id) != item.manifest_id
         or plan.definition_id != item.definition_id
-        or plan.plan_hash != original.plan_hash
+        or (latest is None and plan.plan_hash != original.plan_hash)
     ):
         raise HTTPException(409, "Installed runtime provenance changed")
     return plan

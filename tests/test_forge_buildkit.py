@@ -165,7 +165,7 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                 artifact,
                 root,
                 ComposeProvider(root, uuid4(), docker),
-                ttl_seconds=300,
+                ttl_seconds=900,
                 on_ready=ready,
                 hold=lambda _: None,
             )
@@ -177,8 +177,73 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
         if kind == "react-spa":
             from forge_deploy_ci import exercise_forge_install
 
+            revised_request = GenerationRequest(
+                plan_id=str(uuid4()),
+                content_hash="b" * 64,
+                template=kind,
+                requirements={
+                    "title": "Garden revision",
+                    "goal": "Grow plants",
+                    "features": ["Calendar"],
+                },
+            )
+            revised_bundle = TemplateProvider().generate(revised_request)
+            revised_source = BuildInput(
+                workspace_id=str(uuid4()),
+                bundle_hash=bundle_hash(revised_bundle),
+                bundle=revised_bundle,
+            )
+            revised_result = execute_build(
+                lambda: revised_source, root, address, buildctl, signing_key
+            )
+            assert revised_result["state"] == "succeeded", revised_result
+            revised_archive = root / revised_result["build_id"] / "image.oci.tar"
+            revised_signed = SignedBuildEvidence.model_validate_json(
+                (revised_archive.parent / "build-attestation.json").read_text()
+            )
+            revised_registered = BuildArtifactView(
+                id=str(revised_signed.evidence.build_id),
+                workspace_id=revised_source.workspace_id,
+                created_at=utcnow(),
+                submitted_by="ci",
+                key_id=revised_signed.key_id,
+                evidence_hash=digest(revised_signed.model_dump(mode="json")),
+                evidence=revised_signed.evidence,
+            )
+            revised_seen = []
+            revised_preview = start_preview(
+                revised_signed,
+                lambda: (revised_source, revised_registered),
+                signing_key.public_key(),
+                preview_key,
+                revised_archive,
+                root,
+                ComposeProvider(root, uuid4(), docker),
+                ttl_seconds=900,
+                on_ready=lambda _url, proof: revised_seen.append(proof),
+                hold=lambda _: None,
+            )
+            assert revised_preview["state"] == "stopped" and len(revised_seen) == 1
+            revised_observation = SignedPreviewEvidence.model_validate_json(
+                revised_seen[0].read_text()
+            )
+            verify_preview_signature(revised_observation, preview_key.public_key())
             exercise_forge_install(
-                root, artifact, source, registered, signed, signing_key, preview_key, observation
+                root,
+                artifact,
+                source,
+                registered,
+                signed,
+                signing_key,
+                preview_key,
+                observation,
+                (
+                    revised_archive,
+                    revised_source,
+                    revised_registered,
+                    revised_signed,
+                    revised_observation,
+                ),
             )
     evidence = Path(os.environ["DKMAN_BUILD_EVIDENCE_DIR"])
     evidence.mkdir(parents=True, exist_ok=True)

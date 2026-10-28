@@ -4,11 +4,15 @@
 
 P4-003 Zwischenstand: Für den unveränderten React-SPA-Starter sind private
 Archivübernahme, previewgebundene separate Installationsfreigabe und die Ausführung
-über den bestehenden Adapter implementiert. Lokale Prüfungen: 358 Backendtests
-bestanden, 19 Dienst-/Docker-Skips; Ruff, Format, mypy und 30 Hubtests bestanden.
-Die echte Docker-Installationsprobe in CI und der vollständige Updateablauf stehen
-noch aus. API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein
-Zielhost verändert. Der folgende Previewstand bleibt als Verlauf erhalten.
+über den bestehenden Adapter implementiert. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
+war vollständig erfolgreich und hat die Installation mit echtem Docker und Enginebeleg
+auf einem Wegwerf-Runner geprüft. Ein neuer Updateablauf bindet alte und neue Revision
+an eine separate Freigabe und aktualisiert den gespeicherten Stand nur bei nachgewiesenem
+Containerwechsel. Der neue echte Update-CI-Test steht noch aus. Lokal bestehen 361
+Backendtests mit 19 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
+Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
+API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost
+verändert. Der folgende Previewstand bleibt als Verlauf erhalten.
 
 P4-003 ist in Arbeit: Ein Builder kann Buildnachweise mit einem separaten
 Ed25519-Schlüssel signieren; Core prüft Signatur, Plan, Quellen und Rezepte und der

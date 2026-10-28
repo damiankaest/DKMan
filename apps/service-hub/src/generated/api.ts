@@ -901,6 +901,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forge/previews/{preview_id}/upgrades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Forge Upgrade */
+        post: operations["planForgeUpgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/config": {
         parameters: {
             query?: never;
@@ -1321,6 +1338,14 @@ export interface components {
         ForgeReleaseProof: {
             build: components["schemas"]["SignedBuildEvidence"];
             preview: components["schemas"]["SignedPreviewEvidence"];
+        };
+        /** ForgeUpgradeInput */
+        ForgeUpgradeInput: {
+            /**
+             * Installation Id
+             * Format: uuid
+             */
+            installation_id: string;
         };
         /** GenerationRequest */
         GenerationRequest: {
@@ -1870,6 +1895,8 @@ export interface components {
         RuntimeInstallationView: {
             /** Id */
             id: string;
+            /** Definition Id */
+            definition_id: string;
             /** Name */
             name: string;
             /** Household Id */
@@ -3983,6 +4010,43 @@ export interface operations {
                 };
                 content: {
                     "application/zip": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    planForgeUpgrade: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeUpgradeInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
                 };
             };
             /** @description Validation Error */

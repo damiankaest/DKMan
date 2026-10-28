@@ -20,10 +20,13 @@ from dkman.deployments.contracts import (
     DeploymentPlan,
     ForgeReleaseProof,
     InstallationContext,
+    UpgradePlan,
 )
 
 
-def exercise_forge_install(root, archive, source, registered, signed, builder, preview_key, proof):
+def exercise_forge_install(
+    root, archive, source, registered, signed, builder, preview_key, proof, revision
+):
     assert os.environ.get("GITHUB_ACTIONS") == "true"
     assert os.environ.get("DKMAN_DISPOSABLE_DOCKER_TEST") == "1"
     docker = shutil.which("docker")
@@ -141,6 +144,66 @@ def exercise_forge_install(root, archive, source, registered, signed, builder, p
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
             with opener.open(f"http://{address}:8080/health/ready", timeout=5) as response:
                 assert json.load(response) == {"status": "healthy"}
+            revised_archive, revised_source, revised_registered, revised_signed, revised_proof = (
+                revision
+            )
+            stage_archive(
+                revised_signed,
+                lambda: (revised_source, revised_registered),
+                builder.public_key(),
+                revised_archive,
+                staging,
+            )
+            context = plan.context.model_copy(
+                update={"manifest_id": uuid4(), "manifest_hash": "b" * 64}
+            )
+            replacement = DeploymentPlan.model_validate(
+                {
+                    **plan.model_dump(mode="json"),
+                    "version": "0.2.0",
+                    "image": revised_signed.evidence.config_digest,
+                    "source_hash": revised_source.bundle_hash,
+                    "context": context.model_dump(mode="json"),
+                    "forge": ForgeReleaseProof(
+                        build=revised_signed, preview=revised_proof
+                    ).model_dump(mode="json"),
+                }
+            )
+            upgrade = UpgradePlan(
+                resource_id=plan.installation_id,
+                subject="ci-admin",
+                previous=plan,
+                replacement=replacement,
+            )
+            update_operation = uuid4()
+            update_grant = sign_delegation(
+                secret=secret.read_bytes(),
+                subject="ci-admin",
+                roles=["admin"],
+                operation_id=update_operation,
+                action="deploy",
+                resource_id=plan.installation_id,
+                plan_hash=upgrade.plan_hash,
+                approval_id=uuid4(),
+                approval_expires_at=datetime.now(UTC) + timedelta(minutes=3),
+            )
+            update_response = client.post(
+                f"/v1/operations/{update_operation}",
+                headers={"Authorization": "Bearer " + update_grant},
+                json=DeploymentCommand(
+                    action="deploy", plan=replacement, upgrade=upgrade
+                ).model_dump(mode="json"),
+            )
+            assert update_response.status_code == 200, update_response.text
+            update = update_response.json()
+            assert update["state"] == "succeeded", update
+            assert update["completion"]["receipt"]["plan_hash"] == upgrade.plan_hash
+            assert update["runtime"]["container_id"] != container
+            current = json.loads(
+                command("container", "inspect", update["runtime"]["container_id"]).stdout
+            )[0]
+            assert current["Image"] == replacement.image and current["Config"]["User"] == "101"
+            assert current["Config"]["Labels"]["io.dkman.plan-hash"] == replacement.plan_hash
     finally:
         resources = command(
             "ps",

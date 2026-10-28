@@ -28,6 +28,7 @@ from dkman.deployments.contracts import (
     OperationView,
     PlanRequest,
     RuntimeView,
+    UpgradePlan,
     build_plan,
     validate_plan,
 )
@@ -284,6 +285,30 @@ class ForgeInstallInput(BaseModel):
     household_id: UUID
 
 
+def forge_manifest(definition_id: str, version: str, title: str, image: str) -> Manifest:
+    return Manifest.model_validate(
+        {
+            "schemaVersion": "dkman.io/v1alpha1",
+            "id": definition_id,
+            "name": title,
+            "version": version,
+            "type": "web-app",
+            "description": "Forge starter with a separately reviewed preview",
+            "ui": {"displayName": title, "icon": "grid", "route": f"/run/{definition_id}/"},
+            "runtime": {
+                "deploymentProvider": "docker-compose",
+                "image": image,
+                "internalPort": 8080,
+                "memoryMb": 256,
+                "cpus": 0.5,
+            },
+            "health": {"livePath": "/health/live", "readyPath": "/health/ready"},
+            "capabilities": [],
+            "dependencies": [],
+        }
+    )
+
+
 @router.post(
     "/forge/previews/{preview_id}/installations",
     response_model=JobView,
@@ -354,30 +379,11 @@ def plan_forge_installation(
     signed_build = SignedBuildEvidence.model_validate(artifact.attestation)
     signed_preview = SignedPreviewEvidence.model_validate(observation.attestation)
     version = f"0.{plan_record.revision}.{int(UUID(artifact.id).hex[:12], 16)}"
-    manifest = Manifest.model_validate(
-        {
-            "schemaVersion": "dkman.io/v1alpha1",
-            "id": definition_id,
-            "name": bundle.request.requirements.title,
-            "version": version,
-            "type": "web-app",
-            "description": "Forge starter with a separately reviewed preview",
-            "ui": {
-                "displayName": bundle.request.requirements.title,
-                "icon": "grid",
-                "route": f"/run/{definition_id}/",
-            },
-            "runtime": {
-                "deploymentProvider": "docker-compose",
-                "image": signed_build.evidence.config_digest,
-                "internalPort": 8080,
-                "memoryMb": 256,
-                "cpus": 0.5,
-            },
-            "health": {"livePath": "/health/live", "readyPath": "/health/ready"},
-            "capabilities": [],
-            "dependencies": [],
-        }
+    manifest = forge_manifest(
+        definition_id,
+        version,
+        bundle.request.requirements.title,
+        signed_build.evidence.config_digest,
     )
     content = manifest.model_dump(by_alias=True)
     definition = db.get(AppDefinition, definition_id)
@@ -489,6 +495,45 @@ def plan_forge_installation(
     return job
 
 
+def verified_forge_source(db: Session, actor: Principal, plan: DeploymentPlan, home_id: str) -> int:
+    from dkman.forge.attestation import verify_recipe
+    from dkman.forge.templates import TemplateProvider
+    from dkman.forge_api import current_bundle, visible_workspace
+    from dkman.planning import plan_for, request_for
+
+    proof = plan.forge
+    if proof is None:
+        raise ValueError("Forge proof is missing")
+    workspace = visible_workspace(db, str(proof.build.evidence.workspace_id), actor)
+    bundle = current_bundle(db, workspace, actor)
+    parent_plan = plan_for(db, workspace.plan_id, actor)
+    parent = request_for(db, parent_plan.request_id, actor, lock=True)
+    artifact = db.get(ForgeBuildArtifact, str(proof.build.evidence.build_id))
+    preview = db.get(ForgePreview, str(proof.preview.evidence.preview_id))
+    definition = db.get(AppDefinition, plan.definition_id)
+    version = f"0.{parent_plan.revision}.{int(proof.build.evidence.build_id.hex[:12], 16)}"
+    if (
+        artifact is None
+        or preview is None
+        or definition is None
+        or definition.source != f"forge:{parent.id}"
+        or artifact.workspace_id != workspace.id
+        or preview.artifact_id != artifact.id
+        or digest(artifact.attestation) != artifact.evidence_hash
+        or digest(preview.attestation) != preview.evidence_hash
+        or artifact.attestation != proof.build.model_dump(mode="json")
+        or preview.attestation != proof.preview.model_dump(mode="json")
+        or workspace.bundle_hash != proof.build.evidence.source_hash
+        or TemplateProvider().generate(bundle.request) != bundle
+        or plan.definition_id != "forge-" + UUID(parent.id).hex
+        or plan.version != version
+        or (parent.household_id is not None and parent.household_id != home_id)
+    ):
+        raise ValueError("Forge authorization or evidence changed")
+    verify_recipe(proof.build.evidence, bundle)
+    return parent_plan.revision
+
+
 def verified_plan(db: Session, job: Job, settings: Settings, actor: Principal) -> DeploymentPlan:
     plan = DeploymentPlan.model_validate(job.plan)
     target = db.get(DeploymentTarget, job.resource_id)
@@ -509,34 +554,10 @@ def verified_plan(db: Session, job: Job, settings: Settings, actor: Principal) -
     ):
         raise ValueError("Installation binding changed")
     if plan.forge is not None:
-        from dkman.forge.attestation import verify_recipe
-        from dkman.forge.templates import TemplateProvider
-        from dkman.forge_api import current_bundle, visible_workspace
-        from dkman.planning import plan_for, request_for
-
-        proof = plan.forge
-        workspace = visible_workspace(db, str(proof.build.evidence.workspace_id), actor)
-        bundle = current_bundle(db, workspace, actor)
-        parent_plan = plan_for(db, workspace.plan_id, actor)
-        parent = request_for(db, parent_plan.request_id, actor, lock=True)
-        artifact = db.get(ForgeBuildArtifact, str(proof.build.evidence.build_id))
-        preview = db.get(ForgePreview, str(proof.preview.evidence.preview_id))
-        if (
-            artifact is None
-            or preview is None
-            or artifact.workspace_id != workspace.id
-            or preview.artifact_id != artifact.id
-            or digest(artifact.attestation) != artifact.evidence_hash
-            or digest(preview.attestation) != preview.evidence_hash
-            or artifact.attestation != proof.build.model_dump(mode="json")
-            or preview.attestation != proof.preview.model_dump(mode="json")
-            or workspace.bundle_hash != proof.build.evidence.source_hash
-            or TemplateProvider().generate(bundle.request) != bundle
-            or plan.definition_id != "forge-" + UUID(parent.id).hex
-            or (parent.household_id is not None and parent.household_id != target.household_id)
-        ):
-            raise ValueError("Forge authorization or evidence changed")
-        verify_recipe(proof.build.evidence, bundle)
+        verified_forge_source(db, actor, plan, target.household_id)
+        definition = db.get(AppDefinition, plan.definition_id)
+        if definition is None or definition.version != plan.version:
+            raise ValueError("Registered app revision changed")
     household(db, target.household_id)
     manifest = db.get(ServiceManifest, str(context.manifest_id))
     if (
@@ -615,7 +636,8 @@ def accept_rejection(db: Session, job: Job, result: OperationView, actor: Princi
         or result.completion is not None
         or result.operation_id != UUID(job.id)
         or str(result.installation_id) != job.resource_id
-        or f"deployment.{result.action}" != job.action
+        or ("deployment.upgrade" if result.action == "deploy" else f"deployment.{result.action}")
+        != job.action
         or result.plan_hash != job.plan_hash
         or proof.operation_id != result.operation_id
         or proof.installation_id != result.installation_id
@@ -646,6 +668,8 @@ def accept_rejection(db: Session, job: Job, result: OperationView, actor: Princi
 
 def completion_result(job: Job, outcome: OperationView) -> dict[str, str]:
     if outcome.completion is None:
+        if job.action == "deployment.upgrade":
+            raise ValueError("Forge update requires an engine receipt")
         if job.action in LIFECYCLE_ACTIONS:
             from dkman.deployments.contracts import LifecyclePlan
 
@@ -657,15 +681,16 @@ def completion_result(job: Job, outcome: OperationView) -> dict[str, str]:
     )
     from dkman.deployments.contracts import LifecyclePlan
 
-    command = (
-        DeploymentCommand(action="install", plan=runtime)
-        if runtime
-        else DeploymentCommand(
-            action=LifecyclePlan.model_validate(job.plan).action,
-            plan=LifecyclePlan.model_validate(job.plan).runtime,
-            lifecycle=LifecyclePlan.model_validate(job.plan),
+    if runtime:
+        command = DeploymentCommand(action="install", plan=runtime)
+    elif job.action == "deployment.upgrade":
+        update = UpgradePlan.model_validate(job.plan)
+        command = DeploymentCommand(action="deploy", plan=update.replacement, upgrade=update)
+    else:
+        lifecycle = LifecyclePlan.model_validate(job.plan)
+        command = DeploymentCommand(
+            action=lifecycle.action, plan=lifecycle.runtime, lifecycle=lifecycle
         )
-    )
     if job.execution_started_at is None:
         raise ValueError("Execution marker missing")
     evidence, measured = prove_completion(
@@ -787,7 +812,7 @@ def reconcile_job(
     if job.requested_by != actor.subject:
         raise HTTPException(403, "Requesting identity required")
     if (
-        job.action not in LIFECYCLE_ACTIONS | {"deployment.install"}
+        job.action not in LIFECYCLE_ACTIONS | {"deployment.install", "deployment.upgrade"}
         or job.state != "reconciliation_required"
     ):
         raise HTTPException(409, "Job does not require installation reconciliation")
@@ -808,6 +833,10 @@ def reconcile_job(
         from dkman.runtime_api import accept_lifecycle
 
         return accept_lifecycle(db, job, outcome, actor)
+    if job.action == "deployment.upgrade":
+        from dkman.forge_upgrade_api import accept_upgrade
+
+        return accept_upgrade(db, job, outcome, actor)
     return accept_outcome(db, job, outcome, actor)
 
 

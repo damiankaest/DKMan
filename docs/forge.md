@@ -115,8 +115,7 @@ müssen nach dieser Änderung neu erzeugt werden; der Core lehnt abweichende Rez
 
 ## Erste Preview-Arbeit · P4-003
 
-Dieser Teil ist in Arbeit: Eine produktive Übernahme oder Installation ist noch nicht
-implementiert. Der Preview-Pfad unterstützt die drei unveränderten Startervorlagen und
+Der Preview-Pfad unterstützt die drei unveränderten Startervorlagen und
 benötigt eine separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
 Daten, Docker-Sockets oder Secrets haben. Die Isolation des Hosts muss der Betreiber
 bereitstellen und prüfen. Ein internes Docker-Netz isoliert Container nicht vollständig
@@ -182,15 +181,84 @@ CLEANUP_FORGE_PREVIEW` ausschließlich die passend markierten Ressourcen entfern
 
 Die `preview-attestation.json` lässt sich innerhalb ihrer Gültigkeit beim Build im Hub
 importieren. Sie belegt eine beobachtete Readiness, keinen aktuellen Livezustand und
-keine menschliche Abnahme. Es gibt noch keinen integrierten Preview-Link, keine
-Archivübernahme in die Produktiv-Engine und keinen Deploy- oder Updateablauf.
+keine menschliche Abnahme. Ein integrierter Preview-Link besteht noch nicht.
+
+## Installation und Update des React-Starters
+
+Nur die unveränderte `react-spa`-Vorlage kann zunächst installiert werden; API und
+Fullstack bleiben bei der Vorschau. Der Starter ist eine Anmelde- und Zugriffsgrundlage,
+noch keine fertige Garten-App. Die Bereitstellung erfolgt manuell, bevor ein Admin
+den konkreten Plan separat freigibt. Build- und Preview-Schlüssel müssen verschieden
+sein. Der Core erhält beide öffentlichen Schlüssel mit `forge-attestation.yaml` und
+`forge-preview.yaml`; der Adapter erhält sie und sein privates Archivverzeichnis mit
+`forge-deployment.yaml` zusätzlich zu `runtime.yaml`. Diese Overlays sind ein bewusstes
+Opt-in und ändern für sich genommen keinen laufenden Host.
+
+Der Adapter läuft als UID/GID 10001. Sein gemountetes `.local/forge/staged` und jedes
+Build-Unterverzeichnis müssen dieser UID gehören und Modus `0700` haben; die Dateien
+werden mit `0600` angelegt. Die UID darf auf dem Zielsystem keinem anderen,
+unvertrauenswürdigen Benutzer Zugriff auf die Archive verschaffen. Öffentliche
+Schlüsseldateien müssen für Core und Adapter lesbar sein. Vor der Einrichtung die
+Besitzrechte und den verfügbaren Speicherplatz auf dem Zielsystem prüfen; Container-
+Benutzer, Rootless-Docker und Benutzer-Namensräume können andere Host-IDs erfordern.
+
+Nach privater Übertragung des Buildverzeichnisses kann der Operator unter derselben
+UID wie der Adapter zunächst den Dry-Run ausführen:
+
+```bash
+uv run python -m dkman.deployment_adapter.forge_staging \
+  --root /pfad/zum/privaten-staging \
+  --core http://127.0.0.1:8080 \
+  --artifact-dir /pfad/zum/privaten-buildverzeichnis \
+  --builder-public-key /pfad/forge-build-public.pem
+```
+
+Für die tatsächliche Übernahme `--apply --confirm STAGE_FORGE_ARCHIVE` ergänzen.
+Das aktuelle OIDC-Token wird verdeckt abgefragt. Quellstand, Planfreigabe,
+Builder-Signatur und Archiv werden vor und nach dem Kopieren geprüft. Das Staging
+lädt kein Image und startet keinen Container. Der `--root` muss dasselbe Verzeichnis
+sein, das über das Overlay beim Adapter eingebunden ist. Falls der lokale Operator
+und UID 10001 nicht identisch sind, ist eine explizite, geprüfte Einrichtung der
+Besitzrechte beziehungsweise ein eigener eingeschränkter Staging-Prozess unter UID
+10001 erforderlich; ein blindes rekursives `chown` auf `.local` ist nicht vorgesehen.
+
+Im Hub beim aktuellen, freigegebenen Plan den Build- und anschließend den frischen
+Preview-Nachweis importieren. Bei der React-Vorschau den Haushalt wählen und den
+Installationsplan erstellen. Der Admin prüft Image, Ressourcen und Vorschau, bestätigt
+dies ausdrücklich und startet erst danach den freigegebenen Job. Nach erfolgreichem
+Engine-Nachweis erscheint die App unter „Meine Apps“; Zugriffsrechte für weitere
+Mitglieder müssen wie bei anderen Apps gesondert vergeben werden. Ein unbekannter
+Ausgang bleibt gesperrt und kann nur über „Ergebnis abgleichen“ untersucht werden;
+es erfolgt kein automatischer Wiederholungsversuch.
+
+Für ein Update erst eine neue Planrevision freigeben, daraus einen neuen Quellstand
+bauen, testen und erneut in der isolierten VM prüfen. Das neue Archiv ebenso bereitstellen
+und den Update-Plan für die vorhandene Installation ausdrücklich freigeben. Die
+vorherige Manifest- und Jobrevision bleibt erhalten. Erst ein nachgewiesener Wechsel
+auf den neuen gesunden Container aktualisiert den installierten Stand. Bei einem
+unklaren oder fehlgeschlagenen Engine-Ergebnis erfolgt kein automatisches Rollback;
+der Zustand bleibt zur Klärung gesperrt. Eine eigenständige Rollback-/Restore-Funktion
+und deren Live-Stack-Prüfung gehören weiterhin zu P5-003.
+
+Für neue Keycloak-Realms enthält die Vorlage den öffentlichen OIDC-Client
+`generated-app`. Bestehende Realms werden durch einen erneuten Dateiimport **nicht**
+automatisch geändert. Vor dem ersten Öffnen muss ein Administrator dort diesen Client
+einrichten: Standard Flow und PKCE S256 aktivieren, Implicit Flow, Direct Access und
+Service Accounts deaktivieren; Redirect `http://localhost:8080/run/*` und Web Origin
+`http://localhost:8080` an die tatsächlich konfigurierte Origin anpassen. Der
+Audience-Mapper `dkman-api-audience` muss `dkman-api` in das Access-Token aufnehmen
+(siehe `infrastructure/keycloak/dkman-realm.template.json`). Diesen Schritt zuerst in
+einer isolierten Testumgebung prüfen; keine bestehenden Clients überschreiben.
 
 ## Prüfungen
 
 P4-003: [PR-CI 40652530742](https://github.com/damiankaest/DKMan/actions/runs/40652530742)
 hat alle drei Starter auf einer Wegwerf-Engine mit echten BuildKit-Images gestartet,
 ihre Readiness gemessen, die signierten Previewbelege geprüft und die Previewressourcen
-entfernt. Die Zielhostabnahme und der vollständige Freigabe-/Deploymentablauf fehlen.
+entfernt. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
+hat zusätzlich die Installation des React-Starters mit echtem Docker-Adapter und
+Enginebeleg auf einem Wegwerf-Runner geprüft. Eine vollständige Benutzerjourney mit
+echtem OIDC für die generierte App und die Zielhostabnahme stehen noch aus.
 
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
 hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte

@@ -2953,6 +2953,76 @@
         }
       }
     },
+    "/api/v1/forge/previews/{preview_id}/upgrades": {
+      "post": {
+        "tags": [
+          "deployments"
+        ],
+        "summary": "Plan Forge Upgrade",
+        "operationId": "planForgeUpgrade",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Preview Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeUpgradeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/chat/config": {
       "get": {
         "tags": [
@@ -4017,6 +4087,21 @@
           "preview"
         ],
         "title": "ForgeReleaseProof"
+      },
+      "ForgeUpgradeInput": {
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Installation Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "installation_id"
+        ],
+        "title": "ForgeUpgradeInput"
       },
       "GenerationRequest": {
         "properties": {
@@ -5318,6 +5403,10 @@
             "type": "string",
             "title": "Id"
           },
+          "definition_id": {
+            "type": "string",
+            "title": "Definition Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -5330,6 +5419,7 @@
         "type": "object",
         "required": [
           "id",
+          "definition_id",
           "name",
           "household_id"
         ],

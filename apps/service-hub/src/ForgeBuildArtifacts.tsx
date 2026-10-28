@@ -6,7 +6,7 @@ import { ForgePreviews } from './ForgePreviews';
 type Artifact = components['schemas']['BuildArtifactView'];
 type SignedEvidence = components['schemas']['SignedBuildEvidence'];
 
-export function ForgeBuildArtifacts({api, workspaceId, current, admin = false, subject = ''}: {api: ApiClient; workspaceId: string; current: boolean; admin?: boolean; subject?: string}) {
+export function ForgeBuildArtifacts({api, workspaceId, current, admin = false, subject = '', requestId = ''}: {api: ApiClient; workspaceId: string; current: boolean; admin?: boolean; subject?: string; requestId?: string}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Artifact[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -55,7 +55,7 @@ export function ForgeBuildArtifacts({api, workspaceId, current, admin = false, s
         <strong>{item.evidence.template}</strong> · {new Date(item.evidence.finished_at).toLocaleString('de-DE')}
         <p>Image-Digest: <code>{item.evidence.manifest_digest}</code></p>
         <p>Checks: {item.evidence.checks.join(', ')}</p>
-        <ForgePreviews api={api} artifactId={item.id} current={current} admin={admin} subject={subject} installable={item.evidence.template === 'react-spa'} />
+        <ForgePreviews api={api} artifactId={item.id} requestId={requestId} current={current} admin={admin} subject={subject} installable={item.evidence.template === 'react-spa'} />
       </li>)}</ul>}
       <p>Ein geprüfter Build-Nachweis ist noch keine Vorschau oder Installationsfreigabe.</p>
     </>}
