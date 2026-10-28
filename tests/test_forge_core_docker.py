@@ -24,6 +24,7 @@ from dkman.deployment_adapter.forge_preview import start_preview
 from dkman.deployment_adapter.forge_staging import stage_archive
 from dkman.deployment_adapter.journal import migrate
 from dkman.deployment_adapter.main import AdapterSettings, create_app
+from dkman.deployments.client import AdapterUnavailable
 from dkman.deployments.contracts import OperationView
 from dkman.forge.attestation import SignedBuildEvidence, SignedPreviewEvidence
 from dkman.forge.build_worker import execute_build
@@ -101,6 +102,8 @@ def test_actual_core_approval_adapter_install_and_revision(client, app, tmp_path
         with TestClient(adapter) as adapter_client:
 
             class RealAdapter:
+                deploy_calls = 0
+
                 def execute(self, operation_id, command, token):
                     response = adapter_client.post(
                         f"/v1/operations/{operation_id}",
@@ -108,9 +111,26 @@ def test_actual_core_approval_adapter_install_and_revision(client, app, tmp_path
                         json=command.model_dump(mode="json"),
                     )
                     assert response.status_code == 200, response.text
+                    outcome = OperationView.model_validate(response.json())
+                    if command.action == "deploy":
+                        self.deploy_calls += 1
+                        assert outcome.state == "succeeded"
+                        # Simulate a lost response after the real adapter committed its receipt.
+                        raise AdapterUnavailable("CI-only transport interruption")
+                    return outcome
+
+                def operation(self, operation_id, token, *, reconcile=False):
+                    assert reconcile is True
+                    response = adapter_client.post(
+                        f"/v1/operations/{operation_id}/reconcile",
+                        headers={"Authorization": "Bearer " + token},
+                        json={},
+                    )
+                    assert response.status_code == 200, response.text
                     return OperationView.model_validate(response.json())
 
-            app.state.deployment_client = RealAdapter()
+            transport = RealAdapter()
+            app.state.deployment_client = transport
             item, plan = prepare(client, as_user)
 
             def build_preview(plan_record):
@@ -210,8 +230,11 @@ def test_actual_core_approval_adapter_install_and_revision(client, app, tmp_path
             update_job = update.json()
             assert approve(client, update_job).status_code == 200
             result = client.post(f"/api/v1/jobs/{update_job['id']}/run")
+            assert result.status_code == 200 and result.json()["state"] == "reconciliation_required"
+            result = client.post(f"/api/v1/jobs/{update_job['id']}/reconcile")
             assert result.status_code == 200 and result.json()["state"] == "succeeded", result.text
             assert result.json()["result"]["evidence_kind"] == "engine_acknowledgement"
+            assert transport.deploy_calls == 1
             new_container = json.loads(
                 docker_run(
                     "ps",

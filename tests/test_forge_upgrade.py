@@ -7,13 +7,17 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
+from test_deployment_adapter import SECRET, token
 from test_forge_api import generate
 from test_forge_artifacts import path, setup_artifact
 from test_forge_install_planning import submit
 from test_forge_preview_api import prepare_preview
 from test_planning import approve, review, revision
 
+from dkman.deployment_adapter.journal import Journal, migrate
 from dkman.deployment_health import poll_once
+from dkman.deployments.auth import verify_delegation
+from dkman.deployments.client import AdapterUnavailable
 from dkman.deployments.contracts import (
     ContainerEvidence,
     DeploymentCommand,
@@ -264,6 +268,63 @@ def test_missing_receipt_keeps_old_revision_and_blocks_retry(
             db.get(AppInstallation, first["resource_id"]).manifest_id
             == first["plan"]["context"]["manifest_id"]
         )
+
+
+def test_lost_update_response_reconciles_without_repeating_mutation(client, app, upgrade_candidate):
+    _, first, preview, _ = upgrade_candidate
+    job = submit_upgrade(client, first, preview).json()
+    assert approve(client, job).status_code == 200
+
+    class LostResponse(FakeEngine):
+        outcome = None
+
+        def execute(self, operation, command, token):
+            self.outcome = super().execute(operation, command, token)
+            raise AdapterUnavailable("simulated lost response")
+
+        def operation(self, operation, _token, *, reconcile=False):
+            assert reconcile and self.outcome and self.outcome.operation_id == operation
+            return self.outcome
+
+    transport = LostResponse()
+    app.state.deployment_client = transport
+    result = client.post(f"/api/v1/jobs/{job['id']}/run").json()
+    assert result["state"] == "reconciliation_required" and len(transport.calls) == 1
+    reconciled = client.post(f"/api/v1/jobs/{job['id']}/reconcile").json()
+    assert reconciled["state"] == "succeeded" and len(transport.calls) == 1
+
+
+def test_adapter_recovers_acknowledged_update_and_adopts_replacement(
+    client, tmp_path, upgrade_candidate
+):
+    _, first, preview, _ = upgrade_candidate
+    job = submit_upgrade(client, first, preview).json()
+    plan = UpgradePlan.model_validate(job["plan"])
+    command = DeploymentCommand(action="deploy", plan=plan.replacement, upgrade=plan)
+    root = tmp_path / "journal"
+    migrate(root)
+    journal = Journal(root)
+    with journal.connect() as db:
+        db.execute(
+            "INSERT INTO resources VALUES (?,?,NULL)",
+            (str(plan.resource_id), plan.previous.model_dump_json()),
+        )
+    operation = uuid4()
+    grant = verify_delegation(
+        token(plan.replacement, operation, "deploy", subject="admin", plan_hash=plan.plan_hash),
+        SECRET,
+    )
+    with journal.lock(plan.resource_id):
+        journal.begin(command, grant, mutating=True)
+        outcome = FakeEngine().execute(operation, command, "")
+        assert outcome.completion is not None
+        journal.record_receipt(outcome.completion.receipt)
+    assert Journal(root).recover() == 1
+    recovered = Journal(root)
+    with recovered.lock(plan.resource_id):
+        result = recovered.resolve(operation, outcome.completion.after)
+    assert result.state == "succeeded"
+    assert recovered.current_plan(plan.resource_id) == plan.replacement
 
 
 def test_changed_plan_after_approval_never_calls_adapter(client, app, upgrade_candidate, as_user):
