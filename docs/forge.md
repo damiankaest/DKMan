@@ -1,4 +1,4 @@
-# Forge · P4-001 und P4-002
+# Forge · P4-001 bis P4-003
 
 Forge erstellt für freigegebene Planrevisionen reproduzierbare Quellstände. Zur Wahl
 stehen eine Python-API, eine React-SPA und eine Kombination beider Vorlagen. Die

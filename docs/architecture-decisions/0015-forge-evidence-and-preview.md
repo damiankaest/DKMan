@@ -36,7 +36,19 @@ Deploymentfreigabe. Die Preview läuft nur während des begrenzten CLI-Aufrufs;
 bei hartem Prozessabbruch können eigene Ressourcen zurückbleiben und müssen mit dem
 gezielten Cleanup-Befehl entfernt werden. Es gibt keinen globalen Docker-Prune.
 
-Noch offen für P4-003: sichere Übernahme des Archivs zur produktiven Adaptergrenze,
-ein expliziter previewgebundener Genehmigungs-/Installationsplan, dieselbe bestehende
-Deployment- und Recovery-Zustandsmaschine, Darstellung im Hub sowie ein Update als
-neue Revision. Keine automatische Bereitstellung oder Freigabe durch die Nachweise.
+Für die unveränderte React-SPA-Vorlage nimmt ein separater Operatorhelfer ein geprüftes
+Archiv in ein privates Adapter-Staging auf; der Helfer hat selbst keinen Docker-Socket.
+Der bestehende Deployment-Adapter prüft beide Signaturen, die Archiv-Digests und die
+feste, volumenlose Laufzeitkonfiguration erneut. Der Core bindet eine separate,
+kurzlebige Freigabe an Vorschau, Image, Haushalt und konkreten Installationsplan.
+Nur nach dieser Freigabe darf der Adapter das Image laden und den Container starten.
+Der Hub zeigt ausschließlich einen tatsächlich nachgewiesenen Abschluss an.
+
+Eine spätere Planrevision benötigt einen neuen Build, eine neue Preview und eine
+eigene Updatefreigabe. Der Updateplan bindet die alte und neue Laufzeit an dieselbe
+Installation; ein Enginebeleg muss den Wechsel auf einen neuen gesunden Container
+beweisen. Der alte Manifest-/Jobstand bleibt erhalten. Unbekannte Ergebnisse sperren
+weitere Mutationen bis zu einem belegten Abgleich, ohne automatischen Retry oder
+Rollback. Das Staging und die CI-Journey erfordern ausdrücklich eingerichtete
+Vertrauensschlüssel und isolierte Arbeitsumgebungen. API-/Fullstack-Vorlagen bleiben
+zunächst auf Preview beschränkt; Zielhostabnahme und Rollback bleiben offen.

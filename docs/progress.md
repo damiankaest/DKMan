@@ -16,7 +16,7 @@ war vollständig erfolgreich: Eine Browserjourney prüfte Anmeldung über echtes
 Erstellung, Freigabe, Installation und Update sowie die Ablehnung eines nicht
 freigegebenen Benutzers. Der geprüfte CI-Artefaktnachweis steht in
 `docs/evidence/p4-003-forge-ci.json`. Ein anschließend ergänzter Operatorhelfer mit
-Dry-Run wird im aktuellen CI-Lauf geprüft. Lokal bestehen 370 Backendtests mit 20
+Dry-Run wird im aktuellen CI-Lauf geprüft. Lokal bestehen 372 Backendtests mit 20
 Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
 Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
 API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost
