@@ -1,6 +1,8 @@
 import hashlib
 import json
+import socket
 import tarfile
+import threading
 from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -44,8 +46,6 @@ class FakeDocker:
         self.calls.append(args)
         if args[:2] == ["info", "--format"]:
             return "linux"
-        if args[:2] == ["version", "--format"]:
-            return "28.0.0"
         if args[:2] == ["ps", "--all"]:
             if "label=io.dkman.preview=true" in args:
                 return "" if self.container is None else self.container
@@ -79,6 +79,14 @@ class FakeDocker:
                             "Labels": {"io.dkman.preview-id": self.preview_id},
                         },
                         "State": {"Status": "running"},
+                        "NetworkSettings": {
+                            "Networks": {
+                                self.network: {
+                                    "NetworkID": "d" * 64,
+                                    "IPAddress": "172.20.0.2",
+                                }
+                            }
+                        },
                         "HostConfig": {
                             "ReadonlyRootfs": True,
                             "Privileged": False,
@@ -104,7 +112,15 @@ class FakeDocker:
             return self.network or ""
         if args[:2] == ["network", "inspect"]:
             return json.dumps(
-                [{"Internal": True, "Labels": {"io.dkman.preview-id": self.preview_id}}]
+                [
+                    {
+                        "Id": "d" * 64,
+                        "Driver": "bridge",
+                        "Internal": True,
+                        "Labels": {"io.dkman.preview-id": self.preview_id},
+                        "IPAM": {"Config": [{"Subnet": "172.20.0.0/16", "Gateway": "172.20.0.1"}]},
+                    }
+                ]
             )
         if args[:2] == ["network", "rm"]:
             self.network = None
@@ -167,7 +183,8 @@ def setup_preview(tmp_path, monkeypatch, request):
 
     class Opener:
         def open(self, url, timeout):
-            assert url == "http://127.0.0.1:43210/health/ready" and timeout == 2
+            assert url.startswith("http://127.0.0.1:") and url.endswith("/health/ready")
+            assert timeout == 2
             return Response()
 
     monkeypatch.setattr(forge_preview.urllib.request, "build_opener", lambda *_: Opener())
@@ -191,13 +208,13 @@ def test_preview_checks_build_and_cleans_only_its_resources(setup_preview):
         hold=lambda _: None,
     )
     assert report["state"] == "stopped" and docker.container is None and docker.network is None
-    assert ready[0][0] == "http://127.0.0.1:43210"
+    assert ready[0][0].startswith("http://127.0.0.1:")
     proof = SignedPreviewEvidence.model_validate_json(ready[0][1].read_text())
     verify_preview_signature(proof, preview.public_key())
     assert proof.evidence.artifact_evidence_hash == registered.evidence_hash
     assert proof.evidence.expires_at - proof.evidence.observed_at == timedelta(seconds=60)
     run = next(args for args in docker.calls if args[:2] == ["container", "run"])
-    assert "127.0.0.1::8080" in run and "--read-only" in run and "--cap-drop" in run
+    assert "--publish" not in run and "--read-only" in run and "--cap-drop" in run
     assert "/tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777" in run
     assert "--privileged" not in run and "--mount" not in run
     load = next(args for args in docker.calls if args[:2] == ["image", "load"])
@@ -220,27 +237,6 @@ def test_preview_rejects_changed_archive_before_docker(setup_preview):
     assert docker.calls == []
 
 
-def test_preview_rejects_older_docker_before_loading_an_image(setup_preview):
-    root, archive, source, registered, signed, builder, preview, docker = setup_preview
-    run = docker.run
-
-    def old_engine(args, timeout=45):
-        return "27.5.1" if args[:2] == ["version", "--format"] else run(args, timeout=timeout)
-
-    docker.run = old_engine
-    with pytest.raises(PreviewError, match="docker_28_or_newer_required"):
-        start_preview(
-            signed,
-            lambda: (source, registered),
-            builder.public_key(),
-            preview,
-            archive,
-            root,
-            docker,
-        )
-    assert not any(args[:2] == ["image", "load"] for args in docker.calls)
-
-
 def test_preview_cleans_up_when_authorization_changes(setup_preview):
     root, archive, source, registered, signed, builder, preview, docker = setup_preview
     calls = 0
@@ -256,6 +252,52 @@ def test_preview_cleans_up_when_authorization_changes(setup_preview):
         start_preview(signed, authorize, builder.public_key(), preview, archive, root, docker)
     assert docker.container is None and docker.network is None
     assert not list(root.glob("*/preview-attestation.json"))
+
+
+def test_preview_forwarder_listens_only_on_loopback_and_forwards_bytes():
+    upstream = socket.socket()
+    upstream.bind(("127.0.0.1", 0))
+    upstream.listen(1)
+    port = upstream.getsockname()[1]
+
+    def serve():
+        conn, _ = upstream.accept()
+        with conn:
+            assert conn.recv(100) == b"preview"
+            conn.sendall(b"response")
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    forwarder = forge_preview.PreviewForwarder("127.0.0.1", port)
+    try:
+        assert forwarder.server.server_address[0] == "127.0.0.1"
+        with socket.create_connection(forwarder.server.server_address, timeout=3) as client:
+            client.sendall(b"preview")
+            assert client.recv(100) == b"response"
+    finally:
+        forwarder.close()
+        upstream.close()
+        thread.join(timeout=3)
+
+
+def test_preview_rejects_addresses_outside_its_internal_network():
+    network = {
+        "Id": "id",
+        "Driver": "bridge",
+        "IPAM": {"Config": [{"Subnet": "172.20.0.0/16", "Gateway": "172.20.0.1"}]},
+    }
+    item = {
+        "NetworkSettings": {"Networks": {"preview": {"NetworkID": "id", "IPAddress": "172.20.0.2"}}}
+    }
+    assert forge_preview.preview_address(item, "preview", network) == "172.20.0.2"
+    for address in ["127.0.0.1", "172.21.0.2", "172.20.0.1", "8.8.8.8"]:
+        item["NetworkSettings"]["Networks"]["preview"]["IPAddress"] = address
+        with pytest.raises(PreviewError, match="invalid_preview_network_address"):
+            forge_preview.preview_address(item, "preview", network)
+    item["NetworkSettings"]["Networks"]["preview"]["IPAddress"] = "172.20.0.2"
+    item["NetworkSettings"]["Networks"]["other"] = {}
+    with pytest.raises(PreviewError, match="invalid_preview_network_address"):
+        forge_preview.preview_address(item, "preview", network)
 
 
 def test_cleanup_refuses_a_network_without_the_correct_label(setup_preview):

@@ -60,6 +60,35 @@ def image_dockerfile(bundle: SourceBundle) -> str:
         "react-spa": "web/Dockerfile",
         "fullstack-fastapi-react": "Dockerfile",
     }
-    return bundle.files[paths[bundle.request.template]].replace(
+    kind = bundle.request.template
+    recipe = bundle.files[paths[kind]].replace(
         "RUN npm run build", "RUN --network=none npm run build"
     )
+    # Workspaces stay private (directories 0700, files 0600). Docker COPY preserves
+    # those modes, so only the fixed, unprivileged runtime user must own its inputs.
+    copies = {
+        "python-api": [
+            ("COPY app ./app", "COPY --chown=10001:10001 app ./app"),
+            ("COPY alembic.ini ./", "COPY --chown=10001:10001 alembic.ini ./"),
+            ("COPY migrations ./migrations", "COPY --chown=10001:10001 migrations ./migrations"),
+        ],
+        "react-spa": [
+            (
+                "COPY nginx.conf /etc/nginx/conf.d/default.conf",
+                "COPY --chown=101:101 nginx.conf /etc/nginx/conf.d/default.conf",
+            )
+        ],
+        "fullstack-fastapi-react": [
+            ("COPY backend/app ./app", "COPY --chown=10001:10001 backend/app ./app"),
+            ("COPY backend/alembic.ini ./", "COPY --chown=10001:10001 backend/alembic.ini ./"),
+            (
+                "COPY backend/migrations ./migrations",
+                "COPY --chown=10001:10001 backend/migrations ./migrations",
+            ),
+        ],
+    }
+    for before, after in copies[kind]:
+        if recipe.count(before) != 1:
+            raise ValueError("unsupported_image_recipe")
+        recipe = recipe.replace(before, after)
+    return recipe

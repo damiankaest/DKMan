@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from dkman.forge import build_worker
 from dkman.forge.attestation import SignedBuildEvidence, verify_signature
+from dkman.forge.build_recipe import image_dockerfile
 from dkman.forge.build_worker import BuildFailure, execute_build, validate_input
 from dkman.forge.oci import verify_oci_archive
 from dkman.forge.templates import TemplateProvider
@@ -76,6 +77,24 @@ def test_authorized_source_must_match_exact_template():
     value.bundle_hash = bundle_hash(value.bundle)
     with pytest.raises(BuildFailure, match="unsupported_or_changed_template"):
         validate_input(value)
+
+
+@pytest.mark.parametrize(
+    "kind,required_copies",
+    [
+        ("python-api", ["app ./app", "alembic.ini ./", "migrations ./migrations"]),
+        ("react-spa", ["nginx.conf /etc/nginx/conf.d/default.conf"]),
+        (
+            "fullstack-fastapi-react",
+            ["backend/app ./app", "backend/alembic.ini ./", "backend/migrations ./migrations"],
+        ),
+    ],
+)
+def test_private_source_files_are_owned_by_the_fixed_runtime_user(kind, required_copies):
+    recipe = image_dockerfile(build_input(kind).bundle)
+    user = "101:101" if kind == "react-spa" else "10001:10001"
+    for copy in required_copies:
+        assert f"COPY --chown={user} {copy}" in recipe
 
 
 @pytest.mark.parametrize(

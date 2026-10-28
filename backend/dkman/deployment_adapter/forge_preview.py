@@ -6,11 +6,16 @@ no production mounts, credentials, shared networks or non-loopback ports.
 
 import argparse
 import fcntl
+import ipaddress
 import json
 import os
 import re
 import select
+import selectors
+import socket
+import socketserver
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -18,7 +23,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
@@ -46,6 +51,103 @@ PREVIEW_DATABASE_URL = "sqlite:////tmp/dkman-preview.sqlite3"
 
 class PreviewError(Exception):
     pass
+
+
+def preview_address(item: dict[str, Any], network: str, isolated: dict[str, Any]) -> str:
+    """Accept only the container's IPv4 address on its verified internal bridge."""
+    try:
+        networks = item["NetworkSettings"]["Networks"]
+        if set(networks) != {network} or isolated.get("Driver") != "bridge":
+            raise ValueError()
+        endpoint = networks[network]
+        if endpoint["NetworkID"] != isolated["Id"]:
+            raise ValueError()
+        address = ipaddress.IPv4Address(endpoint["IPAddress"])
+        if not address.is_private or address.is_loopback or address.is_link_local:
+            raise ValueError()
+        for config in isolated["IPAM"]["Config"]:
+            subnet = ipaddress.ip_network(config["Subnet"], strict=False)
+            if not isinstance(subnet, ipaddress.IPv4Network):
+                continue
+            gateway = ipaddress.IPv4Address(config["Gateway"])
+            if address in subnet and address not in {
+                subnet.network_address,
+                subnet.broadcast_address,
+                gateway,
+            }:
+                return str(address)
+    except (KeyError, TypeError, ValueError):
+        pass
+    raise PreviewError("invalid_preview_network_address")
+
+
+class PreviewForwarder:
+    """Forward loopback traffic only to a verified preview container's fixed port."""
+
+    def __init__(self, address: str, port: int = 8080):
+        slots = threading.BoundedSemaphore(16)
+
+        class Handler(socketserver.BaseRequestHandler):
+            def handle(self) -> None:
+                try:
+                    with socket.create_connection((address, port), timeout=5) as upstream:
+                        client = self.request
+                        client.settimeout(5)
+                        upstream.settimeout(5)
+                        with selectors.DefaultSelector() as selector:
+                            selector.register(client, selectors.EVENT_READ, upstream)
+                            selector.register(upstream, selectors.EVENT_READ, client)
+                            while True:
+                                ready = selector.select(timeout=5)
+                                if not ready:
+                                    return
+                                for key, _ in ready:
+                                    data = cast(socket.socket, key.fileobj).recv(65536)
+                                    if not data:
+                                        return
+                                    key.data.sendall(data)
+                except OSError:
+                    return
+
+        class Server(socketserver.ThreadingTCPServer):
+            daemon_threads = True
+            block_on_close = False
+            request_queue_size = 16
+
+            def process_request(self, request: Any, client_address: Any) -> None:
+                if not slots.acquire(blocking=False):
+                    self.close_request(request)
+                    return
+                try:
+                    super().process_request(request, client_address)
+                except BaseException:
+                    slots.release()
+                    raise
+
+            def process_request_thread(self, request: Any, client_address: Any) -> None:
+                try:
+                    super().process_request_thread(request, client_address)
+                finally:
+                    slots.release()
+
+        self.server = Server(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(
+            target=self.server.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True
+        )
+        try:
+            self.thread.start()
+        except BaseException:
+            self.server.server_close()
+            raise
+
+    @property
+    def origin(self) -> str:
+        return f"http://127.0.0.1:{self.server.server_address[1]}"
+
+    def close(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
 
 
 @contextmanager
@@ -179,10 +281,6 @@ def _start_preview(
     inspected_archive = verify_inputs(signed, source, registered, builder_public, archive)
     if provider.run(["info", "--format", "{{.OSType}}"]).strip() != "linux":
         raise PreviewError("linux_engine_required")
-    version = provider.run(["version", "--format", "{{.Server.Version}}"]).strip()
-    parsed_version = re.fullmatch(r"v?([0-9]+)\.[0-9]+\.[0-9]+(?:[-+][a-zA-Z0-9.-]+)?", version)
-    if parsed_version is None or int(parsed_version.group(1)) < 28:
-        raise PreviewError("docker_28_or_newer_required")
     active = provider.run(
         ["ps", "--all", "--filter", "label=io.dkman.preview=true", "--format", "{{.ID}}"]
     )
@@ -197,6 +295,7 @@ def _start_preview(
     network = f"dkman-preview-{preview_id}"
     needs_database = signed.evidence.template != "react-spa"
     image_user = "10001:10001" if needs_database else "101"
+    forwarder = None
     try:
         load_archive = report_dir / "docker-load.tar"
         write_docker_load_archive(archive, load_archive, inspected_archive)
@@ -239,8 +338,6 @@ def _start_preview(
             f"io.dkman.preview-id={preview_id}",
             "--network",
             network,
-            "--publish",
-            "127.0.0.1::8080",
             "--user",
             image_user,
             "--read-only",
@@ -290,12 +387,14 @@ def _start_preview(
             or host.get("NanoCpus") != 500_000_000
             or host.get("PidsLimit") != 128
             or host.get("Binds")
+            or host.get("PortBindings")
             or any(
                 mount.get("Type") != "tmpfs" or mount.get("Destination") != "/tmp"
                 for mount in (item.get("Mounts") or [])
             )
         ):
             raise PreviewError("preview_container_contract_mismatch")
+        address = preview_address(item, network, isolated_network)
         if needs_database:
             # The exact reviewed starter migration creates only an ephemeral SQLite DB in tmpfs.
             provider.run(
@@ -313,11 +412,8 @@ def _start_preview(
                 ],
                 timeout=60,
             )
-        endpoint = provider.run(["container", "port", container, "8080/tcp"]).strip()
-        match = re.fullmatch(r"127\.0\.0\.1:([0-9]{1,5})", endpoint)
-        if not match or not 1 <= int(match.group(1)) <= 65535:
-            raise PreviewError("preview_not_bound_to_loopback")
-        origin = f"http://127.0.0.1:{match.group(1)}"
+        forwarder = PreviewForwarder(address)
+        origin = forwarder.origin
         deadline = time.monotonic() + 30
         while True:
             try:
@@ -361,6 +457,8 @@ def _start_preview(
     except (BuildFailure, CommandError, OSError, ValueError) as exc:
         raise PreviewError("preview_failed") from exc
     finally:
+        if forwarder is not None:
+            forwarder.close()
         try:
             cleanup_preview(provider, preview_id)
             report["state"] = "stopped" if report["state"] == "observed_healthy" else "failed"

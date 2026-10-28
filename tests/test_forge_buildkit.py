@@ -13,7 +13,13 @@ from uuid import uuid4
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from dkman.forge.attestation import SignedBuildEvidence, verify_recipe, verify_signature
+from dkman.forge.attestation import (
+    SignedBuildEvidence,
+    SignedPreviewEvidence,
+    verify_preview_signature,
+    verify_recipe,
+    verify_signature,
+)
 from dkman.forge.build_worker import execute_build
 from dkman.forge.oci import inspect_oci_archive, verify_oci_archive
 from dkman.forge.templates import TemplateProvider
@@ -88,8 +94,13 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
         popen = subprocess.Popen
 
         class ObservedProcess:
-            def __init__(self, process, errors, arguments):
-                self.process, self.errors, self.arguments = process, errors, arguments
+            def __init__(self, process, output, errors, arguments):
+                self.process, self.output, self.errors, self.arguments = (
+                    process,
+                    output,
+                    errors,
+                    arguments,
+                )
 
             def __getattr__(self, name):
                 return getattr(self.process, name)
@@ -100,6 +111,9 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                     self.errors.seek(0)
                     message = self.errors.read(4096).decode("utf-8", errors="replace")
                     print(f"Docker {self.arguments[3:5]} failed: {message}", file=sys.stderr)
+                    self.output.seek(0)
+                    output = self.output.read(4096).decode("utf-8", errors="replace")
+                    print(f"Docker output: {output}", file=sys.stderr)
                     if self.arguments[3:5] == ["container", "port"]:
                         container_id = self.arguments[5]
                         probes = [
@@ -125,7 +139,9 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                 return result
 
         def observed_popen(arguments, **kwargs):
-            return ObservedProcess(popen(arguments, **kwargs), kwargs["stderr"], arguments)
+            return ObservedProcess(
+                popen(arguments, **kwargs), kwargs["stdout"], kwargs["stderr"], arguments
+            )
 
         with patch("dkman.deployment_adapter.compose.subprocess.Popen", observed_popen):
             preview = start_preview(
@@ -141,6 +157,10 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                 hold=lambda _: None,
             )
         assert preview["state"] == "stopped" and len(seen) == 1
+        observation = SignedPreviewEvidence.model_validate_json(seen[0].read_text())
+        verify_preview_signature(observation, preview_key.public_key())
+        assert observation.evidence.config_digest == signed.evidence.config_digest
+        assert observation.evidence.artifact_id == signed.evidence.build_id
     evidence = Path(os.environ["DKMAN_BUILD_EVIDENCE_DIR"])
     evidence.mkdir(parents=True, exist_ok=True)
     (evidence / f"{kind}.json").write_text(json.dumps(result, indent=2) + "\n")

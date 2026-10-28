@@ -109,6 +109,9 @@ Das Buildrezept prüft die Vorlage gegen die lokal installierten Starterdateien.
 Vorlagen in einer späteren Revision geändert werden, muss für einen neuen Build ein
 passender neuer Quellstand erstellt werden. Der OCI-Digest identifiziert das gebaute
 Image; ein bitgenau reproduzierbarer Rebuild wird nicht behauptet.
+Das Build-Rezept überträgt die privaten Quellrechte gezielt auf den festen
+unprivilegierten Containerbenutzer. Ältere signierte Builds mit einem anderen Rezept
+müssen nach dieser Änderung neu erzeugt werden; der Core lehnt abweichende Rezepte ab.
 
 ## Erste Preview-Arbeit · P4-003
 
@@ -117,8 +120,9 @@ implementiert. Der Preview-Pfad unterstützt die drei unveränderten Startervorl
 benötigt eine separate Linux-VM mit eigener Docker-Engine; die VM darf keinen Zugriff auf produktive
 Daten, Docker-Sockets oder Secrets haben. Die Isolation des Hosts muss der Betreiber
 bereitstellen und prüfen. Ein internes Docker-Netz isoliert Container nicht vollständig
-vom eigenen Host. Die Preview erfordert Docker Engine 28 oder neuer: Bei älteren Versionen
-kann ein an Loopback veröffentlichter Port unter Umständen im gleichen Netz erreichbar sein.
+vom eigenen Host. Der Container veröffentlicht keinen Docker-Port; ein begrenzter
+Forwarder auf der Preview-VM bindet ausschließlich an Loopback und leitet an die
+geprüfte Containeradresse weiter.
 
 Auf dem isolierten Builder und der separaten Preview-VM jeweils einen eigenen Schlüssel
 in einem existierenden privaten Verzeichnis anlegen. Ohne `--apply` sind die Befehle

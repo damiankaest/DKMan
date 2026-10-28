@@ -17,7 +17,9 @@ Ein eigener Preview-Adapter wird manuell auf einer dedizierten, isolierten Linux
 ausgeführt. Er akzeptiert ausschließlich die drei unveränderten Startervorlagen und prüft erneut den
 signierten Build, den aktuellen Plan, die Core-Registrierung und das OCI-Archiv, lädt
 das Image auf der separaten Engine und startet es ohne Produktionssecrets, Volumes
-oder Produktionsnetzwerk. Netzwerk ist intern, der einzige Port bindet an Loopback;
+oder Produktionsnetzwerk. Das Netzwerk ist intern; es gibt keine Docker-Portfreigabe.
+Ein Forwarder bindet auf der VM an Loopback und leitet ausschließlich an die geprüfte
+Adresse des Preview-Containers weiter;
 Prozess-, CPU- und Speichergrenzen sowie Read-only und Capability-Entzug sind fest.
 Ein Docker-Netzwerk ersetzt keine VM-Isolation; die Bestätigung durch den Betreiber
 und die Einrichtung der getrennten Maschine sind Voraussetzungen. Für API- und

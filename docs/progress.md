@@ -14,15 +14,17 @@ wegwerfbaren CI-Runner sowie die Zielhostabnahme sind noch ausstehend. Produktiv
 Archivübernahme, previewgebundene Genehmigung, Installation und Updates sind für
 P4-003 noch offen. Siehe `forge.md` und ADR 0015.
 
-Lokale Vorprüfung: 340 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
+Lokale Vorprüfung: 344 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
 übersprungen; Ruff, Format, mypy, Paketbuild und Vertragsexport erfolgreich. Hub-Lint,
 Produktionsbuild und 29 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
 Migration 0006 einschließlich Downgrade und erneutem Upgrade. Ein echter Docker- und
 BuildKit-Lauf wird im Wegwerf-CI-Runner geprüft; lokale Browser- und Engineabnahme
 stehen mangels Chromium beziehungsweise Docker weiterhin aus. Die erste CI-Engineprobe
 scheiterte beim Laden des OCI-Formats; der Adapter erstellt jetzt ein tagloses
-Docker-Archiv aus nochmals geprüften Blobs. Ein weiterer CI-Lauf lädt das Image und
-startet den Container, scheitert aber bei der Portabfrage. Die Ursache wird geprüft.
+Docker-Archiv aus nochmals geprüften Blobs. Die Engine veröffentlicht keinen Port auf
+einem ausschließlich internen Netz; ein lokaler Forwarder ersetzt die Portfreigabe.
+Das Build-Rezept weist private Quelldateien dem festen Laufzeitbenutzer zu. Eine reale
+erneute Engineprobe und die API-Previewmigration stehen noch aus.
 
 ## Vorheriger Stand
 
