@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
@@ -88,10 +89,13 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                     assert json.loads(payload) == {"status": "healthy"}
                 else:
                     assert b"<html" in payload.lower()
-                    script = re.search(rb'<script[^>]+src="(/assets/[^"?]+\.js)"', payload)
-                    assert script is not None
+                    script = re.search(
+                        rb'<script[^>]+src="((?:\./|/)assets/[a-zA-Z0-9._-]+\.js)"', payload
+                    )
+                    assert script is not None, payload.decode("utf-8", errors="replace")
                     with urllib.request.urlopen(
-                        origin + script.group(1).decode("ascii"), timeout=5
+                        urllib.parse.urljoin(origin + "/", script.group(1).decode("ascii")),
+                        timeout=5,
                     ) as asset:
                         assert asset.status == 200
                         assert "javascript" in asset.headers.get("Content-Type", "")
