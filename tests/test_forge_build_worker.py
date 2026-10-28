@@ -29,7 +29,7 @@ def build_input(kind="fullstack-fastapi-react"):
     return BuildInput(workspace_id=str(uuid4()), bundle_hash=bundle_hash(bundle), bundle=bundle)
 
 
-def sample_oci(path: Path, *, corrupt=False):
+def sample_oci(path: Path, *, corrupt=False, layer_repetitions=1):
     def descriptor(content, media):
         return {
             "mediaType": media,
@@ -42,7 +42,7 @@ def sample_oci(path: Path, *, corrupt=False):
     config_desc = descriptor(config, "application/vnd.oci.image.config.v1+json")
     layer_desc = descriptor(layer, "application/vnd.oci.image.layer.v1.tar")
     manifest = json.dumps(
-        {"schemaVersion": 2, "config": config_desc, "layers": [layer_desc]}
+        {"schemaVersion": 2, "config": config_desc, "layers": [layer_desc] * layer_repetitions}
     ).encode()
     manifest_desc = descriptor(manifest, "application/vnd.oci.image.manifest.v1+json")
     index = json.dumps({"schemaVersion": 2, "manifests": [manifest_desc]}).encode()

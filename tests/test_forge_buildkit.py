@@ -3,8 +3,11 @@
 import json
 import os
 import shutil
+import subprocess
+import sys
 import urllib.request
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -75,18 +78,41 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                 assert b"<html" in response.read(4096).lower()
             seen.append(proof)
 
-        preview = start_preview(
-            signed,
-            lambda: (source, registered),
-            signing_key.public_key(),
-            preview_key,
-            artifact,
-            root,
-            ComposeProvider(root, uuid4(), docker),
-            ttl_seconds=5,
-            on_ready=ready,
-            hold=lambda _: None,
-        )
+        # Disposable CI only: surface Docker stderr on failure without retrying a mutation.
+        # The production provider keeps subprocess output private.
+        popen = subprocess.Popen
+
+        class ObservedProcess:
+            def __init__(self, process, errors, arguments):
+                self.process, self.errors, self.arguments = process, errors, arguments
+
+            def __getattr__(self, name):
+                return getattr(self.process, name)
+
+            def wait(self, timeout=None):
+                result = self.process.wait(timeout=timeout)
+                if result:
+                    self.errors.seek(0)
+                    message = self.errors.read(4096).decode("utf-8", errors="replace")
+                    print(f"Docker {self.arguments[3:5]} failed: {message}", file=sys.stderr)
+                return result
+
+        def observed_popen(arguments, **kwargs):
+            return ObservedProcess(popen(arguments, **kwargs), kwargs["stderr"], arguments)
+
+        with patch("dkman.deployment_adapter.compose.subprocess.Popen", observed_popen):
+            preview = start_preview(
+                signed,
+                lambda: (source, registered),
+                signing_key.public_key(),
+                preview_key,
+                artifact,
+                root,
+                ComposeProvider(root, uuid4(), docker),
+                ttl_seconds=5,
+                on_ready=ready,
+                hold=lambda _: None,
+            )
         assert preview["state"] == "stopped" and len(seen) == 1
     evidence = Path(os.environ["DKMAN_BUILD_EVIDENCE_DIR"])
     evidence.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,8 @@
 import hashlib
 import json
+import tarfile
 from datetime import timedelta
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -44,6 +46,9 @@ class FakeDocker:
                 return "" if self.container is None else self.container
             return self.container or ""
         if args[:2] == ["image", "load"]:
+            with tarfile.open(args[-1]) as archive:
+                manifest = json.load(archive.extractfile("manifest.json"))
+                assert manifest[0]["RepoTags"] == []
             return "loaded"
         if args[:2] == ["image", "inspect"]:
             return json.dumps([{"Id": self.image, "Config": {"User": "101", "Volumes": None}}])
@@ -182,6 +187,8 @@ def test_preview_checks_build_and_cleans_only_its_resources(setup_preview):
     run = next(args for args in docker.calls if args[:2] == ["container", "run"])
     assert "127.0.0.1::8080" in run and "--read-only" in run and "--cap-drop" in run
     assert "--privileged" not in run and "--mount" not in run
+    load = next(args for args in docker.calls if args[:2] == ["image", "load"])
+    assert Path(load[-1]).name == "docker-load.tar" and not Path(load[-1]).exists()
 
 
 def test_preview_rejects_changed_archive_before_docker(setup_preview):

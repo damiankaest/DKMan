@@ -20,8 +20,11 @@ def generate(
     private_file = root / f"forge-{purpose}-private.pem"
     public_file = root / f"forge-{purpose}-public.pem"
     if not apply:
-        print("Dry-run: create a builder-only Ed25519 key and its public verification key.")
-        print("Apply requires --apply --confirm CREATE_FORGE_SIGNING_KEY on the isolated builder.")
+        print(f"Dry-run: create a {purpose}-only Ed25519 key and its public verification key.")
+        print(
+            "Apply requires --apply --confirm CREATE_FORGE_SIGNING_KEY "
+            f"on the isolated {purpose} host."
+        )
         return
     if confirmation != "CREATE_FORGE_SIGNING_KEY":
         raise ValueError("Explicit CREATE_FORGE_SIGNING_KEY confirmation required")

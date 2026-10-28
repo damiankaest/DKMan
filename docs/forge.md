@@ -148,13 +148,23 @@ uv run python -m dkman.deployment_adapter.forge_preview \
   --root /pfad/privat --core https://dkman.example \
   --artifact-dir /pfad/zum/build-verzeichnis \
   --builder-public-key /pfad/forge-build-public.pem \
-  --preview-private-key /pfad/forge-preview-private.pem
+  --preview-private-key /pfad/forge-preview-private.pem \
+  --docker-binary /usr/bin/docker
 ```
+
+Der Docker-Pfad muss zum ausführbaren Programm auf der Preview-VM passen. Vor dem
+Laden verpackt der Adapter ausschließlich die geprüften OCI-Blobs ohne Tags in ein
+temporäres Docker-Archiv und prüft die Image-ID nach dem Laden erneut. Das temporäre
+Archiv benötigt zusätzlichen Speicherplatz und wird nach dem Ladevorgang entfernt.
 
 Auf der ausdrücklich isolierten Preview-VM startet `--apply --confirm
 PREVIEW_ISOLATED_VM` die Vorschau. Der Prozess fragt das aktuelle OIDC-Access-Token
 verdeckt ab und zeigt einen nur auf dieser VM erreichbaren `127.0.0.1`-Port. Für einen
-anderen Rechner ist ein bewusst eingerichteter SSH-Tunnel erforderlich. Ohne echte
+anderen Rechner ist ein bewusst eingerichteter SSH-Tunnel erforderlich. Der Browser
+für die Vorschau muss ebenfalls isoliert sein: ein eigenes Profil ohne produktive
+Anmeldungen und ohne Zugriff auf produktive Dienste oder Netze verwenden. Das gilt
+auch bei einem SSH-Tunnel, da JavaScript mit den Netzwerkrechten des Browsers läuft.
+Ohne echte
 Identity-/Produktionsdienste kann die Vorlage ihre Anmeldung in der Vorschau nicht
 vollständig durchführen. Enter oder der Zeitablauf entfernt Container und Netzwerk;
 das geladene Image bleibt auf der Preview-Engine. Nach hartem Abbruch kann der Operator

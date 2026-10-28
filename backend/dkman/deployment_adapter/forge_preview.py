@@ -36,7 +36,7 @@ from dkman.forge.attestation import (
     verify_signature,
 )
 from dkman.forge.build_worker import BuildFailure, fetch_input, private_root, validate_input
-from dkman.forge.oci import inspect_oci_archive
+from dkman.forge.oci import OciInspection, inspect_oci_archive, write_docker_load_archive
 from dkman.forge_api import BuildArtifactView, BuildInput
 from dkman.jobs import digest
 
@@ -84,7 +84,7 @@ def verify_inputs(
     registered: BuildArtifactView,
     public: Ed25519PublicKey,
     archive: Path,
-) -> None:
+) -> OciInspection:
     bundle = validate_input(source)
     verify_signature(signed, public)
     verify_recipe(signed.evidence, bundle)
@@ -110,6 +110,7 @@ def verify_inputs(
         or actual.archive_size != evidence.archive_size
     ):
         raise PreviewError("archive_does_not_match_attestation")
+    return actual
 
 
 def _inspect_object(provider: ComposeProvider, kind: str, resource: str) -> dict[str, Any]:
@@ -175,7 +176,7 @@ def _start_preview(
     if key_id(builder_public) == key_id(preview_private.public_key()):
         raise ValueError("preview_and_builder_keys_must_differ")
     source, registered = authorize()
-    verify_inputs(signed, source, registered, builder_public, archive)
+    inspected_archive = verify_inputs(signed, source, registered, builder_public, archive)
     if provider.run(["info", "--format", "{{.OSType}}"]).strip() != "linux":
         raise PreviewError("linux_engine_required")
     active = provider.run(
@@ -191,7 +192,12 @@ def _start_preview(
     (report_dir / "preview-status.json").chmod(0o600)
     network = f"dkman-preview-{preview_id}"
     try:
-        provider.run(["image", "load", "--input", str(archive)], timeout=300)
+        load_archive = report_dir / "docker-load.tar"
+        write_docker_load_archive(archive, load_archive, inspected_archive)
+        try:
+            provider.run(["image", "load", "--input", str(load_archive)], timeout=300)
+        finally:
+            load_archive.unlink(missing_ok=True)
         image = _inspect_object(provider, "image", signed.evidence.config_digest)
         config = image.get("Config") or {}
         if (
