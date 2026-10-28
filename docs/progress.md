@@ -9,22 +9,24 @@ Linux-VM akzeptiert die drei unveränderten Starter, prüft Archiv und Rechte er
 startet eine eingeschränkte Preview auf Loopback und signiert eine zeitlich begrenzte
 Readiness-Beobachtung mit einem zweiten Schlüssel. Core und Hub können den Nachweis
 registrieren. API-/Fullstack-Previews nutzen eine kurzlebige SQLite-DB im Container.
-Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im
-wegwerfbaren CI-Runner sowie die Zielhostabnahme sind noch ausstehend. Produktive
+Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im wegwerfbaren
+CI-Runner ist bestanden; die Zielhostabnahme steht noch aus. Produktive
 Archivübernahme, previewgebundene Genehmigung, Installation und Updates sind für
 P4-003 noch offen. Siehe `forge.md` und ADR 0015.
 
 Lokale Vorprüfung: 344 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
 übersprungen; Ruff, Format, mypy, Paketbuild und Vertragsexport erfolgreich. Hub-Lint,
 Produktionsbuild und 29 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
-Migration 0006 einschließlich Downgrade und erneutem Upgrade. Ein echter Docker- und
-BuildKit-Lauf wird im Wegwerf-CI-Runner geprüft; lokale Browser- und Engineabnahme
-stehen mangels Chromium beziehungsweise Docker weiterhin aus. Die erste CI-Engineprobe
-scheiterte beim Laden des OCI-Formats; der Adapter erstellt jetzt ein tagloses
-Docker-Archiv aus nochmals geprüften Blobs. Die Engine veröffentlicht keinen Port auf
-einem ausschließlich internen Netz; ein lokaler Forwarder ersetzt die Portfreigabe.
-Das Build-Rezept weist private Quelldateien dem festen Laufzeitbenutzer zu. Eine reale
-erneute Engineprobe und die API-Previewmigration stehen noch aus.
+Migration 0006 einschließlich Downgrade und erneutem Upgrade. Lokale Browser- und
+Engineabnahme stehen mangels Chromium beziehungsweise Docker weiterhin aus.
+
+[PR-CI 40652530742](https://github.com/damiankaest/DKMan/actions/runs/40652530742)
+für Code `556c98e` hat mit echtem BuildKit und Docker alle drei Starter gebaut,
+isoliert gestartet, HTTP-Readiness und signierte Previewbelege geprüft und die eigenen
+Container und Netze entfernt (3 Tests). API und Fullstack verwendeten ausschließlich
+eine flüchtige SQLite-Datenbank. Backend (359 bestanden, 4 übersprungen), Frontend,
+Starter-, Container- und Adapterjobs bestanden; die Runtime-Journey lief zum Zeitpunkt
+der Dokumentation noch. Die CI-Engine lief nur auf einem Wegwerf-Runner.
 
 ## Vorheriger Stand
 

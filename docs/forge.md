@@ -187,6 +187,11 @@ Archivübernahme in die Produktiv-Engine und keinen Deploy- oder Updateablauf.
 
 ## Prüfungen
 
+P4-003: [PR-CI 40652530742](https://github.com/damiankaest/DKMan/actions/runs/40652530742)
+hat alle drei Starter auf einer Wegwerf-Engine mit echten BuildKit-Images gestartet,
+ihre Readiness gemessen, die signierten Previewbelege geprüft und die Previewressourcen
+entfernt. Die Zielhostabnahme und der vollständige Freigabe-/Deploymentablauf fehlen.
+
 P4-002: [PR-CI 40506720712](https://github.com/damiankaest/DKMan/actions/runs/40506720712)
 hat die drei Vorlagen auf einem wegwerfbaren BuildKit-Runner gebaut und die OCI-Artefakte
 verifiziert. Der Quellstand für diesen Build ist ein Testfixture; eine separate echte

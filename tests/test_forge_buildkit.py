@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -87,6 +88,14 @@ def test_build_generated_starter_on_disposable_builder(tmp_path, kind):
                     assert json.loads(payload) == {"status": "healthy"}
                 else:
                     assert b"<html" in payload.lower()
+                    script = re.search(rb'<script[^>]+src="(/assets/[^"?]+\.js)"', payload)
+                    assert script is not None
+                    with urllib.request.urlopen(
+                        origin + script.group(1).decode("ascii"), timeout=5
+                    ) as asset:
+                        assert asset.status == 200
+                        assert "javascript" in asset.headers.get("Content-Type", "")
+                        assert len(asset.read(4096)) > 100
             seen.append(proof)
 
         # Disposable CI only: surface Docker stderr on failure without retrying a mutation.
