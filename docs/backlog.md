@@ -36,8 +36,26 @@ auch wenn die zugehörigen Dateien implementiert sind. Nachweise: `acceptance-te
 | P5-004 | P2 / 5 | P4-003 | Minecraft-Vertrag zunächst Mock: Status/Start/Stop/Backup/Restore; reale Integration nur ausdrücklich freigegeben |
 | P5-005 | P3 / 5 | P2-006 | CoolifyProvider, Workspace-IDE und Quotas bei konkretem Bedarf evaluieren |
 
-Nächster Entwicklungseinstieg nach P3-002: P3-003 (geführter Requirements-Wizard
-mit berechtigten Dienstvorschlägen). Damian hat am 22.10.2026 den erfolgreichen lokalen
+## Priorität: Heimnetz und eigene Anwendungen
+
+Die ursprünglichen Tickets bleiben bestehen. Für Damians erweitertes Ziel werden
+zunächst folgende Schritte priorisiert; alle sind offen, soweit nicht anders genannt:
+
+| Ticket | Ziel | Abnahme / Abhängigkeit |
+| --- | --- | --- |
+| H1-001 | Sicheren Zugriff auf den Hub im Heimnetz vorbereiten | HTTPS, DNS, vertrauenswürdiges Zertifikat, passende OIDC-Origin/Redirects, Firewall und Login auf Zielhost und zweitem Gerät prüfen. Lesende Vorprüfung: `home-network.md`; kein produktiver Netzwerkzugang implementiert. |
+| H1-002 | Eine vorhandene Web-App sichtbar machen | Bestehenden Registry-/Health-Vertrag gegen Teamgeist prüfen; Anmeldung, Erreichbarkeit und Besitz klären. Kein automatisches Deployment. |
+| H1-003 | HomeTrainer als erster fachlicher End-to-End-Fall | Übungen und Sätze speichern und auf Gym-Screen und Handy abrufen; App-eigene Datenhaltung, Rollen, Backup/Restore und reale Mehrgeräteprüfung. Abhängig von H1-001 und P5-003 bzw. passender Restoreprobe. |
+| H1-004 | Ein einzelnes Gerät anbinden | Schmaler Vertrag für ein Gym-Gerät, eigene widerrufbare Geräteidentität und minimale Rechte; keine geteilten Benutzertokens; konkrete Transport-/Offlineentscheidung erst am Anwendungsfall. |
+| H1-005 | Lokale Werkzeugkiste | Ein bestehendes Windows-Werkzeug als versioniertes Paket anbieten, Integrität und Herkunft prüfen; manuelle Installation und Offline-Nutzung erproben. Keine automatische Ausführung. |
+| H1-006 | VinylPlayer erproben | Signalquelle, Hardware und Rechte zur Erkennung klären; isolierte Audio-/Erkennungsprobe, keine Zusage zur ESP-Eignung. |
+
+P4-004 bleibt als isolierte SDK-Evaluation offen und ist für H1-001 bis H1-003
+keine Voraussetzung. P5-001 bis P5-005 bleiben erhalten; Datensicherung hat für
+persistente HomeTrainer-Daten Vorrang. Home Assistant kann bei Bedarf integriert
+werden, ist aber nicht vorausgesetzt.
+
+Nächster Entwicklungseinstieg: H1-001, siehe `home-network.md`. Damian hat am 22.10.2026 den erfolgreichen lokalen
 DKMan-Start bestätigt. Die weiteren Zielhostprüfungen aus P0-007 bleiben separat offen;
 Basisstack aktualisieren gemäß planning.md, Notes gemäß windows10-setup.md/notes.md.
 Windows-/VM-/Zielhostabnahme, vollständige OIDC-Betriebsmatrix und koordinierter

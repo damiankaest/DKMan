@@ -96,7 +96,8 @@ jobs:
         run: docker compose --env-file .env -f infrastructure/compose/compose.yaml down
 
   notes-journey:
-    runs-on: ubuntu-latest
+    # Preserve the validated Docker image-loading environment; see docs/progress.md.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       DKMAN_DISPOSABLE_DOCKER_TEST: '1'
@@ -194,7 +195,8 @@ jobs:
       - run: uv run python scripts/check_forge_templates.py
 
   forge-buildkit:
-    runs-on: ubuntu-latest
+    # Preserve the validated Docker image-loading environment; see docs/progress.md.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       DKMAN_DISPOSABLE_BUILDKIT_TEST: '1'
