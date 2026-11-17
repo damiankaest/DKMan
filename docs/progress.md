@@ -2,6 +2,14 @@
 
 ## Aktueller Stand
 
+CI-Kompatibilität: Auf `ubuntu-latest` (Ubuntu 26.04) schlugen in PR #40
+Forge-BuildKit und Notes-Journey beim Inspect des zuvor geladenen Images fehl.
+Der frühere erfolgreiche P4-003-Lauf verwendete Ubuntu 24.04. Die zwei Jobs sind
+übergangsweise auf diese Version festgelegt; eine erneute echte Engineprobe steht
+noch aus. Die Ursache und Unterstützung der neueren Docker-/Runner-Umgebung sind
+nicht abschließend geklärt; Produktionskompatibilität wird nicht behauptet.
+
+
 Heimnetz-Neuausrichtung: H1-001 bis H1-006 im Backlog ergänzen die bestehenden
 Phasen um Mehrgerätezugriff, eine vorhandene Web-App, HomeTrainer, Geräte und lokale
 Werkzeuge. `scripts/check_home_access.py` prüft eine bereits konfigurierte HTTPS-Origin
