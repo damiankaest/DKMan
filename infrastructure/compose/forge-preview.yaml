@@ -1,0 +1,7 @@
+# Explicit opt-in after forge-attestation.yaml; preview key differs from builder key.
+services:
+  core:
+    environment:
+      DKMAN_FORGE_PREVIEW_PUBLIC_KEY_FILE: /etc/dkman-forge/preview-public.pem
+    volumes:
+      - ../../.local/forge/preview-public.pem:/etc/dkman-forge/preview-public.pem:ro

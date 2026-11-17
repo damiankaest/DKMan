@@ -60,6 +60,8 @@ persistente Forge-Quellstände; Appfachdaten bleiben außerhalb des Core. Vertra
 | Approvalentscheidung, Jobabbruch und Ausführung | Admin; Operator nur eigene berechtigte Runtimejobs; Run zusätzlich anforderndes Subject | hashgebundene Freigabe und aktionsspezifische Zustandsgrenzen; siehe `jobs.md` |
 | `GET/POST /api/v1/app-plans/{id}/workspaces` | berechtigter Developer oder Admin | private, hashgebundene Quellstände eines freigegebenen Plans lesen und idempotent erstellen |
 | `GET /api/v1/forge/workspaces/{id}` und `/archive` | Eigentümer mit aktuellen Planrechten oder Admin | Integrität prüfen und Metadaten bzw. ZIP ausgeben |
+| `GET/POST /api/v1/forge/workspaces/{id}/build-artifacts` | Eigentümer mit Planrechten oder Admin | signierte Buildnachweise prüfen und lesen; kein Archivimport |
+| `GET/POST /api/v1/forge/build-artifacts/{id}/previews` | Eigentümer mit Planrechten oder Admin | signierte Preview-Beobachtungen prüfen und lesen; keine Freigabe |
 
 OpenAPI ist in `contracts/openapi/core.v1.json` versioniert. Der Hub verwendet daraus
 generierte TypeScript-Typen. Mutationen nutzen typisierte Requests und, soweit
@@ -96,7 +98,7 @@ Forge bleibt eine eigene, davon getrennte Workspace-/Build-Domäne.
 `planning.py`, `planning_api.py` und `planning_schemas.py` implementieren manuelle
 App-Anforderungen und unveränderliche Requirements-/Planrevisionen. AppRequest ist
 der Planungsworkflow-Anker. Migration 0004 ergänzt genau `app_requests`/`app_plans`;
-Readiness verlangt seit Forge Migration `0005_forge_workspaces`. Eigentümer verwalten eigene Ideen, Admins
+Readiness verlangt Forge Migration `0006_forge_build_artifacts`. Eigentümer verwalten eigene Ideen, Admins
 alle. Eine Haushaltszuordnung verlangt für normale Nutzer aktuelle Mitgliedschaft
 und erteilt anderen Personen keinen Planungs- oder Appzugriff.
 

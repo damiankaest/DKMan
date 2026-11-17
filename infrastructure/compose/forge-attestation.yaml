@@ -1,0 +1,7 @@
+# Explicit operator opt-in. Public key only; no builder or Docker socket in Core.
+services:
+  core:
+    environment:
+      DKMAN_FORGE_BUILDER_PUBLIC_KEY_FILE: /etc/dkman-forge/builder-public.pem
+    volumes:
+      - ../../.local/forge/builder-public.pem:/etc/dkman-forge/builder-public.pem:ro

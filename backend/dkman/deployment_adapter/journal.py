@@ -208,7 +208,12 @@ class Journal:
             )
             if changed.rowcount != 1:
                 raise AdapterError("operation_ownership_lost")
-            # The original plan and all volumes stay unchanged.
+            # A proved update adopts its replacement plan; otherwise preserve the original.
+            if command.upgrade is not None:
+                db.execute(
+                    "UPDATE resources SET plan=? WHERE installation_id=? AND blocked_by=?",
+                    (command.plan.model_dump_json(), str(item.installation_id), str(operation_id)),
+                )
             db.execute(
                 "UPDATE resources SET blocked_by=NULL WHERE installation_id=? AND blocked_by=?",
                 (str(item.installation_id), str(operation_id)),

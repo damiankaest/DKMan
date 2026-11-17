@@ -9,7 +9,7 @@ Version = Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")]
 Image = Annotated[
     str,
     StringConstraints(
-        pattern=r"^[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\.[0-9]+\.[0-9]+)$"
+        pattern=r"^(sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*(@sha256:[a-f0-9]{64}|:[0-9]+\.[0-9]+\.[0-9]+))$"
     ),
 ]
 

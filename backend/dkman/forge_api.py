@@ -3,7 +3,7 @@
 import hashlib
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Literal
 from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
@@ -17,10 +17,28 @@ from sqlalchemy.orm import Session
 from dkman.auth import Principal, current_principal
 from dkman.database import get_session
 from dkman.forge.approved_plan import generation_request_for
+from dkman.forge.attestation import (
+    BuildEvidence,
+    PreviewEvidence,
+    SignedBuildEvidence,
+    SignedPreviewEvidence,
+    key_id,
+    read_public_key,
+    verify_preview_signature,
+    verify_recipe,
+    verify_signature,
+)
 from dkman.forge.templates import TemplateProvider
 from dkman.forge.workspace import SourceBundle
 from dkman.jobs import digest
-from dkman.models import AuditEvent, ForgeWorkspace, new_id
+from dkman.models import (
+    AuditEvent,
+    ForgeBuildArtifact,
+    ForgePreview,
+    ForgeWorkspace,
+    new_id,
+    utcnow,
+)
 from dkman.planning import check_household, plan_for, request_for
 from dkman.planning_schemas import PlanningHash
 
@@ -52,6 +70,26 @@ class BuildInput(BaseModel):
     workspace_id: str
     bundle_hash: PlanningHash
     bundle: SourceBundle
+
+
+class BuildArtifactView(BaseModel):
+    id: str
+    workspace_id: str
+    created_at: datetime
+    submitted_by: str
+    key_id: PlanningHash
+    evidence_hash: PlanningHash
+    evidence: BuildEvidence
+
+
+class PreviewView(BaseModel):
+    id: str
+    artifact_id: str
+    created_at: datetime
+    submitted_by: str
+    evidence_hash: PlanningHash
+    key_id: PlanningHash
+    evidence: PreviewEvidence
 
 
 def bundle_hash(bundle: SourceBundle) -> str:
@@ -198,6 +236,18 @@ def get_workspace(workspace_id: str, db: Db, actor: User) -> WorkspaceView:
     return view(visible_workspace(db, workspace_id, actor))
 
 
+def current_bundle(db: Session, workspace: ForgeWorkspace, actor: Principal) -> SourceBundle:
+    plan = plan_for(db, workspace.plan_id, actor)
+    parent = request_for(db, plan.request_id, actor, lock=True)
+    check_household(db, parent.household_id, actor)
+    db.refresh(plan)
+    bundle = checked_bundle(workspace)
+    generation = generation_request_for(db, actor, plan.id, bundle.request.template)
+    if generation != bundle.request:
+        raise HTTPException(409, "Workspace no longer matches the approved plan")
+    return bundle
+
+
 @router.get(
     "/forge/workspaces/{workspace_id}/build-input",
     response_model=BuildInput,
@@ -206,14 +256,282 @@ def get_workspace(workspace_id: str, db: Db, actor: User) -> WorkspaceView:
 def get_build_input(workspace_id: str, db: Db, actor: User) -> BuildInput:
     """Recheck current plan, membership and approval before an isolated build."""
     workspace = visible_workspace(db, workspace_id, actor)
-    plan = plan_for(db, workspace.plan_id, actor)
-    request_for(db, plan.request_id, actor, lock=True)
-    db.refresh(plan)
-    bundle = checked_bundle(workspace)
-    generation = generation_request_for(db, actor, plan.id, bundle.request.template)
-    if generation != bundle.request:
-        raise HTTPException(409, "Workspace no longer matches the approved plan")
+    bundle = current_bundle(db, workspace, actor)
     return BuildInput(workspace_id=workspace.id, bundle_hash=workspace.bundle_hash, bundle=bundle)
+
+
+def verify_artifact(
+    item: ForgeBuildArtifact, workspace: ForgeWorkspace, request: Request
+) -> BuildArtifactView:
+    public_path = request.app.state.settings.forge_builder_public_key_file
+    if public_path is None:
+        raise HTTPException(503, "Forge builder verification key is not configured")
+    try:
+        public = read_public_key(public_path)
+    except (OSError, ValueError, TypeError):
+        raise HTTPException(503, "Forge builder verification key is unavailable") from None
+    try:
+        signed = SignedBuildEvidence.model_validate(item.attestation)
+        bundle = checked_bundle(workspace)
+        verify_signature(signed, public)
+        verify_recipe(signed.evidence, bundle)
+        if (
+            item.id != str(signed.evidence.build_id)
+            or item.workspace_id != workspace.id
+            or signed.evidence.workspace_id != UUID(workspace.id)
+            or signed.evidence.source_hash != workspace.bundle_hash
+            or digest(item.attestation) != item.evidence_hash
+            or TemplateProvider().generate(bundle.request) != bundle
+        ):
+            raise ValueError("artifact_binding_changed")
+    except (ValidationError, ValueError, TypeError, KeyError):
+        raise HTTPException(409, "Build evidence verification failed") from None
+    return BuildArtifactView(
+        id=item.id,
+        workspace_id=item.workspace_id,
+        created_at=item.created_at,
+        submitted_by=item.submitted_by,
+        key_id=signed.key_id,
+        evidence_hash=item.evidence_hash,
+        evidence=signed.evidence,
+    )
+
+
+@router.post(
+    "/forge/workspaces/{workspace_id}/build-artifacts",
+    response_model=BuildArtifactView,
+    status_code=201,
+    operation_id="registerForgeBuildArtifact",
+)
+def register_build_artifact(
+    workspace_id: str, body: SignedBuildEvidence, db: Db, actor: User, request: Request
+) -> BuildArtifactView:
+    workspace = visible_workspace(db, workspace_id, actor)
+    bundle = current_bundle(db, workspace, actor)
+    payload = body.model_dump(mode="json")
+    identifier = str(body.evidence.build_id)
+    fingerprint = digest(payload)
+    existing = db.get(ForgeBuildArtifact, identifier)
+    if existing is not None:
+        if existing.workspace_id != workspace.id or existing.evidence_hash != fingerprint:
+            raise HTTPException(409, "Build identifier already binds different evidence")
+        return verify_artifact(existing, workspace, request)
+    candidate = ForgeBuildArtifact(
+        id=identifier,
+        workspace_id=workspace.id,
+        submitted_by=actor.subject,
+        evidence_hash=fingerprint,
+        attestation=payload,
+    )
+    # Validate before persistence; no caller may supply an unsigned build result.
+    public_path = request.app.state.settings.forge_builder_public_key_file
+    if public_path is None:
+        raise HTTPException(503, "Forge builder verification key is not configured")
+    try:
+        public = read_public_key(public_path)
+    except (OSError, ValueError, TypeError):
+        raise HTTPException(503, "Forge builder verification key is unavailable") from None
+    try:
+        verify_signature(body, public)
+        verify_recipe(body.evidence, bundle)
+        if (
+            body.evidence.workspace_id != UUID(workspace.id)
+            or body.evidence.source_hash != workspace.bundle_hash
+            or TemplateProvider().generate(bundle.request) != bundle
+        ):
+            raise ValueError("artifact_binding_mismatch")
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(409, "Build evidence verification failed") from None
+    db.add(candidate)
+    db.add(
+        AuditEvent(
+            actor_subject=actor.subject,
+            action="forge.build_artifact.registered",
+            resource_id=identifier,
+            outcome="succeeded",
+            correlation_id=request.state.correlation_id,
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.get(ForgeBuildArtifact, identifier)
+        if existing is None or existing.workspace_id != workspace.id:
+            raise HTTPException(409, "Build identifier already binds different evidence") from None
+        if existing.evidence_hash != fingerprint:
+            raise HTTPException(409, "Build identifier already binds different evidence") from None
+        return verify_artifact(existing, workspace, request)
+    return verify_artifact(candidate, workspace, request)
+
+
+@router.get(
+    "/forge/workspaces/{workspace_id}/build-artifacts",
+    response_model=list[BuildArtifactView],
+    operation_id="listForgeBuildArtifacts",
+)
+def list_build_artifacts(
+    workspace_id: str, db: Db, actor: User, request: Request
+) -> list[BuildArtifactView]:
+    workspace = visible_workspace(db, workspace_id, actor)
+    items = db.scalars(
+        select(ForgeBuildArtifact)
+        .where(ForgeBuildArtifact.workspace_id == workspace.id)
+        .order_by(ForgeBuildArtifact.created_at.desc(), ForgeBuildArtifact.id.desc())
+        .limit(50)
+    )
+    return [verify_artifact(item, workspace, request) for item in items]
+
+
+@router.get(
+    "/forge/build-artifacts/{artifact_id}",
+    response_model=BuildArtifactView,
+    operation_id="getForgeBuildArtifact",
+)
+def get_build_artifact(
+    artifact_id: str, db: Db, actor: User, request: Request
+) -> BuildArtifactView:
+    item = db.get(ForgeBuildArtifact, artifact_id)
+    if item is None:
+        raise HTTPException(404, "Build artifact not found")
+    workspace = visible_workspace(db, item.workspace_id, actor)
+    return verify_artifact(item, workspace, request)
+
+
+def preview_public_key(request: Request) -> object:
+    settings = request.app.state.settings
+    if (
+        settings.forge_builder_public_key_file is None
+        or settings.forge_preview_public_key_file is None
+    ):
+        raise HTTPException(503, "Forge verification keys are not configured")
+    try:
+        builder = read_public_key(settings.forge_builder_public_key_file)
+        preview = read_public_key(settings.forge_preview_public_key_file)
+        if key_id(builder) == key_id(preview):
+            raise ValueError("Builder and preview keys must differ")
+        return preview
+    except (OSError, ValueError, TypeError):
+        raise HTTPException(503, "Forge verification keys are unavailable") from None
+
+
+def verify_preview(
+    item: ForgePreview, artifact: ForgeBuildArtifact, workspace: ForgeWorkspace, request: Request
+) -> PreviewView:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    public = preview_public_key(request)
+    assert isinstance(public, Ed25519PublicKey)
+    build = verify_artifact(artifact, workspace, request)
+    try:
+        signed = SignedPreviewEvidence.model_validate(item.attestation)
+        verify_preview_signature(signed, public)
+        evidence = signed.evidence
+        if (
+            item.id != str(evidence.preview_id)
+            or item.artifact_id != artifact.id
+            or digest(item.attestation) != item.evidence_hash
+            or str(evidence.artifact_id) != artifact.id
+            or str(evidence.workspace_id) != workspace.id
+            or evidence.artifact_evidence_hash != build.evidence_hash
+            or evidence.source_hash != build.evidence.source_hash
+            or evidence.plan_hash != build.evidence.plan_hash
+            or evidence.manifest_digest != build.evidence.manifest_digest
+            or evidence.config_digest != build.evidence.config_digest
+        ):
+            raise ValueError("preview_binding_changed")
+    except (ValidationError, ValueError, TypeError):
+        raise HTTPException(409, "Preview evidence verification failed") from None
+    return PreviewView(
+        id=item.id,
+        artifact_id=item.artifact_id,
+        created_at=item.created_at,
+        submitted_by=item.submitted_by,
+        evidence_hash=item.evidence_hash,
+        key_id=signed.key_id,
+        evidence=signed.evidence,
+    )
+
+
+@router.post(
+    "/forge/build-artifacts/{artifact_id}/previews",
+    response_model=PreviewView,
+    status_code=201,
+    operation_id="registerForgePreview",
+)
+def register_preview(
+    artifact_id: str, body: SignedPreviewEvidence, db: Db, actor: User, request: Request
+) -> PreviewView:
+    artifact = db.get(ForgeBuildArtifact, artifact_id)
+    if artifact is None:
+        raise HTTPException(404, "Build artifact not found")
+    workspace = visible_workspace(db, artifact.workspace_id, actor)
+    current_bundle(db, workspace, actor)
+    verify_artifact(artifact, workspace, request)
+    identifier = str(body.evidence.preview_id)
+    payload = body.model_dump(mode="json")
+    fingerprint = digest(payload)
+    existing = db.get(ForgePreview, identifier)
+    if existing is not None:
+        if existing.artifact_id != artifact.id or existing.evidence_hash != fingerprint:
+            raise HTTPException(409, "Preview identifier already binds different evidence")
+        return verify_preview(existing, artifact, workspace, request)
+    now = utcnow()
+    if body.evidence.expires_at <= now or body.evidence.observed_at > now + timedelta(seconds=30):
+        raise HTTPException(409, "Preview evidence is expired or not yet valid")
+    candidate = ForgePreview(
+        id=identifier,
+        artifact_id=artifact.id,
+        submitted_by=actor.subject,
+        evidence_hash=fingerprint,
+        attestation=payload,
+        created_at=now,
+    )
+    verify_preview(candidate, artifact, workspace, request)
+    db.add(candidate)
+    db.add(
+        AuditEvent(
+            actor_subject=actor.subject,
+            action="forge.preview.registered",
+            resource_id=identifier,
+            outcome="succeeded",
+            correlation_id=request.state.correlation_id,
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.get(ForgePreview, identifier)
+        if existing is None or existing.artifact_id != artifact.id:
+            raise HTTPException(
+                409, "Preview identifier already binds different evidence"
+            ) from None
+        if existing.evidence_hash != fingerprint:
+            raise HTTPException(
+                409, "Preview identifier already binds different evidence"
+            ) from None
+        return verify_preview(existing, artifact, workspace, request)
+    return verify_preview(candidate, artifact, workspace, request)
+
+
+@router.get(
+    "/forge/build-artifacts/{artifact_id}/previews",
+    response_model=list[PreviewView],
+    operation_id="listForgePreviews",
+)
+def list_previews(artifact_id: str, db: Db, actor: User, request: Request) -> list[PreviewView]:
+    artifact = db.get(ForgeBuildArtifact, artifact_id)
+    if artifact is None:
+        raise HTTPException(404, "Build artifact not found")
+    workspace = visible_workspace(db, artifact.workspace_id, actor)
+    items = db.scalars(
+        select(ForgePreview)
+        .where(ForgePreview.artifact_id == artifact.id)
+        .order_by(ForgePreview.created_at.desc(), ForgePreview.id.desc())
+        .limit(50)
+    )
+    return [verify_preview(item, artifact, workspace, request) for item in items]
 
 
 @router.get(

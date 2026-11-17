@@ -2,6 +2,59 @@
 
 ## Aktueller Stand
 
+P4-003 Zwischenstand: Für den unveränderten React-SPA-Starter sind private
+Archivübernahme, previewgebundene separate Installationsfreigabe und die Ausführung
+über den bestehenden Adapter implementiert. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
+war vollständig erfolgreich und hat die Installation mit echtem Docker und Enginebeleg
+auf einem Wegwerf-Runner geprüft. Ein neuer Updateablauf bindet alte und neue Revision
+an eine separate Freigabe und aktualisiert den gespeicherten Stand nur bei nachgewiesenem
+Containerwechsel. Die [PR-CI 40705094439](https://github.com/damiankaest/DKMan/actions/runs/40705094439)
+hat Build, Preview, Core-Freigabe, Adapter-Installation, Update und App-Kachel gemeinsam
+mit echtem BuildKit und Docker geprüft (4 Tests); alle Jobs sind erfolgreich.
+Auch [CI 40705688675](https://github.com/damiankaest/DKMan/actions/runs/40705688675)
+war vollständig erfolgreich: Eine Browserjourney prüfte Anmeldung über echtes Keycloak,
+Erstellung, Freigabe, Installation und Update sowie die Ablehnung eines nicht
+freigegebenen Benutzers. Der geprüfte CI-Artefaktnachweis steht in
+`docs/evidence/p4-003-forge-ci.json`. [CI 40706305462](https://github.com/damiankaest/DKMan/actions/runs/40706305462)
+prüfte den Operatorhelfer mit echtem Staging sowie erneut die OIDC-Journey; eine
+vorhandene Notes-Installation und deren Volumes blieben unverändert. Für den Fall einer
+verlorenen Updateantwort gibt es zusätzlich einen beleggebundenen Abgleich ohne erneute
+Mutation; die echte Adapter-/Core-Probe in CI 40707696300 bestand. Ein zwischenzeitlicher
+Browserlauf erhielt HTTP 429 durch die bestehende Proxy-Ratenbegrenzung; die Journey
+taktet ihre Anfragen jetzt vorab und wiederholt keine Mutationen. Lokal bestehen 374 Backendtests mit 20
+Dienst-/Docker-Skips, Ruff, Format und mypy sowie 31 Hubtests.
+Lokale Browsertests konnten mangels Chromium nicht starten; die vorherige CI bestand.
+API und Fullstack bleiben zunächst auf Preview beschränkt; es wurde kein Zielhost
+verändert. Der folgende Previewstand bleibt als Verlauf erhalten.
+
+P4-003 ist in Arbeit: Ein Builder kann Buildnachweise mit einem separaten
+Ed25519-Schlüssel signieren; Core prüft Signatur, Plan, Quellen und Rezepte und der
+Hub kann den Nachweis importieren. Ein manueller Preview-Adapter auf einer getrennten
+Linux-VM akzeptiert die drei unveränderten Starter, prüft Archiv und Rechte erneut,
+startet eine eingeschränkte Preview auf Loopback und signiert eine zeitlich begrenzte
+Readiness-Beobachtung mit einem zweiten Schlüssel. Core und Hub können den Nachweis
+registrieren. API-/Fullstack-Previews nutzen eine kurzlebige SQLite-DB im Container.
+Das ist noch keine Freigabe und kein Deployment. Die Engineprobe im wegwerfbaren
+CI-Runner ist bestanden; die Zielhostabnahme steht noch aus. Produktive
+Archivübernahme, previewgebundene Genehmigung, Installation und Updates sind für
+P4-003 noch offen. Siehe `forge.md` und ADR 0015.
+
+Lokale Vorprüfung: 344 Backendtests bestanden, 19 Dienst-/Docker-/BuildKit-Tests
+übersprungen; Ruff, Format, mypy, Paketbuild und Vertragsexport erfolgreich. Hub-Lint,
+Produktionsbuild und 29 UI-Tests bestanden. Der PostgreSQL-18-WASM-Test prüft die
+Migration 0006 einschließlich Downgrade und erneutem Upgrade. Lokale Browser- und
+Engineabnahme stehen mangels Chromium beziehungsweise Docker weiterhin aus.
+
+[PR-CI 40652530742](https://github.com/damiankaest/DKMan/actions/runs/40652530742)
+für Code `556c98e` hat mit echtem BuildKit und Docker alle drei Starter gebaut,
+isoliert gestartet, HTTP-Readiness und signierte Previewbelege geprüft und die eigenen
+Container und Netze entfernt (3 Tests). API und Fullstack verwendeten ausschließlich
+eine flüchtige SQLite-Datenbank. Backend (359 bestanden, 4 übersprungen), Frontend,
+Starter-, Container- und Adapterjobs bestanden; die Runtime-Journey lief zum Zeitpunkt
+der Dokumentation noch. Die CI-Engine lief nur auf einem Wegwerf-Runner.
+
+## Vorheriger Stand
+
 P4-002 ist als manueller, getrennt betriebener BuildKit-Worker implementiert. Er
 prüft aktuelle Planfreigabe und Quellstand mehrfach, führt Startertests aus, baut ein
 OCI-Archiv und überprüft Manifest und Layer. Ergebnis und begrenzte Fehlerlogs bleiben

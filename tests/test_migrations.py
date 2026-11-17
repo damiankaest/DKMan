@@ -22,9 +22,13 @@ def test_postgres_migrations_round_trip(monkeypatch):
     engine = create_engine(url)
     assert "app_installations" in inspect(engine).get_table_names()
     assert {"jobs", "job_events", "approval_requests"}.issubset(inspect(engine).get_table_names())
-    assert {"app_requests", "app_plans", "forge_workspaces"}.issubset(
-        inspect(engine).get_table_names()
-    )
+    assert {
+        "app_requests",
+        "app_plans",
+        "forge_workspaces",
+        "forge_build_artifacts",
+        "forge_previews",
+    }.issubset(inspect(engine).get_table_names())
     command.downgrade(config, "0003_deployment_targets")
     assert "app_requests" not in inspect(engine).get_table_names()
     assert "jobs" in inspect(engine).get_table_names()

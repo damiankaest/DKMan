@@ -42,14 +42,16 @@ class HttpDeploymentClient:
         self.endpoint = endpoint.rstrip("/")
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
-    def request(self, path: str, token: str, body: dict[str, Any] | None = None) -> bytes:
+    def request(
+        self, path: str, token: str, body: dict[str, Any] | None = None, *, timeout: int = 120
+    ) -> bytes:
         request = urllib.request.Request(
             self.endpoint + path,
             data=json.dumps(body).encode() if body is not None else None,
             headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
-            with self.opener.open(request, timeout=120) as response:
+            with self.opener.open(request, timeout=timeout) as response:
                 result = bytes(response.read(65537))
                 if len(result) > 65536:
                     raise AdapterUnavailable("Adapter response exceeds limit")
@@ -66,7 +68,15 @@ class HttpDeploymentClient:
 
     def execute(self, operation_id: UUID, command: DeploymentCommand, token: str) -> OperationView:
         return OperationView.model_validate_json(
-            self.request(f"/v1/operations/{operation_id}", token, command.model_dump(mode="json"))
+            self.request(
+                f"/v1/operations/{operation_id}",
+                token,
+                command.model_dump(mode="json"),
+                timeout=420
+                if command.plan.profile == "forge-spa-v1"
+                and command.action in {"install", "deploy"}
+                else 120,
+            )
         )
 
     def operation(

@@ -7,8 +7,11 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from dkman.forge import build_worker
+from dkman.forge.attestation import SignedBuildEvidence, verify_signature
+from dkman.forge.build_recipe import image_dockerfile
 from dkman.forge.build_worker import BuildFailure, execute_build, validate_input
 from dkman.forge.oci import verify_oci_archive
 from dkman.forge.templates import TemplateProvider
@@ -27,7 +30,7 @@ def build_input(kind="fullstack-fastapi-react"):
     return BuildInput(workspace_id=str(uuid4()), bundle_hash=bundle_hash(bundle), bundle=bundle)
 
 
-def sample_oci(path: Path, *, corrupt=False):
+def sample_oci(path: Path, *, corrupt=False, layer_repetitions=1):
     def descriptor(content, media):
         return {
             "mediaType": media,
@@ -40,7 +43,7 @@ def sample_oci(path: Path, *, corrupt=False):
     config_desc = descriptor(config, "application/vnd.oci.image.config.v1+json")
     layer_desc = descriptor(layer, "application/vnd.oci.image.layer.v1.tar")
     manifest = json.dumps(
-        {"schemaVersion": 2, "config": config_desc, "layers": [layer_desc]}
+        {"schemaVersion": 2, "config": config_desc, "layers": [layer_desc] * layer_repetitions}
     ).encode()
     manifest_desc = descriptor(manifest, "application/vnd.oci.image.manifest.v1+json")
     index = json.dumps({"schemaVersion": 2, "manifests": [manifest_desc]}).encode()
@@ -74,6 +77,24 @@ def test_authorized_source_must_match_exact_template():
     value.bundle_hash = bundle_hash(value.bundle)
     with pytest.raises(BuildFailure, match="unsupported_or_changed_template"):
         validate_input(value)
+
+
+@pytest.mark.parametrize(
+    "kind,required_copies",
+    [
+        ("python-api", ["app ./app", "alembic.ini ./", "migrations ./migrations"]),
+        ("react-spa", ["nginx.conf /etc/nginx/conf.d/default.conf"]),
+        (
+            "fullstack-fastapi-react",
+            ["backend/app ./app", "backend/alembic.ini ./", "backend/migrations ./migrations"],
+        ),
+    ],
+)
+def test_private_source_files_are_owned_by_the_fixed_runtime_user(kind, required_copies):
+    recipe = image_dockerfile(build_input(kind).bundle)
+    user = "101:101" if kind == "react-spa" else "10001:10001"
+    for copy in required_copies:
+        assert f"COPY --chown={user} {copy}" in recipe
 
 
 @pytest.mark.parametrize(
@@ -111,13 +132,20 @@ def test_build_rechecks_authorization_and_persists_verified_evidence(
         return "ok"
 
     monkeypatch.setattr(build_worker, "run_command", run)
-    result = execute_build(fetch, root, address, "/usr/bin/buildctl")
+    signing_key = Ed25519PrivateKey.generate()
+    result = execute_build(fetch, root, address, "/usr/bin/buildctl", signing_key)
     assert result["state"] == "succeeded"
     assert result["checks"] == markers
     assert len(fetches) == 4 and len(calls) == 2
     artifact_dir = root / result["build_id"]
     assert result == json.loads((artifact_dir / "build-artifact.json").read_text())
     assert verify_oci_archive(artifact_dir / "image.oci.tar")[0] == result["manifest_digest"]
+    signed = SignedBuildEvidence.model_validate_json(
+        (artifact_dir / "build-attestation.json").read_text()
+    )
+    verify_signature(signed, signing_key.public_key())
+    assert signed.evidence.archive_sha256 == result["archive_sha256"]
+    assert signed.evidence.config_digest == result["config_digest"]
     assert os.stat(artifact_dir / "image.oci.tar").st_mode & 0o077 == 0
 
 

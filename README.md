@@ -53,8 +53,10 @@ TLS-/VPN-/Netzwerkabnahme. Keine Windowsinstallation oder Hoständerung wurde hi
   pro Installation, gemessener Status und maskierte Textlogs; Daten bleiben erhalten.
 - Belegter Abschluss unsicherer Operationen mit dauerhaften Enginebestätigungen;
   reale DB-/Prozessausfallmatrix, keine Wiederholung bei fehlendem Nachweis.
-- App-Ideen im Hub planen und freigeben; Forge erstellt daraus unveränderliche
-  Quellstände. Der getrennte Build-Worker ist manuell, eine Preview folgt in P4-003.
+- App-Ideen im Hub planen und freigeben; Forge erstellt unveränderliche Quellstände,
+  baut und prüft Starter isoliert und bietet eine getrennte Preview. Die React-SPA
+  kann nach eigener Freigabe installiert und als neue Revision aktualisiert werden.
+  Die Bereitstellung ist manuell; fachliche Funktionen werden noch nicht automatisch erzeugt.
 - CI mit PostgreSQL-Konkurrenz/Migration, echten Dockerproben und echter
   OIDC-Mehrbenutzerjourney einschließlich Rechteentzug und Notes-Datenerhalt.
 

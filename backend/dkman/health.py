@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from dkman.models import utcnow
 from dkman.schemas import HealthView
 
-SCHEMA_REVISION = "0005_forge_workspaces"
+SCHEMA_REVISION = "0006_forge_build_artifacts"
 
 
 def readiness(engine: Engine) -> HealthView:

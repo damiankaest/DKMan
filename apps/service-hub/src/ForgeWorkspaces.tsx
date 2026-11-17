@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiClient } from './api';
 import type { components } from './generated/api';
+import { ForgeBuildArtifacts } from './ForgeBuildArtifacts';
 
 type Plan = components['schemas']['PlanView'];
 type Workspace = components['schemas']['WorkspaceView'];
 type Template = components['schemas']['WorkspaceInput']['template'];
 
-export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Plan; current: boolean}) {
+export function ForgeWorkspaces({api, plan, current, admin = false, subject = ''}: {api: ApiClient; plan: Plan; current: boolean; admin?: boolean; subject?: string}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Workspace[]>([]);
   const [template, setTemplate] = useState<Template>('fullstack-fastapi-react');
@@ -51,7 +52,7 @@ export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Pla
   }
   return <section className="forge-workspaces" aria-label="App-Quellstände">
     <h4>App-Quellcode vorbereiten</h4>
-    <p>Erstelle aus einem freigegebenen Plan einen gespeicherten Quellstand. Ein isolierter Worker kann die Vorlage prüfen und ein Image bauen. Vorschau und Installation folgen später.</p>
+    <p>Erstelle aus einem freigegebenen Plan einen gespeicherten Quellstand. Ein isolierter Worker kann die Vorlage prüfen und ein Image bauen. Die React-Vorlage kann nach einer Vorschau separat zur Installation freigegeben werden.</p>
     <button type="button" onClick={() => setOpen(!open)}>{open ? 'Quellstände schließen' : 'Quellstände öffnen'}</button>
     {open && <>
       {error && <p role="alert" className="error">{error}</p>}
@@ -69,6 +70,7 @@ export function ForgeWorkspaces({api, plan, current}: {api: ApiClient; plan: Pla
         <strong>{item.template}</strong> · {new Date(item.created_at).toLocaleString('de-DE')}
         <button type="button" disabled={busy} onClick={() => {void download(item);}}>ZIP herunterladen</button>
         <details><summary>Dateien und Prüfsumme</summary><p>Quellstand-ID: <code>{item.id}</code></p><p>Prüfsumme: <code>{item.bundle_hash}</code></p><ul>{item.files.map(file => <li key={file}>{file}</li>)}</ul></details>
+        <ForgeBuildArtifacts api={api} workspaceId={item.id} requestId={plan.request_id} current={current && !!plan.approved_job_id} admin={admin} subject={subject} />
       </li>)}</ul>}
     </>}
   </section>;

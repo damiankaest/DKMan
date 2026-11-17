@@ -36,6 +36,39 @@ def prove_completion(
     current = {c.service: c for c in after.containers}
     if len(current) != len(after.containers) or set(current) != expected:
         raise ValueError("Incomplete current workload")
+    if command.action == "deploy" and command.upgrade is not None:
+        if (
+            len(before) != 1
+            or len(receipt.before.containers) != 1
+            or set(before) != {"app"}
+            or set(current) != {"app"}
+        ):
+            raise ValueError("Update requires exactly one old and one new app")
+        old, new = before["app"], current["app"]
+        previous_plan = command.upgrade.previous
+        if (
+            old.image_id != previous_plan.image
+            or old.runtime_plan_hash != previous_plan.plan_hash
+            or old.status != "running"
+            or old.health != "healthy"
+            or old.started_at > receipt.before.observed_at
+            or old.volumes
+            or new.image_id != plan.image
+            or new.runtime_plan_hash != plan.plan_hash
+            or new.status != "running"
+            or new.health != "healthy"
+            or new.volumes
+            or new.container_id == old.container_id
+            or not receipt.before.observed_at <= new.started_at <= receipt.acknowledged_at
+        ):
+            raise ValueError("Update does not prove the expected revision replacement")
+        evidence = CompletionEvidence(receipt=receipt, after=after)
+        return evidence, RuntimeView(
+            installation_id=plan.installation_id,
+            state="running",
+            observed_at=after.observed_at,
+            container_id=new.container_id,
+        )
     if command.action == "install":
         if before:
             raise ValueError("Installation was not absent")

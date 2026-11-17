@@ -67,7 +67,7 @@ def active_runtime_job(db: Session, installation_id: str) -> Job | None:
         .where(
             Job.resource_type == "app_installation",
             Job.resource_id == installation_id,
-            Job.action.in_(LIFECYCLE_ACTIONS | {"deployment.install"}),
+            Job.action.in_(LIFECYCLE_ACTIONS | {"deployment.install", "deployment.upgrade"}),
             Job.state.not_in({"succeeded", "failed", "cancelled", "expired"}),
         )
         .order_by(Job.created_at)

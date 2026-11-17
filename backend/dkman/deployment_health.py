@@ -17,20 +17,29 @@ from dkman.models import AppInstallation, DeploymentTarget, Job, utcnow
 def poll_once(engine: Engine, settings: Settings, client: HttpDeploymentClient) -> None:
     if not settings.deployment_enabled:
         return
+    from dkman.runtime_api import installed_plan
+
     with Session(engine) as db:
-        targets = list(
+        installations = list(
             db.scalars(
-                select(DeploymentTarget)
-                .join(AppInstallation, AppInstallation.id == DeploymentTarget.id)
+                select(AppInstallation)
+                .join(DeploymentTarget, AppInstallation.id == DeploymentTarget.id)
                 .order_by(DeploymentTarget.id)
                 .limit(100)
             )
         )
-        snapshots = [(x.id, db.get(Job, x.job_id).plan) for x in targets]  # type: ignore[union-attr]
+        snapshots: list[tuple[str, DeploymentPlan | None]] = []
+        for item in installations:
+            try:
+                snapshots.append((item.id, installed_plan(db, item)))
+            except Exception:
+                snapshots.append((item.id, None))
     actor = Principal("system:health", "Health poller", frozenset({"admin"}))
     for installation_id, snapshot in snapshots:
         try:
-            plan = DeploymentPlan.model_validate(snapshot)
+            if snapshot is None:
+                raise ValueError("Installed runtime provenance unavailable")
+            plan = snapshot
             read = Job(id=str(uuid4()), resource_id=installation_id, plan_hash=plan.plan_hash)
             token = credential(settings, actor, read, "status")
             result = client.execute(

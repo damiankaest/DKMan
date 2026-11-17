@@ -57,6 +57,16 @@ def render_compose(plan: DeploymentPlan, credential_key: bytes | None = None) ->
     if plan.data_path:
         config["volumes"] = {"data": {"name": f"{plan.project}-data", "labels": labels}}
         service["volumes"] = [{"type": "volume", "source": "data", "target": plan.data_path}]
+    if plan.profile == "forge-spa-v1":
+        service["tmpfs"] = ["/tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777"]
+        service["healthcheck"] = {
+            "test": ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health/ready"],
+            "interval": "2s",
+            "timeout": "2s",
+            "retries": 10,
+        }
+        service["networks"] = {"private": {}, "gateway": {"aliases": [f"{plan.project}-web"]}}
+        config["networks"]["gateway"] = {"external": True, "name": "dkman-app-gateway"}
     if plan.profile == "notes-postgres-v1":
         if credential_key is None or len(credential_key) < 32:
             raise ValueError("Notes credential derivation requires the adapter secret")
@@ -111,18 +121,22 @@ class ComposeProvider:
         operation_id: UUID,
         docker_binary: str = "/usr/local/bin/docker",
         credential_key: bytes | None = None,
+        forge_staging_root: Path | None = None,
     ):
         self.root = root
         self.operation_id = operation_id
         self.binary = docker_binary
         self.credential_key = credential_key
+        self.forge_staging_root = forge_staging_root
         self._receipt_command: DeploymentCommand | None = None
         self._receipt_writer: Callable[[EngineReceipt], None] | None = None
 
     def collect_receipts(
         self, command: DeploymentCommand, writer: Callable[[EngineReceipt], None]
     ) -> None:
-        if command.action in {"install", "start", "stop", "restart"}:
+        if command.action in {"install", "start", "stop", "restart"} or (
+            command.action == "deploy" and command.upgrade is not None
+        ):
             self._receipt_command = command
             self._receipt_writer = writer
 
@@ -247,13 +261,26 @@ class ComposeProvider:
         found |= self.resource_exists("volume", f"{plan.project}-data", plan)
         if found and not known:
             raise AdapterError("unregistered_project_collision")
-        if plan.profile == "notes-postgres-v1":
+        if plan.profile in {"notes-postgres-v1", "forge-spa-v1"}:
             network = json.loads(self.run(["network", "inspect", "dkman-app-gateway"]))[0]
             if (
                 not network.get("Internal")
                 or (network.get("Labels") or {}).get("io.dkman.gateway") != "true"
             ):
                 raise AdapterError("untrusted_app_gateway")
+        if plan.profile == "forge-spa-v1" and not known:
+            self.require_forge_artifact(plan)
+
+    def require_forge_artifact(self, plan: DeploymentPlan) -> None:
+        if self.forge_staging_root is None or plan.forge is None:
+            raise AdapterError("forge_artifact_not_staged")
+        from dkman.deployment_adapter.forge_preview import PreviewError
+        from dkman.deployment_adapter.forge_staging import staged_archive
+
+        try:
+            staged_archive(plan.forge.build, self.forge_staging_root)
+        except (OSError, ValueError, PreviewError):
+            raise AdapterError("forge_artifact_not_staged") from None
 
     def compose(self, plan: DeploymentPlan, arguments: list[str]) -> str:
         path = self.root / "plans" / f"{self.operation_id}.json"
@@ -267,7 +294,8 @@ class ComposeProvider:
             with os.fdopen(descriptor, "w") as stream:
                 stream.write(raw)
         command = self._receipt_command
-        before = self.evidence(plan) if command else None
+        before_plan = command.upgrade.previous if command and command.upgrade else plan
+        before = self.evidence(before_plan) if command else None
         output = self.run(
             [
                 "compose",
@@ -285,7 +313,7 @@ class ComposeProvider:
         )
         if (
             command
-            and command.action in {"install", "start", "stop", "restart"}
+            and command.action in {"install", "start", "stop", "restart", "deploy"}
             and before is not None
             and self._receipt_writer
         ):
@@ -303,6 +331,16 @@ class ComposeProvider:
         return output
 
     def verify_image(self, plan: DeploymentPlan) -> None:
+        if plan.profile == "forge-spa-v1":
+            image = json.loads(self.run(["image", "inspect", plan.image]))[0]
+            config = image.get("Config") or {}
+            if (
+                image.get("Id") != plan.image
+                or config.get("User") != "101"
+                or config.get("Volumes")
+            ):
+                raise AdapterError("curated_image_contract_mismatch")
+            return
         self.verify_reference(plan.image, plan.user, plan.data_path)
         if plan.database_image:
             self.verify_reference(plan.database_image, plan.user, "/var/lib/postgresql/data")
@@ -335,6 +373,19 @@ class ComposeProvider:
         return self.status(plan)
 
     def pull(self, plan: DeploymentPlan) -> None:
+        if plan.profile == "forge-spa-v1":
+            if self.forge_staging_root is None or plan.forge is None:
+                raise AdapterError("forge_artifact_not_staged")
+            from dkman.deployment_adapter.forge_staging import staged_archive
+            from dkman.forge.oci import write_docker_load_archive
+
+            archive, inspected = staged_archive(plan.forge.build, self.forge_staging_root)
+            load_archive = self.root / "plans" / f"{self.operation_id}.forge-load.tar"
+            write_docker_load_archive(archive, load_archive, inspected)
+            try:
+                self.run(["image", "load", "--input", str(load_archive)], timeout=300)
+            finally:
+                load_archive.unlink(missing_ok=True)
         for reference in [plan.image, plan.database_image]:
             if reference and not reference.startswith("sha256:"):
                 self.run(["image", "pull", reference], timeout=90)
@@ -347,9 +398,21 @@ class ComposeProvider:
 
     def deploy(self, plan: DeploymentPlan) -> RuntimeView:
         self.pull(plan)
+        arguments = [
+            "up",
+            "--detach",
+            "--no-build",
+            "--pull",
+            "never",
+            "--wait",
+            "--wait-timeout",
+            "30",
+        ]
+        if self._receipt_command and self._receipt_command.upgrade:
+            arguments.append("--force-recreate")
         self.compose(
             plan,
-            ["up", "--detach", "--no-build", "--pull", "never", "--wait", "--wait-timeout", "30"],
+            arguments,
         )
         return self.status(plan)
 

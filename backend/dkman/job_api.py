@@ -162,6 +162,10 @@ def run_validation(job_id: str, db: Db, actor: Runtime, request: Request) -> Job
         from dkman.deployment_api import run_installation
 
         return run_installation(job_id, db, actor, request)
+    if job.action == "deployment.upgrade":
+        from dkman.forge_upgrade_api import run_upgrade
+
+        return run_upgrade(job_id, db, actor, request)
     if job.action != "registry.validate":
         raise HTTPException(409, "No executor registered for this action")
     token = claim(db, job_id, actor)

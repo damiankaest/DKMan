@@ -79,6 +79,7 @@ export function DeploymentAdmin({api, subject, onInstalled, initialDefinition}: 
   }
 
   const runtime = job && 'image' in job.plan ? job.plan : null;
+  const forge = runtime?.profile === 'forge-spa-v1';
   return <section className="deployment-admin" aria-label="App installieren">
     <span className="section-number">KURATIERTER KATALOG</span><h2>Eine App für deinen Haushalt.</h2>
     <p className="muted">Prüfe den Plan, erteile die zeitlich begrenzte Freigabe und starte anschließend die Installation.</p>
@@ -90,14 +91,15 @@ export function DeploymentAdmin({api, subject, onInstalled, initialDefinition}: 
     </div>}
     <button className="quiet" disabled={busy} onClick={() => {void action(load);}}>Stand neu laden</button>
     {job && runtime && <article className="installation-plan" aria-label="Installationsplan">
-      <h3>{states[job.state]} · Notes {runtime.version}</h3>
+      <h3>{states[job.state]} · {forge ? 'Forge-App' : 'Notes'} {runtime.version}</h3>
       <dl>
         <dt>Haushalt</dt><dd>{households.find(group => group.id === runtime.context?.household_id)?.name ?? runtime.context?.household_id}</dd>
         <dt>Herkunft</dt><dd>Geprüfter DKMan-Quellbuild, SHA-256 <code>{runtime.source_hash}</code></dd>
         <dt>App-Image</dt><dd><code>{runtime.image}</code></dd>
-        <dt>Datenbank-Image</dt><dd><code>{runtime.database_image}</code></dd>
-        <dt>Ressourcen</dt><dd>App: {runtime.memory_mb} MiB / {runtime.cpus} CPU; eigene PostgreSQL: 256 MiB / 0,5 CPU</dd>
-        <dt>Daten & Netzwerk</dt><dd>Eigenes persistentes Datenvolume. Keine Hostports. Zugang über den Hub-Proxy mit OIDC und expliziter App-Freigabe.</dd>
+        {!forge && <><dt>Datenbank-Image</dt><dd><code>{runtime.database_image}</code></dd></>}
+        <dt>Ressourcen</dt><dd>App: {runtime.memory_mb} MiB / {runtime.cpus} CPU{!forge && '; eigene PostgreSQL: 256 MiB / 0,5 CPU'}</dd>
+        <dt>Daten & Netzwerk</dt><dd>{forge ? 'Kein persistentes Datenvolume.' : 'Eigenes persistentes Datenvolume.'} Keine Hostports. Zugang über den Hub-Proxy mit OIDC und expliziter App-Freigabe.</dd>
+        {forge && runtime.forge && <><dt>Gebundene Vorschau</dt><dd><code>{runtime.forge.preview.evidence.preview_id}</code></dd></>}
         <dt>Identität</dt><dd>{job.requested_by}</dd>
         <dt>Plan-Hash</dt><dd><code>{job.plan_hash}</code></dd>
         <dt>Freigabe gültig bis</dt><dd>{approval ? new Date(approval.expires_at).toLocaleString('de-DE') : 'Wird geladen …'}</dd>
@@ -107,7 +109,7 @@ export function DeploymentAdmin({api, subject, onInstalled, initialDefinition}: 
       {busy && <p role="status">Aktion wird verarbeitet. Der Job bleibt bei einem Verbindungsabbruch gespeichert.</p>}
       {['waiting_approval','queued'].includes(job.state) && <button className="quiet" disabled={busy} onClick={() => {void action(async () => {await details(await api.request<Job>(`/api/v1/jobs/${job.id}/cancel`,'POST')); key.current = null;});}}>Plan abbrechen</button>}
       {job.state === 'reconciliation_required' && <><p>Die Installation wird nicht erneut gesendet. Prüfe das gespeicherte Ergebnis beim Deployment-Adapter.</p><button disabled={busy} onClick={() => {void action(async () => {const next = await api.request<Job>(`/api/v1/jobs/${job.id}/reconcile`,'POST'); await details(next); if(next.state === 'succeeded') onInstalled();});}}>Ergebnis abgleichen</button></>}
-      {job.state === 'succeeded' && <p>Notes ist installiert. Unter „Meine Apps“ öffnen; weitere Personen über die App-Freigaben berechtigen.</p>}
+      {job.state === 'succeeded' && <p>{forge ? 'Die Forge-App' : 'Notes'} ist installiert. Unter „Meine Apps“ öffnen; weitere Personen über die App-Freigaben berechtigen.</p>}
       {typeof job.result?.evidence_hash === 'string' && <p>Abschlussnachweis: <code>{job.result.evidence_hash}</code></p>}
       {job.failure_code && <p className="muted">Fehlercode: {job.failure_code}</p>}
       <details><summary>Jobverlauf</summary><p><code>{job.id}</code></p><ol>{events.map(event => <li key={event.sequence}>{event.kind} · {new Date(event.created_at).toLocaleTimeString('de-DE')}</li>)}</ol></details>

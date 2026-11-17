@@ -23,21 +23,22 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from dkman.deployments.client import NoRedirect
 from dkman.deployments.redaction import redact_logs
-from dkman.forge.oci import sha256_file, verify_oci_archive
+from dkman.forge.attestation import BuildEvidence, read_private_key, sign_evidence
+from dkman.forge.build_recipe import (
+    CHECK_LOCK,
+    checks_dockerfile,
+    expected_checks,
+    image_dockerfile,
+)
+from dkman.forge.oci import inspect_oci_archive, sha256_file
 from dkman.forge.templates import TemplateProvider
 from dkman.forge.workspace import SourceBundle, prepare_workspace
 from dkman.forge_api import BuildInput, bundle_hash
 
-PYTHON_IMAGE = (
-    "python:3.12-slim-bookworm@sha256:"
-    "34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258"
-)
-NODE_IMAGE = (
-    "node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5"
-)
-CHECK_LOCK = Path(__file__).with_name("worker_assets") / "requirements-check.lock"
 MAX_OUTPUT = 65536
 TIMEOUT_SECONDS = 900
 
@@ -142,37 +143,6 @@ def assert_files(path: Path, bundle: SourceBundle) -> None:
         raise BuildFailure("source_files_changed")
 
 
-def checks_dockerfile(kind: str) -> str:
-    api = kind in {"python-api", "fullstack-fastapi-react"}
-    web = kind in {"react-spa", "fullstack-fastapi-react"}
-    if not (api or web):
-        raise ValueError("unsupported_template")
-    stages: list[str] = []
-    outputs: list[str] = []
-    if api:
-        stages.append(
-            f"FROM {PYTHON_IMAGE} AS api-check\n"
-            "WORKDIR /src\n"
-            "COPY requirements-check.lock /tmp/requirements-check.lock\n"
-            "RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-check.lock\n"
-            "COPY backend/ ./\n"
-            "RUN --network=none python -m compileall -q app "
-            "&& python -m pytest -q && touch /passed\n"
-        )
-        outputs.append("COPY --from=api-check /passed /api-passed\n")
-    if web:
-        stages.append(
-            f"FROM {NODE_IMAGE} AS web-check\n"
-            "WORKDIR /src\n"
-            "COPY web/package*.json ./\n"
-            "RUN npm ci --ignore-scripts --no-audit --no-fund\n"
-            "COPY web/ ./\n"
-            "RUN --network=none npm test && npm run build && touch /passed\n"
-        )
-        outputs.append("COPY --from=web-check /passed /web-passed\n")
-    return "\n".join(stages) + "\nFROM scratch AS checks\n" + "".join(outputs)
-
-
 def run_command(command: list[str], home: Path) -> str:
     """Drain output with a hard in-memory bound and kill the client on timeout."""
     try:
@@ -257,7 +227,11 @@ def write_report(directory: Path, result: dict[str, Any], *, initial: bool = Fal
 
 
 def execute_build(
-    get_input: Callable[[], BuildInput], root: Path, address: str, buildctl: str
+    get_input: Callable[[], BuildInput],
+    root: Path,
+    address: str,
+    buildctl: str,
+    signing_key: Ed25519PrivateKey | None = None,
 ) -> dict[str, Any]:
     """Build exactly once; any failure leaves a private, non-deployable report."""
     root = private_root(root)
@@ -279,6 +253,7 @@ def execute_build(
         "started_at": datetime.now(UTC).isoformat(),
         "checks": [],
         "manifest_digest": None,
+        "config_digest": None,
         "archive_sha256": None,
         "archive_size": None,
         "check_recipe_sha256": None,
@@ -320,11 +295,7 @@ def execute_build(
                 ),
                 work,
             )
-            expected = (
-                ["api-passed", "web-passed"]
-                if bundle.request.template == "fullstack-fastapi-react"
-                else ["api-passed" if bundle.request.template == "python-api" else "web-passed"]
-            )
+            expected = expected_checks(bundle.request.template)
             if any(
                 not (check_result / marker).is_file() or (check_result / marker).is_symlink()
                 for marker in expected
@@ -340,9 +311,7 @@ def execute_build(
                 context = source / "web"
             else:
                 context = source
-            dockerfile = (context / "Dockerfile").read_text()
-            # The source is an exact approved template; disable networking for its build command.
-            dockerfile = dockerfile.replace("RUN npm run build", "RUN --network=none npm run build")
+            dockerfile = image_dockerfile(bundle)
             (recipe / "Dockerfile").write_text(dockerfile)
             result["image_recipe_sha256"] = sha256_file(recipe / "Dockerfile")
             write_report(output_dir, result)
@@ -351,16 +320,17 @@ def execute_build(
             )
             result["stage"] = "verification"
             write_report(output_dir, result)
-            manifest, archive_sha, size = verify_oci_archive(archive)
+            verified = inspect_oci_archive(archive)
             reauthorize()
             archive.chmod(0o600)
             archive.replace(output_dir / "image.oci.tar")
             result.update(
                 state="succeeded",
                 stage="complete",
-                manifest_digest=manifest,
-                archive_sha256=archive_sha,
-                archive_size=size,
+                manifest_digest=verified.manifest_digest,
+                config_digest=verified.config_digest,
+                archive_sha256=verified.archive_sha256,
+                archive_size=verified.archive_size,
             )
     except BuildFailure as exc:
         archive.unlink(missing_ok=True)
@@ -369,6 +339,26 @@ def execute_build(
         archive.unlink(missing_ok=True)
         result.update(state="failed", failure_code="worker_or_artifact_invalid")
     result["finished_at"] = datetime.now(UTC).isoformat()
+    if result["state"] == "succeeded" and signing_key is not None:
+        try:
+            evidence = BuildEvidence.model_validate(
+                {key: result[key] for key in BuildEvidence.model_fields}
+            )
+            signed = sign_evidence(evidence, signing_key)
+            descriptor = os.open(
+                output_dir / "build-attestation.json",
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                0o600,
+            )
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(signed.model_dump_json(indent=2) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            result["attestation"] = "build-attestation.json"
+        except (OSError, ValueError):
+            (output_dir / "image.oci.tar").unlink(missing_ok=True)
+            (output_dir / "build-attestation.json").unlink(missing_ok=True)
+            result.update(state="failed", failure_code="attestation_failed")
     write_report(output_dir, result)
     return result
 
@@ -383,6 +373,7 @@ def main() -> None:
         "--root", type=Path, required=True, help="existing private builder directory"
     )
     parser.add_argument("--buildkit-socket", required=True, help="unix:///.../buildkitd.sock")
+    parser.add_argument("--signing-key", type=Path, help="private Ed25519 builder key")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm", default="")
     args = parser.parse_args()
@@ -398,6 +389,7 @@ def main() -> None:
     buildctl = shutil.which("buildctl")
     if not buildctl:
         parser.error("buildctl is required on the isolated builder")
+    signing_key = read_private_key(args.signing_key) if args.signing_key else None
     import getpass
 
     token = getpass.getpass("Current DKMan access token (not echoed): ").strip()
@@ -417,6 +409,7 @@ def main() -> None:
         args.root,
         args.buildkit_socket,
         buildctl,
+        signing_key,
     )
     print(
         json.dumps({k: v for k, v in result.items() if k != "logs"}, ensure_ascii=False, indent=2)

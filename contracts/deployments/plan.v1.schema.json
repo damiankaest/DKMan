@@ -1,5 +1,134 @@
 {
   "$defs": {
+    "BuildEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "build_id": {
+          "format": "uuid",
+          "title": "Build Id",
+          "type": "string"
+        },
+        "workspace_id": {
+          "format": "uuid",
+          "title": "Workspace Id",
+          "type": "string"
+        },
+        "source_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Hash",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "template": {
+          "enum": [
+            "python-api",
+            "react-spa",
+            "fullstack-fastapi-react"
+          ],
+          "title": "Template",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "enum": [
+              "api-passed",
+              "web-passed"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "manifest_digest": {
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "config_digest": {
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "title": "Config Digest",
+          "type": "string"
+        },
+        "archive_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Archive Sha256",
+          "type": "string"
+        },
+        "archive_size": {
+          "exclusiveMinimum": 0,
+          "maximum": 2147483648,
+          "title": "Archive Size",
+          "type": "integer"
+        },
+        "check_recipe_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Check Recipe Sha256",
+          "type": "string"
+        },
+        "check_requirements_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Check Requirements Sha256",
+          "type": "string"
+        },
+        "image_recipe_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Image Recipe Sha256",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "build_id",
+        "workspace_id",
+        "source_hash",
+        "plan_hash",
+        "template",
+        "checks",
+        "manifest_digest",
+        "config_digest",
+        "archive_sha256",
+        "archive_size",
+        "check_recipe_sha256",
+        "check_requirements_sha256",
+        "image_recipe_sha256",
+        "finished_at"
+      ],
+      "title": "BuildEvidence",
+      "type": "object"
+    },
+    "ForgeReleaseProof": {
+      "additionalProperties": false,
+      "properties": {
+        "build": {
+          "$ref": "#/$defs/SignedBuildEvidence"
+        },
+        "preview": {
+          "$ref": "#/$defs/SignedPreviewEvidence"
+        }
+      },
+      "required": [
+        "build",
+        "preview"
+      ],
+      "title": "ForgeReleaseProof",
+      "type": "object"
+    },
     "InstallationContext": {
       "additionalProperties": false,
       "properties": {
@@ -32,6 +161,159 @@
         "manifest_hash"
       ],
       "title": "InstallationContext",
+      "type": "object"
+    },
+    "PreviewEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "preview_id": {
+          "format": "uuid",
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "workspace_id": {
+          "format": "uuid",
+          "title": "Workspace Id",
+          "type": "string"
+        },
+        "artifact_evidence_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Artifact Evidence Hash",
+          "type": "string"
+        },
+        "source_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Hash",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "manifest_digest": {
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "config_digest": {
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "title": "Config Digest",
+          "type": "string"
+        },
+        "container_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Container Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "state": {
+          "const": "healthy",
+          "default": "healthy",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "preview_id",
+        "artifact_id",
+        "workspace_id",
+        "artifact_evidence_hash",
+        "source_hash",
+        "plan_hash",
+        "manifest_digest",
+        "config_digest",
+        "container_id",
+        "observed_at",
+        "expires_at"
+      ],
+      "title": "PreviewEvidence",
+      "type": "object"
+    },
+    "SignedBuildEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "default": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/BuildEvidence"
+        },
+        "signature": {
+          "maxLength": 88,
+          "minLength": 88,
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "title": "Signature",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_id",
+        "evidence",
+        "signature"
+      ],
+      "title": "SignedBuildEvidence",
+      "type": "object"
+    },
+    "SignedPreviewEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "default": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/PreviewEvidence"
+        },
+        "signature": {
+          "maxLength": 88,
+          "minLength": 88,
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "title": "Signature",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_id",
+        "evidence",
+        "signature"
+      ],
+      "title": "SignedPreviewEvidence",
       "type": "object"
     }
   },
@@ -72,8 +354,11 @@
       "title": "Data Path"
     },
     "user": {
-      "const": "10001:10001",
       "default": "10001:10001",
+      "enum": [
+        "10001:10001",
+        "101"
+      ],
       "title": "User",
       "type": "string"
     },
@@ -95,7 +380,8 @@
       "default": "web-v1",
       "enum": [
         "web-v1",
-        "notes-postgres-v1"
+        "notes-postgres-v1",
+        "forge-spa-v1"
       ],
       "title": "Profile",
       "type": "string"
@@ -147,6 +433,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/InstallationContext"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "forge": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ForgeReleaseProof"
         },
         {
           "type": "null"
