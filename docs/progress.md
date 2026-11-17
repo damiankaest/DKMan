@@ -2,6 +2,17 @@
 
 ## Aktueller Stand
 
+Heimnetz-Neuausrichtung: H1-001 bis H1-006 im Backlog ergänzen die bestehenden
+Phasen um Mehrgerätezugriff, eine vorhandene Web-App, HomeTrainer, Geräte und lokale
+Werkzeuge. `scripts/check_home_access.py` prüft eine bereits konfigurierte HTTPS-Origin
+lesend vom Client aus; es richtet keine TLS-/Netzwerk-/Keycloak-Konfiguration ein und
+ersetzt keinen Login- oder Zielhosttest. Nächster Einstieg: H1-001, `docs/home-network.md`.
+P4-004 bleibt offen. Kein Zielhost wurde verändert. Lokale Vorprüfung:
+`uv run pytest -q tests/test_check_home_access.py` (7 bestanden);
+`uv run ruff check` und `uv run ruff format --check` für Skript und Test bestanden.
+Kein Live-HTTPS-, Browser-, Login-, Firewall- oder Zielhosttest durchgeführt.
+
+
 P4-003 Zwischenstand: Für den unveränderten React-SPA-Starter sind private
 Archivübernahme, previewgebundene separate Installationsfreigabe und die Ausführung
 über den bestehenden Adapter implementiert. [PR-CI 40703606375](https://github.com/damiankaest/DKMan/actions/runs/40703606375)
